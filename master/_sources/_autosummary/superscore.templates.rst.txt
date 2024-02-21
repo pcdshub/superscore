@@ -1,0 +1,6 @@
+﻿superscore.templates
+====================
+
+.. currentmodule:: superscore
+
+.. automodule:: templates

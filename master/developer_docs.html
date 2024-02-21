@@ -1,0 +1,295 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Developer Documentation &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="v0.1.0 (2026-04-22)" href="releases.html" />
+    <link rel="prev" title="Data Model" href="model.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Data Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developer Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-architecture">The Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#backend-types">Backend types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#control-layer-types">Control Layer types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-use-the-dataclasses">How to use the Dataclasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-primer-on-the-gui">A Primer on the GUI</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main-window-singleton-windowlinker">Main Window Singleton, <code class="xref any docutils literal notranslate"><span class="pre">WindowLinker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#qdataclassbridge"><code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#datatracker-and-datawidget"><code class="xref any docutils literal notranslate"><span class="pre">DataTracker</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">DataWidget</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Developer Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/developer_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="developer-documentation">
+<h1>Developer Documentation<a class="headerlink" href="#developer-documentation" title="Link to this heading"></a></h1>
+<p>This is a gathering point for the notes and thoughts of the primary developer as
+of April 2026.  I hope to capture some of the thoughts behind
+the design decisions made, not to convince others of their correctness but rather
+to (hopefully) provide helpful guidance for future developers.</p>
+<p>I apologize in advance.</p>
+<section id="the-architecture">
+<h2>The Architecture<a class="headerlink" href="#the-architecture" title="Link to this heading"></a></h2>
+<p>The application is built around operations using the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.  In order to perform
+actions in the application, the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> holds references to a “Control Layer”
+and a “Backend”</p>
+<ul class="simple">
+<li><p>“Control Layer”: Used for communication with the controls system.</p>
+<ul>
+<li><p>Currently this include CA, but could be trivially extended to PVA.</p></li>
+</ul>
+</li>
+<li><p>“Backend”: Used for communication with the data storage system.</p>
+<ul>
+<li><p>Currently we feature two file-based backends, and one in-memory test backend.</p></li>
+</ul>
+</li>
+</ul>
+<p>By abstracting these interfaces, we make it possible to replace the backing technologies
+without redesigning the application.</p>
+<p>The GUI communicates entirely with the client, and should not hold any business
+logic of its own.  Of course, this line may have been inadvertently blurred during development in
+some places, but future developers should strive to maintain this boundary.</p>
+<p>To help build a responsive GUI, we have added callbacks to the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.  These
+callbacks fire when specific events happen.  These callbacks should not be needed
+for programmatic or interactive use of the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.</p>
+<figure class="align-default" id="id1">
+digraph &quot;classes&quot; {
+
+rankdir=BT
+
+charset=&quot;utf-8&quot;
+
+bgcolor=transparent
+
+&quot;superscore.client.CallbackType&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;CallbackType&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.client.html#superscore.client.CallbackType&quot; tooltip=&quot;CallbackType&quot; target=&quot;_top&quot;&gt;&lt;b&gt;CallbackType&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.CallbackType.name&quot; target=&quot;_top&quot; tooltip=&quot;CallbackType.name&quot;&gt;name&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.client.html#superscore.client.CallbackType&quot;];
+
+&quot;superscore.client.Client&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Client&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.client.html#superscore.client.Client&quot; tooltip=&quot;Client&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Client&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.backend &quot; target=&quot;_top&quot; tooltip=&quot;Client.backend : _Backend&quot;&gt;backend : _Backend&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.cl &quot; target=&quot;_top&quot; tooltip=&quot;Client.cl : ControlLayer&quot;&gt;cl : ControlLayer&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.enable_editing_past &quot; target=&quot;_top&quot; tooltip=&quot;Client.enable_editing_past : bool&quot;&gt;enable_editing_past : bool&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.recent_entry_cache &quot; target=&quot;_top&quot; tooltip=&quot;Client.recent_entry_cache : set[UUID]&quot;&gt;recent_entry_cache : set[UUID]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.apply&quot; target=&quot;_top&quot; tooltip=&quot;Client.apply&quot;&gt;apply(entry: Union[Setpoint, Snapshot], sequential: bool): Optional[List[TaskStatus]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.compare&quot; target=&quot;_top&quot; tooltip=&quot;Client.compare&quot;&gt;compare(entry_l: Entry, entry_r: Entry): EntryDiff&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.convert_to_template&quot; target=&quot;_top&quot; tooltip=&quot;Client.convert_to_template&quot;&gt;convert_to_template(collection: Collection): Template&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.delete&quot; target=&quot;_top&quot; tooltip=&quot;Client.delete&quot;&gt;delete(entry: Entry): None&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.fill&quot; target=&quot;_top&quot; tooltip=&quot;Client.fill&quot;&gt;fill(entry: Union[Entry, UUID], fill_depth: Optional[int]): None&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.fill_template&quot; target=&quot;_top&quot; tooltip=&quot;Client.fill_template&quot;&gt;fill_template(template: Template, substitutions: Dict[str, str]): Collection&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.find_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.find_config&quot;&gt;find_config(): Path&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.find_origin_collection&quot; target=&quot;_top&quot; tooltip=&quot;Client.find_origin_collection&quot;&gt;find_origin_collection(entry: Union[Collection, Snapshot]): Collection&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.from_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.from_config&quot;&gt;from_config(cfg: Optional[Path])&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.from_parsed_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.from_parsed_config&quot;&gt;from_parsed_config(cfg_parser: configparser.ConfigParser, cfg_path)&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.get_entry&quot; target=&quot;_top&quot; tooltip=&quot;Client.get_entry&quot;&gt;get_entry(uuid: UUID, fill: bool, force_reload: bool): Entry&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.get_user&quot; target=&quot;_top&quot; tooltip=&quot;Client.get_user&quot;&gt;get_user(): str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.is_editable&quot; target=&quot;_top&quot; tooltip=&quot;Client.is_editable&quot;&gt;is_editable(entry: Entry): bool&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.is_user_authorized&quot; target=&quot;_top&quot; tooltip=&quot;Client.is_user_authorized&quot;&gt;is_user_authorized(user: str): bool&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.register_callback&quot; target=&quot;_top&quot; tooltip=&quot;Client.register_callback&quot;&gt;register_callback(cb_type: CallbackType, cb: Callable[[UUID], None])&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.run_callbacks&quot; target=&quot;_top&quot; tooltip=&quot;Client.run_callbacks&quot;&gt;run_callbacks(cb_type: CallbackType)&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.save&quot; target=&quot;_top&quot; tooltip=&quot;Client.save&quot;&gt;save(entry: Entry)&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.search&quot; target=&quot;_top&quot; tooltip=&quot;Client.search&quot;&gt;search(): Generator[Entry, None, None]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.snap&quot; target=&quot;_top&quot; tooltip=&quot;Client.snap&quot;&gt;snap(entry: Collection, dest: Optional[Snapshot]): Snapshot&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.validate&quot; target=&quot;_top&quot; tooltip=&quot;Client.validate&quot;&gt;validate(entry: Entry): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.client.html#superscore.client.Client&quot;];
+
+}
+<figcaption>
+<p><span class="caption-text">UML Diagram describing the superscore Client</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p><a class="reference external" href="_images/graphviz-6af7a6ed6be4e5594a76b464bb34bc10d16ce919.svg">Open in a new tab</a></p>
+<section id="backend-types">
+<h3>Backend types<a class="headerlink" href="#backend-types" title="Link to this heading"></a></h3>
+<p><strong>`FilestoreBackend`</strong>: Stores Entries in a single file as a JSON blob.  The JSON is generated
+via apischema deserialization.  This is the easiest backend to work with for
+local development, as changes to the database are easily observed.  This backend
+obviously scales poorly with database size.</p>
+<p><strong>`DirectoryBackend`</strong>: Stores Entries in directories based on their uuid.
+The directory structure is a <a class="reference external" href="https://en.wikipedia.org/wiki/Radix_tree">Radix Tree</a>
+with a default depth of 3.  This schema keeps <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> data organized and spread
+across multiple files for safety.</p>
+</section>
+<section id="control-layer-types">
+<h3>Control Layer types<a class="headerlink" href="#control-layer-types" title="Link to this heading"></a></h3>
+<p><strong>`AiocaShim`</strong>: An EPICS Channel Access communication layer that supports asyncio
+access of PVs.   The <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> operation is abstracted away from users of the
+shim.</p>
+</section>
+</section>
+<section id="how-to-use-the-dataclasses">
+<h2>How to use the Dataclasses<a class="headerlink" href="#how-to-use-the-dataclasses" title="Link to this heading"></a></h2>
+<p>If one wants to use superscore in other applications, one can manipulate the data
+model dataclasses directly in Python, and use the Client to communicate with the
+database.</p>
+<p>One can simply import the dataclasses and construct the Entry you’d like.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">superscore.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">Snapshot</span>
+
+<span class="n">origin_coll</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;origin of various types&quot;</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">Parameter</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:FLOAT&quot;</span><span class="p">),</span>
+        <span class="n">Parameter</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:INT&quot;</span><span class="p">),</span>
+        <span class="n">Parameter</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:ENUM&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">snap</span> <span class="o">=</span> <span class="n">Snapshot</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;various types&#39;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;types collection&#39;</span><span class="p">,</span>
+                <span class="n">origin_collection</span><span class="o">=</span><span class="n">origin_coll</span><span class="p">)</span>
+<span class="n">snap</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Setpoint</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:FLOAT&quot;</span><span class="p">))</span>
+<span class="n">snap</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Setpoint</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:INT&quot;</span><span class="p">))</span>
+<span class="n">snap</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Setpoint</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:ENUM&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Once the <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> has been created, <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> methods can be used to verify and
+save the data to the database.</p>
+</section>
+<section id="a-primer-on-the-gui">
+<h2>A Primer on the GUI<a class="headerlink" href="#a-primer-on-the-gui" title="Link to this heading"></a></h2>
+<p>This section is not about how to use the GUI, but rather about the organization
+of the code that comprises the GUI.</p>
+<section id="main-window-singleton-windowlinker">
+<h3>Main Window Singleton, <code class="xref any docutils literal notranslate"><span class="pre">WindowLinker</span></code><a class="headerlink" href="#main-window-singleton-windowlinker" title="Link to this heading"></a></h3>
+<p>The GUI centered around the “main window”, which holds a tree-view and a tab widget.
+The tab widget holds pages that display and edit <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> data.  This <code class="xref any docutils literal notranslate"><span class="pre">Window</span></code> is
+a singleton that we expose to every widget in the application via the <code class="xref any docutils literal notranslate"><span class="pre">WindowLinker</span></code>
+mixin.  This mixin provides methods for accessing the central <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> and a method
+for opening a page (<code class="xref any docutils literal notranslate"><span class="pre">Window.open_page_slot</span></code>).  This mixin should be added to any
+page widget opened by the application.</p>
+</section>
+<section id="qdataclassbridge">
+<h3><code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code><a class="headerlink" href="#qdataclassbridge" title="Link to this heading"></a></h3>
+<p>In GUI applications that display the same data across different views, one problem
+is keeping the views synchronized when data changes.  While one might expect the
+qt MVC framework to help with this, qt models are restricted to the views they service.</p>
+<p>One way this is approached in superscore is via the <code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code>.  This is
+a simple QObject that emits signals when attributes on the dataclass are modified.
+This requires changes to the dataclass to be made through the bridge, rather than
+directly on the object itself.  (This is a bit obfuscated, and one of the main
+drawbacks of the construct).</p>
+<p>These bridges are constructed automatically in <code class="xref any docutils literal notranslate"><span class="pre">DataTracker</span></code></p>
+</section>
+<section id="datatracker-and-datawidget">
+<h3><code class="xref any docutils literal notranslate"><span class="pre">DataTracker</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">DataWidget</span></code><a class="headerlink" href="#datatracker-and-datawidget" title="Link to this heading"></a></h3>
+<p><code class="xref any docutils literal notranslate"><span class="pre">DataWidget</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">DataTracker</span></code> are the the primary classes that widgets in the
+application inherit from.  Widgets inheriting from <code class="xref any docutils literal notranslate"><span class="pre">DataWidget</span></code> should be initialized
+with the dataclass the widget is responsible for.  The <code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code> will
+be constructed automatically, based on the <code class="docutils literal notranslate"><span class="pre">is_independent</span></code> flag.  By default,
+each <code class="docutils literal notranslate"><span class="pre">DataWidget</span></code> will create a unique bridge for the dataclass it receives.
+This is because the application relies on the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> as the single source of
+truth, and widgets should only update their view if data from the backend has changed.
+If <code class="docutils literal notranslate"><span class="pre">is_independent</span></code> is False, the <code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code> will be created for the
+exact instance of the dataclass provided.  This option would be chosen if multiple
+<code class="xref any docutils literal notranslate"><span class="pre">DataWidget</span></code> s are being used to construct a single view.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="model.html" class="btn btn-neutral float-left" title="Data Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="releases.html" class="btn btn-neutral float-right" title="v0.1.0 (2026-04-22)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+﻿superscore.qt\_helpers
+======================
+
+.. currentmodule:: superscore.qt_helpers
+
+.. automodule:: superscore.qt_helpers

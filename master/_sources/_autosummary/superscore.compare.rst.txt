@@ -1,0 +1,6 @@
+﻿superscore.compare
+==================
+
+.. currentmodule:: superscore
+
+.. automodule:: compare

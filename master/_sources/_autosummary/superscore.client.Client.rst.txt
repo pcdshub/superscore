@@ -1,0 +1,6 @@
+﻿superscore.client.Client
+========================
+
+.. currentmodule:: superscore.client
+
+.. autoclass:: Client

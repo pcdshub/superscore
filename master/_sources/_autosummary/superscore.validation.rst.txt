@@ -1,0 +1,6 @@
+﻿superscore.validation
+=====================
+
+.. currentmodule:: superscore
+
+.. automodule:: validation

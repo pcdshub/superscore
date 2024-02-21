@@ -1,0 +1,6 @@
+﻿superscore.model
+================
+
+.. currentmodule:: superscore
+
+.. automodule:: model
