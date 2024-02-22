@@ -16,7 +16,7 @@ import superscore
 DESCRIPTION = __doc__
 
 
-MODULES = ("help", )
+MODULES = ("help", "ui")
 
 
 def _try_import(module):
