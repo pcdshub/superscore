@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="central_widget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="tab_widget">
+      <property name="tabsClosable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menu_bar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="action_welcome_tab"/>
+    <addaction name="separator"/>
+    <addaction name="action_new_file"/>
+    <addaction name="separator"/>
+    <addaction name="action_open_file"/>
+    <addaction name="separator"/>
+    <addaction name="action_save"/>
+    <addaction name="action_save_as"/>
+   </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>Debug</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuUtilities">
+    <property name="title">
+     <string>Utilities</string>
+    </property>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuDebug"/>
+   <addaction name="menuUtilities"/>
+  </widget>
+  <widget class="QStatusBar" name="status_bar"/>
+  <action name="action_new_file">
+   <property name="text">
+    <string>New File</string>
+   </property>
+  </action>
+  <action name="action_open_file">
+   <property name="text">
+    <string>Open File</string>
+   </property>
+  </action>
+  <action name="action_save">
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="action_save_as">
+   <property name="text">
+    <string>Save As...</string>
+   </property>
+  </action>
+  <action name="action_save_all">
+   <property name="text">
+    <string>Save All</string>
+   </property>
+  </action>
+  <action name="action_print_dataclass">
+   <property name="text">
+    <string>Print DataClass</string>
+   </property>
+  </action>
+  <action name="action_print_serialized">
+   <property name="text">
+    <string>Print Serialized</string>
+   </property>
+  </action>
+  <action name="action_open_archive_viewer">
+   <property name="text">
+    <string>Open Archive Viewer</string>
+   </property>
+  </action>
+  <action name="action_print_report">
+   <property name="text">
+    <string>Print Report</string>
+   </property>
+  </action>
+  <action name="action_clear_results">
+   <property name="text">
+    <string>Clear Results</string>
+   </property>
+  </action>
+  <action name="action_find_replace">
+   <property name="text">
+    <string>Find / Replace</string>
+   </property>
+  </action>
+  <action name="action_welcome_tab">
+   <property name="text">
+    <string>Welcome Tab</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
