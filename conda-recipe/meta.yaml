@@ -21,12 +21,19 @@ requirements:
     - setuptools_scm
   run:
     - python >=3.9
+    - pcdsutils
+    - pyqt
+    - qtpy
 
 test:
   imports:
     - {{ import_name }}
   requires:
+    - coverage
     - pytest
+    - pytest-qt
+    - sphinx
+    - sphinx_rtd_theme
 
 about:
   home: https://github.com/pcdshub/superscore
