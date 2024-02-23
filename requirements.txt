@@ -1,1 +1,4 @@
 # List requirements here.
+pcdsutils
+PyQt5
+qtpy
