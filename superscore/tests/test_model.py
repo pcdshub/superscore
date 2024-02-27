@@ -1,9 +1,10 @@
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from apischema import ValidationError
 
-from superscore.model import Root
+from superscore.model import Root, Value
 
 
 def test_validate_fields(sample_database: Root):
@@ -34,5 +35,39 @@ def test_validate_failure(
         entry.validate()
 
 
-def test_backend_load():
-    assert True
+@pytest.mark.parametrize(
+    'data,valid',
+    [
+        [1, True], ['one', True], [True, True], [1.1, True],
+        [object(), False]
+    ]
+)
+def test_epics_type_validate(data: Any, valid: bool):
+    value = Value(
+        name='My Value',
+        description='description value',
+        data=data,
+        origin=uuid4()
+    )
+    if not valid:
+        with pytest.raises(ValidationError):
+            value.validate()
+    else:
+        value.validate()
+
+
+def test_uuid_validate(sample_database: Root):
+    """
+    Passes if uuids can be validated.
+    Note that this does not check if said uuids reference valid objects
+    """
+    def replace_origin_with_uuid(entry):
+        """Recursively replace origin with a random uuid"""
+        if hasattr(entry, 'origin'):
+            replace_origin_with_uuid(getattr(entry, 'origin'))
+            setattr(entry, 'origin', uuid4())
+
+    for entry in sample_database.entries:
+        replace_origin_with_uuid(entry)
+
+    sample_database.validate()

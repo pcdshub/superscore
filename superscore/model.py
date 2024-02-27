@@ -55,7 +55,9 @@ class Entry:
 
     def validate_field(self, field_name: str, hint: Any) -> None:
         """
-        Validate `self.{field_name}` matches type hint `hint`
+        Validate `self.{field_name}` matches type hint `hint`.
+        Speciallized to the type hints present in this module,
+        additions may require modification.
 
         Parameters
         ----------
@@ -93,15 +95,23 @@ class Entry:
             return
         elif (origin is None):
             if not isinstance(field_value, hint):
-                raise ValidationError('improper type found in field')
-        elif (origin is Union) and (UUID in get_args(hint)):
-            # Case of interest.   A hint of Union[UUID, SomeType]
+                raise ValidationError(
+                    f'improper type ({type(field_value)}) found in field '
+                    f'(expecting {hint})'
+                )
+        elif (origin is Union):
             if is_list:
                 list_comp = (isinstance(it, get_args(hint)) for it in field_value)
                 if not all(list_comp):
-                    raise ValidationError('improper type in list-field')
+                    raise ValidationError(
+                        f'improper type ({type(field_value)}) found in field '
+                        f'(expecting List[{get_args(hint)}])'
+                    )
             elif not isinstance(field_value, get_args(hint)):
-                raise ValidationError('improper type found in field')
+                raise ValidationError(
+                    f'improper type ({type(field_value)}) found in field '
+                    f'(expecting {get_args(hint)})'
+                )
 
 
 @dataclass
