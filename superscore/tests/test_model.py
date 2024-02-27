@@ -25,6 +25,7 @@ def test_validate_failure(
     replace_fld: str,
     replace_obj: Any
 ):
+    """Passes if improper types fail to validate"""
     entry = sample_database.entries[entry_index]
     sample_database.validate()
     setattr(entry, replace_fld, replace_obj)
@@ -39,10 +40,11 @@ def test_validate_failure(
     'data,valid',
     [
         [1, True], ['one', True], [True, True], [1.1, True],
-        [object(), False]
+        [object(), False], [Root(), False]
     ]
 )
 def test_epics_type_validate(data: Any, valid: bool):
+    """Passes if EPICS types are validated correctly"""
     value = Value(
         name='My Value',
         description='description value',

@@ -33,12 +33,13 @@ class Entry:
 
     def validate(self, recursive: bool = True) -> None:
         """
-        Validate current values conform to type hints.  Throws ValidationError on failure
+        Validate current values conform to type hints.
+        Throws ValidationError on failure
 
         Parameters
         ----------
         recursive : bool, optional
-            whether or not to validate , by default True
+            whether or not to validate, by default True
         """
         # apischema validates on deserialization, but we want to validate at runtime
         # Will gather validator decorated methods
@@ -166,12 +167,14 @@ class Value(Entry):
 
 @dataclass
 class Collection(Entry):
+    """An Entry composed of Parameters and Collections."""
     parameters: List[Union[UUID, Parameter]] = field(default_factory=list)
     collections: List[Union[UUID, Collection]] = field(default_factory=list)
 
 
 @dataclass
 class Snapshot(Entry):
+    """An Entry that attaches data to each sub-Entry of a Collection."""
     origin: Union[UUID, Collection] = _default_uuid
 
     values: List[Union[UUID, Value]] = field(default_factory=list)
@@ -196,6 +199,10 @@ class Snapshot(Entry):
         ----------
         origin : Collection
             the Collection used to define this Snapshot
+        values : Optional[List[UUID | Value]
+            a list of Values to attach to this Snapshot
+        snapshots : Optional[List[UUID | Snapshot]]
+            a list of Snapshots to attach to this Snapshot
 
         Returns
         -------
@@ -218,8 +225,17 @@ class Snapshot(Entry):
 
     @validator
     def validate_tree(self) -> None:
-        """Validate the values and snapshots match those specified in origin"""
+        """
+        Validate the values and snapshots match those specified in origin.
+        Structure should be identical, and Values/Snapshots should reference the
+        Parameters/Collections in self.origin
+        """
         # TODO: complete this method
+        return
+
+    @validator
+    def validate_loop(self) -> None:
+        """Check that the Snapshot is not self-referential (does not loop)"""
         return
 
 
