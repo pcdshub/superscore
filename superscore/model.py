@@ -12,7 +12,7 @@ from typing import (Any, List, Optional, Sequence, Union, get_args, get_origin,
                     get_type_hints)
 from uuid import UUID, uuid4
 
-from apischema.validation import validate, validator
+from apischema.validation import ValidationError, validate, validator
 
 from superscore.type_hints import AnyEpicsType
 
@@ -66,7 +66,7 @@ class Entry:
 
         Raises
         ------
-        TypeError
+        ValidationError
             if a type mismatch is found
         """
         field_value = getattr(self, field_name)
@@ -93,15 +93,15 @@ class Entry:
             return
         elif (origin is None):
             if not isinstance(field_value, hint):
-                raise TypeError('improper type found in field')
+                raise ValidationError('improper type found in field')
         elif (origin is Union) and (UUID in get_args(hint)):
             # Case of interest.   A hint of Union[UUID, SomeType]
             if is_list:
                 list_comp = (isinstance(it, get_args(hint)) for it in field_value)
                 if not all(list_comp):
-                    raise TypeError('improper type in list-field')
+                    raise ValidationError('improper type in list-field')
             elif not isinstance(field_value, get_args(hint)):
-                raise TypeError('improper type found in field')
+                raise ValidationError('improper type found in field')
 
 
 @dataclass
