@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from apischema import ValidationError
 
 from superscore.model import Root
 
@@ -27,9 +28,9 @@ def test_validate_failure(
     sample_database.validate()
     setattr(entry, replace_fld, replace_obj)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         sample_database.validate()
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         entry.validate()
 
 
