@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 
 from apischema.validation import ValidationError, validate, validator
 
+from superscore.serialization import as_tagged_union
 from superscore.type_hints import AnyEpicsType
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ _default_uuid = 'd3c8b6b8-7d4d-47aa-bb55-ba9c1b99bd9e'
 
 
 @dataclass
+@as_tagged_union
 class Entry:
     """
     Base class for items in the data model.
