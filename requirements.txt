@@ -1,4 +1,5 @@
 # List requirements here.
+apischema
 pcdsutils
 PyQt5
 qtpy
