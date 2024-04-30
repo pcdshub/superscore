@@ -87,10 +87,19 @@ class Setpoint(Value):
 
 @dataclass
 class Readback(Value):
-    """A read-only Value representing machine state that cannot be written to"""
+    """
+    A read-only Value representing machine state that cannot be written to. A
+    restore is considered complete when all Setpoint values are within
+    tolerance of their Readback values.
+
+    abs_tolerance - tolerance given in units matching the Setpoint
+    rel_tolerance - tolerance given as a percentage
+    timeout - time (seconds) after which a Setpoint restore is considered to
+              have failed
+    """
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
-    delay: Optional[float] = None
+    timeout: Optional[float] = None
 
 
 @dataclass
