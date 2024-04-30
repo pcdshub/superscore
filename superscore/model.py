@@ -64,8 +64,8 @@ class Entry:
 class Parameter(Entry):
     """An Entry that stores a PV name"""
     pv_name: str = ''
-    abs_tolerance: Optional[float] = 0.0
-    rel_tolerance: Optional[float] = 0.0
+    abs_tolerance: Optional[float] = None
+    rel_tolerance: Optional[float] = None
     readback: Optional[Parameter] = None
     read_only: bool = False
 
@@ -88,8 +88,9 @@ class Setpoint(Value):
 @dataclass
 class Readback(Value):
     """A read-only Value representing machine state that cannot be written to"""
-    abs_tolerance: Optional[float] = 0.0
-    rel_tolerance: Optional[float] = 0.0
+    abs_tolerance: Optional[float] = None
+    rel_tolerance: Optional[float] = None
+    delay: Optional[float] = None
 
 
 @dataclass
