@@ -69,10 +69,6 @@ class Parameter(Entry):
     readback: Optional[Parameter] = None
     read_only: bool = False
 
-    def save(self) -> Value:
-        """Return a Value for this Parameter saved at the time of execution"""
-        raise NotImplementedError
-
 
 @dataclass
 class Value(Entry):
@@ -105,10 +101,6 @@ class Collection(Entry):
     title: str = ""
     children: List[Union[Parameter, Collection]] = field(default_factory=list)
     tags: Set[Tag] = field(default_factory=set)
-
-    def save(self) -> Snapshot:
-        """Return a Snapshot of this Collection saved at the time of execution"""
-        raise NotImplementedError
 
 
 @dataclass
