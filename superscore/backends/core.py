@@ -1,10 +1,10 @@
 """
 Base superscore data storage backend interface
 """
-from typing import Any, Generator
+from typing import Generator
 from uuid import UUID
 
-from ..model import Entry
+from superscore.model import Entry
 
 
 class _Backend:
@@ -16,7 +16,10 @@ class _Backend:
         raise NotImplementedError
 
     def save_entry(self, entry: Entry):
-        """Save ``entry`` into the database"""
+        """
+        Save ``entry`` into the database
+        Throws BackendError if ``entry`` already exists
+        """
         raise NotImplementedError
 
     def delete_entry(self, entry: Entry) -> None:
@@ -32,6 +35,6 @@ class _Backend:
         """
         raise NotImplementedError
 
-    def search(self, **search_kwargs) -> Generator[Any, None, None]:
+    def search(self, **search_kwargs) -> Generator[Entry, None, None]:
         """Yield a Entry objects corresponding matching ``search_kwargs``"""
         raise NotImplementedError

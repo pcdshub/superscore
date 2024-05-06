@@ -1,5 +1,5 @@
 """Client for superscore.  Used for programmatic interactions with superscore"""
-from typing import Any, List
+from typing import Any, Generator
 
 from superscore.backends.core import _Backend
 from superscore.model import Entry
@@ -16,7 +16,7 @@ class Client:
     def from_config(cls, cfg=None):
         raise NotImplementedError
 
-    def search(self, **post) -> List[Entry]:
+    def search(self, **post) -> Generator[Entry, None, None]:
         """Search by key-value pair.  Can search by any field, including id"""
         return self.backend.search(**post)
 
