@@ -1,4 +1,5 @@
 import pytest
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -344,9 +345,12 @@ def sample_database() -> Root:
 
 
 @pytest.fixture(scope='function')
-def filestore_backend(sample_database: Root) -> FilestoreBackend:
+def filestore_backend(tmp_path: Path) -> FilestoreBackend:
     fp = Path(__file__).parent / 'db' / 'filestore.json'
-    return FilestoreBackend(path=fp)
+    tmp_fp = tmp_path / 'tmp_filestore.json'
+    shutil.copy(fp, tmp_fp)
+    print(tmp_path)
+    return FilestoreBackend(path=tmp_fp)
 
 
 @pytest.fixture(scope='function')
