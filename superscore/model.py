@@ -8,10 +8,12 @@ from enum import Flag, IntEnum, auto
 from typing import ClassVar, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
+from superscore.serialization import as_tagged_union
 from superscore.type_hints import AnyEpicsType
 from superscore.utils import utcnow
 
 logger = logging.getLogger(__name__)
+_root_uuid = _root_uuid = UUID('a28cd77d-cc92-46cc-90cb-758f0f36f041')
 
 
 class Severity(IntEnum):
@@ -50,6 +52,7 @@ class Tag(Flag):
     pass
 
 
+@as_tagged_union
 @dataclass
 class Entry:
     """
@@ -123,3 +126,10 @@ class Snapshot(Entry):
     children: List[Union[Value, Snapshot]] = field(default_factory=list)
     tags: Set[Tag] = field(default_factory=set)
     meta_pvs: List[Value] = field(default_factory=list)
+
+
+@dataclass
+class Root:
+    """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
+    meta_id: UUID = _root_uuid
+    entries: List[Entry] = field(default_factory=list)
