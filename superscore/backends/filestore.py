@@ -8,12 +8,14 @@ import logging
 import os
 import shutil
 from collections import defaultdict
+from dataclasses import fields, replace
 from typing import Any, DefaultDict, Dict, Generator, Optional, Set, Union
 from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
 
 from superscore.backends.core import _Backend
+from superscore.errors import BackendError
 from superscore.model import Entry, Root
 from superscore.utils import build_abs_path
 
@@ -70,12 +72,15 @@ class FilestoreBackend(_Backend):
 
         return self._entry_cache
 
-    def flatten_and_cache(self, entry: Entry):
+    def flatten_and_cache(self, entry: Union[Entry, UUID]) -> None:
         """
         Flatten ``node`` recursively, adding them to ``self._entry_cache``.
         Does not replace any dataclass with its uuid
         Currently hard codes structure of Entry's, could maybe refactor later
         """
+        if isinstance(entry, UUID):
+            return
+
         for child in getattr(entry, 'children', []):
             self.maybe_add_to_cache(child)
             self.flatten_and_cache(child)
@@ -116,6 +121,61 @@ class FilestoreBackend(_Backend):
         # Dump an empty dictionary
         self.store({})
 
+    def reconstruct_root(self) -> Root:
+        """
+        Reconstruct `Root` given the entries in the entry cache
+        """
+        new_root = Root()
+
+        new_children = []
+        for root_child in self._root.entries:
+            if root_child.uuid in self._entry_cache:
+                new_children.append(self.fill_uuids(root_child))
+
+        new_root.entries = new_children
+        return new_root
+
+    def fill_uuids(self, entry: Entry) -> Entry:
+        """
+        Recursively fill ``entry``'s uuid fields with the object it references.
+
+        Parameters
+        ----------
+        entry : Entry
+            Entry object to be filled
+
+        Returns
+        -------
+        Entry
+            a copy of ``entry`` with filled uuids
+        """
+        # Create a copy of the entry to be modified
+        entry = replace(entry)
+
+        for field in fields(entry):
+            if field.name == 'uuid':
+                continue
+            field_data = getattr(entry, field.name)
+
+            if isinstance(field_data, list):
+                new_list = []
+                for item in field_data:
+                    if isinstance(item, UUID):
+                        new_ref = self._entry_cache.get(item)
+                        if new_ref:
+                            new_ref = self.fill_uuids(new_ref)
+                            new_list.append(new_ref)
+
+                if new_list:
+                    setattr(entry, field.name, new_list)
+            elif isinstance(field_data, UUID):
+                new_ref = self._entry_cache.get(field_data)
+                if new_ref:
+                    new_ref = self.fill_uuids(new_ref)
+                    setattr(entry, field.name)
+
+        return entry
+
     def store(self, root_node: Optional[Root] = None) -> None:
         """
         Stash the database in the JSON file.
@@ -130,7 +190,7 @@ class FilestoreBackend(_Backend):
             Dictionary to store in JSON.
         """
         temp_path = self._temp_path()
-        # TODO: this doesn't take db, should serialize root directly
+        self._root = self.reconstruct_root()
         if root_node is None:
             serialized = serialize(Root, self._root)
         else:
@@ -179,25 +239,41 @@ class FilestoreBackend(_Backend):
 
     def get_entry(self, meta_id: UUID) -> Entry:
         """Return the entry"""
-        return self._entry_cache[meta_id]
+        with _load_and_store_context(self) as db:
+            return db.get(meta_id)
 
     def save_entry(self, entry: Entry) -> None:
         """
-        Save specific entry into database.
+        Save specific entry into database. Entry is expected to not already exist
         Assumes connections are made properly.
         """
-        raise NotImplementedError
+        with _load_and_store_context(self) as db:
+            if db.get(entry.uuid):
+                raise BackendError("Entry already exists, try updating the entry "
+                                   "instead of saving it")
+            db[entry.uuid] = entry
+            self._root.entries.append(entry)
 
     def update_entry(self, entry: Entry) -> None:
         """Updates ``entry``.  Looks for references"""
-        raise NotImplementedError
+        with _load_and_store_context(self) as db:
+            if not db.get(entry.uuid):
+                raise BackendError("Entry does not exist, cannot update")
+
+            db[entry.uuid] = entry
 
     def delete_entry(self, entry: Entry) -> None:
         """Delete meta_id from the system (all instances)"""
-        raise NotImplementedError
+        with _load_and_store_context(self) as db:
+            db.pop(entry.uuid, None)
 
     def search(self, **search_kwargs) -> Generator[Entry, None, None]:
-        raise NotImplementedError
+        """Search given ``search_kwargs``"""
+        for entry in self._entry_cache.values():
+            match = (getattr(entry, key, None) == value
+                     for key, value in search_kwargs.items())
+            if all(match):
+                yield entry
 
     def clear_cache(self) -> None:
         """Clear the loaded cache and stored root"""
