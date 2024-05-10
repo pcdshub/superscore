@@ -1,8 +1,11 @@
 import pytest
+from pathlib import Path
+from typing import List
 
+from superscore.backends.core import _Backend
+from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
-from superscore.model import Collection, Parameter
-
+from superscore.model import Collection, Parameter, Root, Setpoint, Snapshot
 
 @pytest.fixture
 def linac_backend():
@@ -295,3 +298,63 @@ def linac_backend():
     )
 
     return TestBackend([root_col])
+
+
+@pytest.fixture(scope='function')
+def sample_database() -> Root:
+    """
+    A sample superscore database, including all the Entry types.
+    Corresponds to a caproto.ioc_examples.fake_motor_record, which mimics an IMS
+    motor record
+    """
+    root = Root()
+    param_1 = Parameter(
+        description='parameter 1 in root',
+        pv_name='MY:MOTOR:mtr1.ACCL'
+    )
+    root.entries.append(param_1)
+    value_1 = Setpoint.from_parameter(
+        origin=param_1,
+        data=2,
+    )
+    root.entries.append(value_1)
+    coll_1 = Collection(
+        title='collection 1',
+        description='collection 1 defining some motor fields',
+    )
+    snap_1 = Snapshot(
+        title='snapshot 1',
+        description='Snapshot 1 created from collection 1',
+    )
+    for fld, data in zip(['ACCL', 'VELO', 'PREC'], [2, 2, 6]):  # Defaults[1, 1, 3]
+        sub_param = Parameter(
+            description=f'motor field {fld}',
+            pv_name=f'MY:PREFIX:mtr1.{fld}'
+        )
+        sub_value = Setpoint.from_parameter(
+            origin=sub_param,
+            data=data,
+        )
+        coll_1.children.append(sub_param)
+        snap_1.children.append(sub_value)
+    root.entries.append(coll_1)
+    root.entries.append(snap_1)
+
+    return root
+
+
+@pytest.fixture(scope='function')
+def filestore_backend(sample_database: Root) -> FilestoreBackend:
+    fp = Path(__file__).parent / 'db' / 'filestore.json'
+    return FilestoreBackend(path=fp)
+
+
+@pytest.fixture(scope='function')
+def test_backends(filestore_backend: FilestoreBackend) -> List[_Backend]:
+    return [filestore_backend,]
+
+
+@pytest.fixture
+def backends(request, test_backends: List[_Backend]):
+    i = request.param
+    return test_backends[i]

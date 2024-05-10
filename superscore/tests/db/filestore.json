@@ -1,0 +1,110 @@
+{
+  "meta_id": "a28cd77d-cc92-46cc-90cb-758f0f36f041",
+  "entries": [
+    {
+      "Parameter": {
+        "uuid": "514790d9-3261-4583-a326-9be08d7edf48",
+        "description": "parameter 1 in root",
+        "creation_time": "2024-05-10T16:49:34.574849+00:00",
+        "pv_name": "MY:MOTOR:mtr1.ACCL",
+        "abs_tolerance": null,
+        "rel_tolerance": null,
+        "readback": null,
+        "read_only": false
+      }
+    },
+    {
+      "Setpoint": {
+        "uuid": "be3c5e5c-faca-4b19-ab6c-70323abc9f24",
+        "description": "",
+        "creation_time": "2024-05-10T16:49:34.574875+00:00",
+        "pv_name": "MY:MOTOR:mtr1.ACCL",
+        "data": 2,
+        "status": 18,
+        "severity": 4,
+        "readback": null
+      }
+    },
+    {
+      "Collection": {
+        "uuid": "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
+        "description": "collection 1 defining some motor fields",
+        "creation_time": "2024-05-10T16:49:34.574893+00:00",
+        "title": "collection 1",
+        "children": [
+          {
+            "uuid": "17cc6ebf-58e2-4759-9f9b-54349a4f88bb",
+            "description": "motor field ACCL",
+            "creation_time": "2024-05-10T16:49:34.574932+00:00",
+            "pv_name": "MY:PREFIX:mtr1.ACCL",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": null,
+            "read_only": false
+          },
+          {
+            "uuid": "7d32b875-6994-4f56-b70e-82f362b92749",
+            "description": "motor field VELO",
+            "creation_time": "2024-05-10T16:49:34.574969+00:00",
+            "pv_name": "MY:PREFIX:mtr1.VELO",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": null,
+            "read_only": false
+          },
+          {
+            "uuid": "74126a1e-b626-462b-81b2-6f56913cf1f2",
+            "description": "motor field PREC",
+            "creation_time": "2024-05-10T16:49:34.575005+00:00",
+            "pv_name": "MY:PREFIX:mtr1.PREC",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": null,
+            "read_only": false
+          }
+        ],
+        "tags": []
+      }
+    },
+    {
+      "Snapshot": {
+        "uuid": "ffd668d3-57d9-404e-8366-0778af7aee61",
+        "description": "Snapshot 1 created from collection 1",
+        "creation_time": "2024-05-10T16:49:34.574911+00:00",
+        "title": "snapshot 1",
+        "origin_collection": null,
+        "children": [
+          {
+            "uuid": "ecb42cdb-b703-4562-86e1-45bd67a2ab1a",
+            "description": "",
+            "creation_time": "2024-05-10T16:49:34.574951+00:00",
+            "pv_name": "MY:PREFIX:mtr1.ACCL",
+            "data": 2,
+            "status": 18,
+            "severity": 4
+          },
+          {
+            "uuid": "8e380e15-5489-41db-a8a7-bc47a731f099",
+            "description": "",
+            "creation_time": "2024-05-10T16:49:34.574987+00:00",
+            "pv_name": "MY:PREFIX:mtr1.VELO",
+            "data": 2,
+            "status": 18,
+            "severity": 4
+          },
+          {
+            "uuid": "ed8318d7-8c72-4d47-82d0-d75216d11565",
+            "description": "",
+            "creation_time": "2024-05-10T16:49:34.575022+00:00",
+            "pv_name": "MY:PREFIX:mtr1.PREC",
+            "data": 6,
+            "status": 18,
+            "severity": 4
+          }
+        ],
+        "tags": [],
+        "meta_pvs": []
+      }
+    }
+  ]
+}

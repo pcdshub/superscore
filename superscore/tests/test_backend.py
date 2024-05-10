@@ -1,5 +1,6 @@
 import pytest
 
+from superscore.backends.core import _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Collection, Parameter
@@ -43,3 +44,29 @@ class TestTestBackend:
         unsynced.description = "I haven't been synced with the backend"
         with pytest.raises(BackendError):
             linac_backend.delete_entry(unsynced)
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
+def test_save_entry(backends: _Backend):
+    new_entry = Parameter()
+
+    backends.save_entry(new_entry)
+    found_entry = backends.get_entry(new_entry.uuid)
+    assert found_entry == new_entry
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
+def test_delete_entry(backends: _Backend):
+    entry = backends.root[0]
+    backends.delete_entry(entry)
+
+    assert backends.get_entry(entry.uuid) is None
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
+def test_search_entry(backends: _Backend):
+    # Given an entry we know is in the backend
+    # Search by type
+    # Search by field name
+    # search by description
+    assert True
