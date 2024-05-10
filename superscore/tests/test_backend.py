@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import pytest
 
 from superscore.backends.core import _Backend
@@ -57,7 +59,7 @@ def test_save_entry(backends: _Backend):
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
 def test_delete_entry(backends: _Backend):
-    entry = backends.root[0]
+    entry = backends.root.entries[0]
     backends.delete_entry(entry)
 
     assert backends.get_entry(entry.uuid) is None
@@ -66,7 +68,20 @@ def test_delete_entry(backends: _Backend):
 @pytest.mark.parametrize('backends', [0], indirect=True)
 def test_search_entry(backends: _Backend):
     # Given an entry we know is in the backend
-    # Search by type
+    results = backends.search(
+        description='collection 1 defining some motor fields'
+    )
+    assert len(list(results)) == 1
     # Search by field name
-    # search by description
-    assert True
+    results = backends.search(
+        uuid=UUID('ffd668d3-57d9-404e-8366-0778af7aee61')
+    )
+    assert len(list(results)) == 1
+    # Search by field name
+    results = backends.search(data=2)
+    assert len(list(results)) == 3
+    # Search by field name
+    results = backends.search(
+        uuid=UUID('ecb42cdb-b703-4562-86e1-45bd67a2ab1a'), data=2
+    )
+    assert len(list(results)) == 1
