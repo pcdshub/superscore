@@ -7,7 +7,7 @@ from uuid import UUID
 from superscore.backends.core import _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
-from superscore.model import Collection, Entry, Snapshot
+from superscore.model import Entry, Nestable
 
 
 class TestBackend(_Backend):
@@ -28,7 +28,7 @@ class TestBackend(_Backend):
             entry = stack.pop()
             if entry.uuid == uuid:
                 return entry
-            if isinstance(entry, Collection) or isinstance(entry, Snapshot):
+            if isinstance(entry, Nestable):
                 stack.extend(entry.children)
         raise EntryNotFoundError(f"Entry {entry.uuid} could not be found")
 
@@ -45,4 +45,4 @@ class TestBackend(_Backend):
                     children.remove(entry)
                 elif entry.uuid == to_delete.uuid:
                     raise BackendError(f"Can't delete: entry {to_delete.uuid} is out of sync with the version in the backend")
-            stack.extend([entry.children for entry in children if isinstance(entry, Collection) or isinstance(entry, Snapshot)])
+            stack.extend([entry.children for entry in children if isinstance(entry, Nestable)])
