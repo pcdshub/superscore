@@ -42,3 +42,56 @@ def test_sample_database_roundtrip(sample_database: Root):
     ser = apischema.serialize(Root, sample_database)
     deser = apischema.deserialize(Root, ser)
     assert deser == sample_database
+
+
+class TestEntryValidation:
+    @staticmethod
+    def test_fixture_validation(linac_backend):
+        linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+        assert linac_model.validate()
+
+        linac_snapshot = linac_backend.get_entry("06282731-33ea-4270-ba14-098872e627dc")
+        assert linac_snapshot.validate()
+
+    @staticmethod
+    def test_parameter_readback_validation(linac_backend):
+        vac_gunb_pv1 = linac_backend.get_entry("8f3ac401-68f8-4def-b65a-3c8116c80ba7")
+        vac_gunb_pv2 = linac_backend.get_entry("06448272-cd38-4bb4-9b8d-292673a497e9")
+        vac_gunb_pv1.readback = vac_gunb_pv2
+        assert vac_gunb_pv1.validate()
+
+        vac_gunb_pv2.abs_tolerance = "1"
+        assert not vac_gunb_pv1.validate()
+
+    @staticmethod
+    def test_setpoint_validation(linac_backend):
+        vac_li21_readback = linac_backend.get_entry("de66d08e-09c3-4c45-8978-900e51d00248")
+        vac_li21_setpoint = linac_backend.get_entry("4bffe9a5-f198-41d8-90ab-870d1b5a325b")
+        assert vac_li21_readback.validate()
+        assert vac_li21_setpoint.validate()
+
+        vac_li21_readback.rel_tolerance = "10%"
+        assert not vac_li21_setpoint.validate()
+
+    @staticmethod
+    def test_nestable_empty_validation(linac_backend):
+        linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+        vac_bsy_col = linac_backend.get_entry("22c2d597-2139-4c02-ac86-27f474728fad")
+        vac_bsy_col.children = []
+        assert not linac_model.validate()
+
+    @staticmethod
+    def test_nestable_cycle_validation(linac_backend):
+        linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+        bsy_col = linac_backend.get_entry("2506d87a-5980-4470-b29a-63eea183f53d")
+        vac_bsy_col = linac_backend.get_entry("22c2d597-2139-4c02-ac86-27f474728fad")
+        vac_bsy_col.children.append(bsy_col)
+        assert not linac_model.validate()
+
+    @staticmethod
+    def test_collection_reachable_from_snapshot_validation(linac_backend):
+        linac_snapshot = linac_backend.get_entry("06282731-33ea-4270-ba14-098872e627dc")
+        bsy_snapshot = linac_backend.get_entry("a62f1386-39de-4d19-9ea4-82f0212169a7")
+        vac_bsy_col = linac_backend.get_entry("22c2d597-2139-4c02-ac86-27f474728fad")
+        bsy_snapshot.children.append(vac_bsy_col)
+        assert not linac_snapshot.validate()
