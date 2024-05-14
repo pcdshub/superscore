@@ -1,4 +1,5 @@
 """Classes for representing data"""
+
 from __future__ import annotations
 
 import logging
@@ -13,7 +14,7 @@ from superscore.type_hints import AnyEpicsType
 from superscore.utils import utcnow
 
 logger = logging.getLogger(__name__)
-_root_uuid = _root_uuid = UUID('a28cd77d-cc92-46cc-90cb-758f0f36f041')
+_root_uuid = _root_uuid = UUID("a28cd77d-cc92-46cc-90cb-758f0f36f041")
 
 
 class Severity(IntEnum):
@@ -59,7 +60,7 @@ class Entry:
     Base class for items in the data model
     """
     uuid: UUID = field(default_factory=uuid4)
-    description: str = ''
+    description: str = ""
     creation_time: datetime = field(default_factory=utcnow)
 
     def swap_to_uuids(self) -> List[UUID]:
@@ -73,7 +74,7 @@ class Entry:
 @dataclass
 class Parameter(Entry):
     """An Entry that stores a PV name"""
-    pv_name: str = ''
+    pv_name: str = ""
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
     readback: Optional[Parameter] = None
@@ -83,15 +84,19 @@ class Parameter(Entry):
 @dataclass
 class Value(Entry):
     """An Entry that stores a PV name and data pair"""
-    pv_name: str = ''
+    pv_name: str = ""
     data: Optional[AnyEpicsType] = None
     status: Status = Status.UDF
     severity: Severity = Severity.INVALID
 
 
 @dataclass
-class Setpoint(Value):
+class Setpoint(Entry):
     """A Value that can be written to the EPICS environment"""
+    pv_name: str = ""
+    data: Optional[AnyEpicsType] = None
+    status: Status = Status.UDF
+    severity: Severity = Severity.INVALID
     readback: Optional[Readback] = None
 
     @classmethod
@@ -100,7 +105,7 @@ class Setpoint(Value):
         origin: Parameter,
         data: AnyEpicsType,
         status: Status = Status.UDF,
-        severity: Severity = Severity.INVALID
+        severity: Severity = Severity.INVALID,
     ) -> Setpoint:
 
         return cls(
@@ -113,7 +118,7 @@ class Setpoint(Value):
 
 
 @dataclass
-class Readback(Value):
+class Readback(Entry):
     """
     A read-only Value representing machine state that cannot be written to. A
     restore is considered complete when all Setpoint values are within
@@ -124,6 +129,10 @@ class Readback(Value):
     timeout - time (seconds) after which a Setpoint restore is considered to
               have failed
     """
+    pv_name: str = ""
+    data: Optional[AnyEpicsType] = None
+    status: Status = Status.UDF
+    severity: Severity = Severity.INVALID
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
     timeout: Optional[float] = None
@@ -135,7 +144,7 @@ class Readback(Value):
         data: AnyEpicsType,
         status: Status = Status.UDF,
         severity: Severity = Severity.INVALID,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> Setpoint:
 
         return cls(
@@ -145,7 +154,7 @@ class Readback(Value):
             severity=severity,
             abs_tolerance=origin.abs_tolerance,
             rel_tolerance=origin.rel_tolerance,
-            timeout=timeout
+            timeout=timeout,
         )
 
 
@@ -183,7 +192,9 @@ class Snapshot(Entry):
     """
     title: str = ""
     origin_collection: Optional[Union[UUID, Collection]] = None
-    children: List[Union[UUID, Value, Snapshot]] = field(default_factory=list)
+    children: List[Union[UUID, Value, Readback, Setpoint, Snapshot]] = field(
+        default_factory=list
+    )
     tags: Set[Tag] = field(default_factory=set)
     meta_pvs: List[Value] = field(default_factory=list)
 
