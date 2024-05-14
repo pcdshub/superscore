@@ -1,6 +1,6 @@
 import apischema
 
-from superscore.model import (Collection, Parameter, Severity, Snapshot,
+from superscore.model import (Collection, Parameter, Root, Severity, Snapshot,
                               Status, Value)
 
 
@@ -11,7 +11,7 @@ def test_serialize_collection_roundtrip():
     p4 = Parameter(pv_name="TEST:PV4", description="Fourth test Parameter")
     c1 = Collection(title="Collection 1", description="Inner Collection", children=[p1, p2])
     c2 = Collection(title="Collection 2", description="Outer Collection", children=[p3, c1, p4])
-    serial = apischema.serialize(c2)
+    serial = apischema.serialize(Collection, c2)
     deserialized = apischema.deserialize(Collection, serial)
     assert deserialized == c2
     assert deserialized.children[0] == p3
@@ -28,7 +28,7 @@ def test_serialize_snapshot_roundtrip():
     v4 = Value(pv_name="TEST:PV4", description="Fourth test Value", data=False, status=Status.HIGH, severity=Severity.MAJOR)
     s1 = Snapshot(title="Snapshot 1", description="Snapshot of Inner Collection", children=[v1, v2])
     s2 = Snapshot(title="Snapshot 2", description="Snapshot of Outer Collection", children=[v3, s1, v4])
-    serial = apischema.serialize(s2)
+    serial = apischema.serialize(Snapshot, s2)
     deserialized = apischema.deserialize(Snapshot, serial)
     assert deserialized == s2
     assert deserialized.children[0] == v3
@@ -36,3 +36,9 @@ def test_serialize_snapshot_roundtrip():
     assert deserialized.children[2] == v4
     assert deserialized.children[1].children[0] == v1
     assert deserialized.children[1].children[1] == v2
+
+
+def test_sample_database_roundtrip(sample_database: Root):
+    ser = apischema.serialize(Root, sample_database)
+    deser = apischema.deserialize(Root, ser)
+    assert deser == sample_database
