@@ -7,9 +7,8 @@ import json
 import logging
 import os
 import shutil
-from collections import defaultdict
 from dataclasses import fields, replace
-from typing import Any, DefaultDict, Dict, Generator, Optional, Set, Union
+from typing import Any, Dict, Generator, Optional, Union
 from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
@@ -33,7 +32,6 @@ class FilestoreBackend(_Backend):
     result in missing data)
     """
     _entry_cache: Dict[UUID, Entry] = {}
-    _uuid_link_cache: DefaultDict[UUID, Set[UUID]] = defaultdict(set)
     _root: Root
 
     def __init__(
@@ -85,8 +83,7 @@ class FilestoreBackend(_Backend):
             self.maybe_add_to_cache(child)
             self.flatten_and_cache(child)
 
-        uuid_refs = entry.swap_to_uuids()
-        self._uuid_link_cache[entry.uuid].update(uuid_refs)
+        _ = entry.swap_to_uuids()
         self.maybe_add_to_cache(entry)
 
     def maybe_add_to_cache(self, item: Union[Entry, UUID]) -> None:
