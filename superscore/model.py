@@ -63,10 +63,13 @@ class Entry:
     description: str = ""
     creation_time: datetime = field(default_factory=utcnow)
 
-    def swap_to_uuids(self) -> List[UUID]:
+    def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
         """
         Swap to UUID references where relevant.
-        Returns a list of UUIDs referenced, regardless of if they were filled
+
+        Returns a list of objects referenced by this Entry,
+        either an Entry's that has been swapped to UUIDs,
+        or a UUID if it was already filled with a UUID.
         """
         return []
 
@@ -168,8 +171,8 @@ class Collection(Entry):
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
     tags: Set[Tag] = field(default_factory=set)
 
-    def swap_to_uuids(self) -> List[UUID]:
-        uuid_list = []
+    def swap_to_uuids(self) -> List[Entry]:
+        ref_list = []
 
         new_children = []
         for child in self.children:
@@ -179,10 +182,10 @@ class Collection(Entry):
                 uuid_ref = child
 
             new_children.append(uuid_ref)
-            uuid_list.append(uuid_ref)
+            ref_list.append(child)
 
         self.children = new_children
-        return uuid_list
+        return ref_list
 
 
 @dataclass
@@ -198,14 +201,14 @@ class Snapshot(Entry):
     tags: Set[Tag] = field(default_factory=set)
     meta_pvs: List[Value] = field(default_factory=list)
 
-    def swap_to_uuids(self) -> List[UUID]:
-        uuid_list = []
+    def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
+        ref_list = []
 
         if isinstance(self.origin_collection, Entry):
+            ref_list.append(self.origin_collection)
+
             origin_ref = self.origin_collection.uuid
             self.origin_collection = origin_ref
-
-        uuid_list.append(self.origin_collection)
 
         new_children = []
         for child in self.children:
@@ -215,11 +218,11 @@ class Snapshot(Entry):
                 uuid_ref = child
 
             new_children.append(uuid_ref)
-            uuid_list.append(uuid_ref)
+            ref_list.append(child)
 
         self.children = new_children
 
-        return uuid_list
+        return ref_list
 
 
 @dataclass
