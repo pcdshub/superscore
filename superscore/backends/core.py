@@ -28,6 +28,8 @@ class _Backend:
     def delete_entry(self, entry: Entry) -> None:
         """
         Delete ``entry`` from the system (all instances)
+        Throws BackendError if backend contains an entry with the same uuid as ``entry``
+        but different data
         """
         raise NotImplementedError
 
