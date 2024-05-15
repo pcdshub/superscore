@@ -24,12 +24,11 @@ logger = logging.getLogger(__name__)
 class FilestoreBackend(_Backend):
     """
     Filestore configuration backend.
-    Unique aspects:
-    entry cache, filled with _load_or_initialize type method
-    save method saves entire file, and therefore all Entries
-    default method here is to store everything as a flattened dictionary for
-    easier access, but serialization must keep Node structure (UUID references
-    result in missing data)
+
+    Holds an entry cache, filled when a file is loaded.
+    All CRUD operations reconstruct the Root object and save a new version of
+    the database.
+    File storage is a json file containing serialized model dataclasses.
     """
     _entry_cache: Dict[UUID, Entry] = {}
     _root: Root
@@ -72,21 +71,36 @@ class FilestoreBackend(_Backend):
 
     def flatten_and_cache(self, entry: Union[Entry, UUID]) -> None:
         """
-        Flatten ``node`` recursively, adding them to ``self._entry_cache``.
-        Does not replace any dataclass with its uuid
-        Currently hard codes structure of Entry's, could maybe refactor later
+        Flatten ``entry`` recursively, adding it to ``self._entry_cache`` if not
+        present already.
+
+        If ``entry`` is already a UUID, it should have already been cached, and
+        can be skipped.
+
+        Parameters
+        ----------
+        entry : Union[Entry, UUID]
+            entry or uuid reference to flatten and cache
         """
         if isinstance(entry, UUID):
             return
+        refs = entry.swap_to_uuids()
+        for ref in refs:
+            if isinstance(ref, Entry):
+                self.maybe_add_to_cache(ref)
+                self.flatten_and_cache(ref)
 
-        for child in getattr(entry, 'children', []):
-            self.maybe_add_to_cache(child)
-            self.flatten_and_cache(child)
-
-        _ = entry.swap_to_uuids()
         self.maybe_add_to_cache(entry)
 
     def maybe_add_to_cache(self, item: Union[Entry, UUID]) -> None:
+        """
+        Adds ``item`` to the entry cache if it does not already exist
+
+        Parameters
+        ----------
+        item : Union[Entry, UUID]
+            _description_
+        """
         if isinstance(item, UUID):
             return
         meta_id = item.uuid
@@ -104,6 +118,7 @@ class FilestoreBackend(_Backend):
         ------
         PermissionError
             If the JSON file specified by ``path`` already exists.
+
         Notes
         -----
         This exists because the `.store` and `.load` methods assume that the
@@ -222,7 +237,7 @@ class FilestoreBackend(_Backend):
 
     def load(self) -> Optional[Root]:
         """
-        Load database from stored path as a nested structure (deserialize as Root)
+        Load database from stored path as a nested structure
         """
         with open(self.path) as fp:
             serialized = json.load(fp)
@@ -231,17 +246,18 @@ class FilestoreBackend(_Backend):
 
     @property
     def root(self) -> Root:
+        """Refresh the cache and return the root object"""
         with _load_and_store_context(self):
             return self._root
 
-    def get_entry(self, meta_id: UUID) -> Entry:
-        """Return the entry"""
+    def get_entry(self, uuid: UUID) -> Entry:
+        """Return the entry with ``uuid``"""
         with _load_and_store_context(self) as db:
-            return db.get(meta_id)
+            return db.get(uuid)
 
     def save_entry(self, entry: Entry) -> None:
         """
-        Save specific entry into database. Entry is expected to not already exist
+        Save ``entry`` into database. Entry is expected to not already exist
         Assumes connections are made properly.
         """
         with _load_and_store_context(self) as db:
@@ -265,17 +281,15 @@ class FilestoreBackend(_Backend):
             db.pop(entry.uuid, None)
 
     def search(self, **search_kwargs) -> Generator[Entry, None, None]:
-        """Search given ``search_kwargs``"""
+        """
+        Search for an entry that matches ``search_kwargs``.
+        Currently does not support partial matches.
+        """
         for entry in self._entry_cache.values():
             match = (getattr(entry, key, None) == value
                      for key, value in search_kwargs.items())
             if all(match):
                 yield entry
-
-    def clear_cache(self) -> None:
-        """Clear the loaded cache and stored root"""
-        self._entry_cache = {}
-        self._root = None
 
 
 @contextlib.contextmanager
