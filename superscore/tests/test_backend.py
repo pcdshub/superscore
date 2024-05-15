@@ -56,6 +56,10 @@ def test_save_entry(backends: _Backend):
     found_entry = backends.get_entry(new_entry.uuid)
     assert found_entry == new_entry
 
+    # Cannot save an entry that already exists.
+    with pytest.raises(BackendError):
+        backends.save_entry(new_entry)
+
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
 def test_delete_entry(backends: _Backend):
@@ -85,3 +89,26 @@ def test_search_entry(backends: _Backend):
         uuid=UUID('ecb42cdb-b703-4562-86e1-45bd67a2ab1a'), data=2
     )
     assert len(list(results)) == 1
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
+def test_update_entry(backends: _Backend):
+    # grab an entry from the database and modify it.
+    entry = list(backends.search(
+        description='collection 1 defining some motor fields'
+    ))[0]
+    old_uuid = entry.uuid
+
+    entry.description = 'new_description'
+    backends.update_entry(entry)
+    new_entry = list(backends.search(
+        description='new_description'
+    ))[0]
+    new_uuid = new_entry.uuid
+
+    assert old_uuid == new_uuid
+
+    # fail if we try to modify with a new entry
+    p1 = Parameter()
+    with pytest.raises(BackendError):
+        backends.update_entry(p1)
