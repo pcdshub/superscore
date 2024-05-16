@@ -285,11 +285,12 @@ class FilestoreBackend(_Backend):
         Search for an entry that matches ``search_kwargs``.
         Currently does not support partial matches.
         """
-        for entry in self._entry_cache.values():
-            match = (getattr(entry, key, None) == value
-                     for key, value in search_kwargs.items())
-            if all(match):
-                yield entry
+        with _load_and_store_context(self) as db:
+            for entry in db.values():
+                match = (getattr(entry, key, None) == value
+                         for key, value in search_kwargs.items())
+                if all(match):
+                    yield entry
 
 
 @contextlib.contextmanager

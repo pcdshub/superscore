@@ -1,12 +1,14 @@
-import pytest
 import shutil
 from pathlib import Path
 from typing import List
+
+import pytest
 
 from superscore.backends.core import _Backend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.model import Collection, Parameter, Root, Setpoint, Snapshot
+
 
 @pytest.fixture
 def linac_backend():
