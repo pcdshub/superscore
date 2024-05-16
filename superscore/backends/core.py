@@ -12,13 +12,16 @@ class _Backend:
     Base class for data storage backend.
     """
     def get_entry(self, meta_id: UUID) -> Entry:
-        """Get entry with ``meta_id``."""
+        """
+        Get entry with ``meta_id``
+        Throws EntryNotFoundError
+        """
         raise NotImplementedError
 
     def save_entry(self, entry: Entry):
         """
         Save ``entry`` into the database
-        Throws BackendError if ``entry`` already exists
+        Throws EntryExistsError
         """
         raise NotImplementedError
 
@@ -31,7 +34,7 @@ class _Backend:
     def update_entry(self, entry: Entry) -> None:
         """
         Update ``entry`` in the backend.
-        Throws BackendError if ``entry`` does not already exist
+        Throws EntryNotFoundError
         """
         raise NotImplementedError
 
