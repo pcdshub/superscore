@@ -10,7 +10,7 @@ from superscore.backends.test import TestBackend
 from superscore.model import Collection, Parameter, Root, Setpoint, Snapshot
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def linac_backend():
     lasr_gunb_pv1 = Parameter(
         uuid="5544c58f-88b6-40aa-9076-f180a44908f5",
@@ -360,7 +360,7 @@ def test_backends(filestore_backend: FilestoreBackend) -> List[_Backend]:
     return [filestore_backend,]
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def backends(request, test_backends: List[_Backend]):
     i = request.param
     return test_backends[i]

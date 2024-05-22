@@ -85,15 +85,6 @@ class Parameter(Entry):
 
 
 @dataclass
-class Value(Entry):
-    """An Entry that stores a PV name and data pair"""
-    pv_name: str = ""
-    data: Optional[AnyEpicsType] = None
-    status: Status = Status.UDF
-    severity: Severity = Severity.INVALID
-
-
-@dataclass
 class Setpoint(Entry):
     """A Value that can be written to the EPICS environment"""
     pv_name: str = ""
@@ -148,7 +139,7 @@ class Readback(Entry):
         status: Status = Status.UDF,
         severity: Severity = Severity.INVALID,
         timeout: Optional[float] = None,
-    ) -> Setpoint:
+    ) -> Readback:
 
         return cls(
             pv_name=origin.pv_name,
@@ -195,11 +186,11 @@ class Snapshot(Entry):
     """
     title: str = ""
     origin_collection: Optional[Union[UUID, Collection]] = None
-    children: List[Union[UUID, Value, Readback, Setpoint, Snapshot]] = field(
+    children: List[Union[UUID, Readback, Setpoint, Snapshot]] = field(
         default_factory=list
     )
     tags: Set[Tag] = field(default_factory=set)
-    meta_pvs: List[Value] = field(default_factory=list)
+    meta_pvs: List[Readback] = field(default_factory=list)
 
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
         ref_list = []

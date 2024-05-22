@@ -30,7 +30,7 @@ class FilestoreBackend(_Backend):
     the database.
     File storage is a json file containing serialized model dataclasses.
     """
-    _entry_cache: Dict[UUID, Entry] = {}
+    _entry_cache: Dict[UUID, Entry]
     _root: Root
 
     def __init__(
@@ -39,6 +39,7 @@ class FilestoreBackend(_Backend):
         initialize: bool = False,
         cfg_path: Optional[str] = None
     ) -> None:
+        self._entry_cache = {}
         self._root = None
         self.path = path
         if cfg_path is not None:
@@ -64,6 +65,7 @@ class FilestoreBackend(_Backend):
                 self._root = self.load()
 
         # flatten create entry cache
+        self._entry_cache = {}
         for entry in self._root.entries:
             self.flatten_and_cache(entry)
 
@@ -142,7 +144,8 @@ class FilestoreBackend(_Backend):
         new_children = []
         for root_child in self._root.entries:
             if root_child.uuid in self._entry_cache:
-                new_children.append(self.fill_uuids(root_child))
+                new_child = self._entry_cache[root_child.uuid]
+                new_children.append(self.fill_uuids(new_child))
 
         new_root.entries = new_children
         return new_root
@@ -247,12 +250,12 @@ class FilestoreBackend(_Backend):
     @property
     def root(self) -> Root:
         """Refresh the cache and return the root object"""
-        with _load_and_store_context(self):
+        with self._load_and_store_context():
             return self._root
 
     def get_entry(self, uuid: UUID) -> Entry:
         """Return the entry with ``uuid``"""
-        with _load_and_store_context(self) as db:
+        with self._load_and_store_context() as db:
             return db.get(uuid)
 
     def save_entry(self, entry: Entry) -> None:
@@ -260,7 +263,7 @@ class FilestoreBackend(_Backend):
         Save ``entry`` into database. Entry is expected to not already exist
         Assumes connections are made properly.
         """
-        with _load_and_store_context(self) as db:
+        with self._load_and_store_context() as db:
             if db.get(entry.uuid):
                 raise BackendError("Entry already exists, try updating the entry "
                                    "instead of saving it")
@@ -269,7 +272,7 @@ class FilestoreBackend(_Backend):
 
     def update_entry(self, entry: Entry) -> None:
         """Updates ``entry``.  Looks for references"""
-        with _load_and_store_context(self) as db:
+        with self._load_and_store_context() as db:
             if not db.get(entry.uuid):
                 raise BackendError("Entry does not exist, cannot update")
 
@@ -277,7 +280,7 @@ class FilestoreBackend(_Backend):
 
     def delete_entry(self, entry: Entry) -> None:
         """Delete meta_id from the system (all instances)"""
-        with _load_and_store_context(self) as db:
+        with self._load_and_store_context() as db:
             db.pop(entry.uuid, None)
 
     def search(self, **search_kwargs) -> Generator[Entry, None, None]:
@@ -285,22 +288,19 @@ class FilestoreBackend(_Backend):
         Search for an entry that matches ``search_kwargs``.
         Currently does not support partial matches.
         """
-        with _load_and_store_context(self) as db:
+        with self._load_and_store_context() as db:
             for entry in db.values():
                 match = (getattr(entry, key, None) == value
                          for key, value in search_kwargs.items())
                 if all(match):
                     yield entry
 
-
-@contextlib.contextmanager
-def _load_and_store_context(
-    backend: FilestoreBackend
-) -> Generator[Dict[UUID, Any], None, None]:
-    """
-    Context manager used to load, and optionally store the JSON database.
-    Yields the flattened entry cache
-    """
-    db = backend._load_or_initialize()
-    yield db
-    backend.store()
+    @contextlib.contextmanager
+    def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:
+        """
+        Context manager used to load, and optionally store the JSON database.
+        Yields the flattened entry cache
+        """
+        db = self._load_or_initialize()
+        yield db
+        self.store()
