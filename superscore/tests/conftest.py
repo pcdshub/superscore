@@ -7,7 +7,8 @@ import pytest
 from superscore.backends.core import _Backend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
-from superscore.model import Collection, Parameter, Root, Setpoint, Snapshot
+from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
+                              Snapshot)
 
 
 @pytest.fixture(scope='function')
@@ -24,7 +25,7 @@ def linac_backend():
         uuid="7cb3760c-793c-4974-a8ae-778e5d491e4a",
         pv_name="LASR:GUNB:TEST2",
         description="Second LASR pv in GUNB",
-        creation_time=now
+        creation_time=now,
     )
 
     lasr_gunb_col = Collection(
@@ -42,7 +43,7 @@ def linac_backend():
         uuid="930b137f-5ae2-470e-8b82-c4b4eb7e639e",
         pv_name="MGNT:GUNB:TEST0",
         description="Only MGNT pv in GUNB",
-        creation_time=now
+        creation_time=now,
     )
 
     mgnt_gunb_col = Collection(
@@ -59,14 +60,14 @@ def linac_backend():
         uuid="8f3ac401-68f8-4def-b65a-3c8116c80ba7",
         pv_name="VAC:GUNB:TEST1",
         description="First VAC pv in GUNB",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_gunb_pv2 = Parameter(
         uuid="06448272-cd38-4bb4-9b8d-292673a497e9",
         pv_name="VAC:GUNB:TEST2",
         description="Second VAC pv in GUNB",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_gunb_col = Collection(
@@ -96,7 +97,7 @@ def linac_backend():
         uuid="5ec33c74-7f4c-4905-a106-44fbfe138140",
         pv_name="VAC:L0B:TEST0",
         description="Only VAC pv in L0B",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_l0b_col = Collection(
@@ -123,7 +124,7 @@ def linac_backend():
         uuid="030786df-153b-4d29-bc1f-66deeb116724",
         pv_name="VAC:BSY:TEST0",
         description="Only VAC pv in BSY",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_bsy_col = Collection(
@@ -162,7 +163,7 @@ def linac_backend():
         uuid="2c83a9be-bec6-4436-8233-79df300af670",
         pv_name="VAC:LI10:TEST0",
         description="Only VAC pv in LI10",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_li10_col = Collection(
@@ -189,7 +190,7 @@ def linac_backend():
         uuid="f802dee1-569b-4c6b-a32f-c213af10ecec",
         pv_name="LASR:IN10:TEST0",
         description="Only laser pv in IN10",
-        creation_time=now
+        creation_time=now,
     )
 
     lasr_in10_col = Collection(
@@ -227,7 +228,7 @@ def linac_backend():
         uuid="a13ef8a5-b8df-4caa-80f5-395b16eaa5f1",
         pv_name="LASR:IN20:TEST0",
         description="Only laser pv in IN20",
-        creation_time=now
+        creation_time=now,
     )
 
     lasr_in20_col = Collection(
@@ -254,7 +255,7 @@ def linac_backend():
         uuid="8dba63d5-98e8-4647-ae44-ff0a38a4805d",
         pv_name="VAC:LI21:TEST0",
         description="Only VAC pv in LI21",
-        creation_time=now
+        creation_time=now,
     )
 
     vac_li21_col = Collection(
@@ -289,9 +290,10 @@ def linac_backend():
         ]
     )
 
-    root_col = Collection(
+    all_col = Collection(
         uuid="441ff79f-4948-480e-9646-55a1462a5a70",
         description="All three facilities in the SLAC LINAC: LCLS-NC, FACET, and LCLS-SC",
+        creation_time=now,
         title="Accelerator Directorate",
         children=[
             lcls_nc_col,
@@ -300,7 +302,316 @@ def linac_backend():
         ]
     )
 
-    return TestBackend([root_col])
+    lasr_gunb_value1 = Setpoint(
+        uuid="927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4",
+        pv_name=lasr_gunb_pv1.pv_name,
+        description=lasr_gunb_pv1.description,
+        data="Off",
+    )
+
+    now = lasr_gunb_value1.creation_time
+
+    lasr_gunb_value2 = Setpoint(
+        uuid="a221f6fa-6bc1-40ad-90fb-2041c29a5f67",
+        pv_name=lasr_gunb_pv2.pv_name,
+        description=lasr_gunb_pv2.description,
+        creation_time=now,
+        data=5,
+    )
+
+    lasr_gunb_snapshot = Snapshot(
+        uuid="2f709b4b-79da-4a8b-8693-eed2c389cb3a",
+        description=lasr_gunb_col.description,
+        creation_time=now,
+        title=lasr_gunb_col.title,
+        children=[
+            lasr_gunb_value1,
+            lasr_gunb_value2,
+        ]
+    )
+
+    mgnt_gunb_value = Setpoint(
+        uuid="502d9fc3-455a-47ea-8c48-e1a26d4d3350",
+        pv_name=mgnt_gunb_pv.pv_name,
+        description=mgnt_gunb_pv.description,
+        creation_time=now,
+        data=True,
+    )
+
+    mgnt_gunb_snapshot = Snapshot(
+        uuid="4e25ec00-3d8e-4e87-b19f-8541cb25e83b",
+        description=mgnt_gunb_col.description,
+        creation_time=now,
+        title=mgnt_gunb_col.title,
+        children=[
+            mgnt_gunb_value,
+        ]
+    )
+
+    vac_gunb_value1 = Setpoint(
+        uuid="cc187dbf-fa41-49d7-8c7b-49c8989c6a2f",
+        pv_name=vac_gunb_pv1.pv_name,
+        description=vac_gunb_pv1.description,
+        creation_time=now,
+        data="Ion Pump",
+    )
+
+    vac_gunb_value2 = Setpoint(
+        uuid="7c87960d-8b58-4b29-8d5e-e1f3223e356a",
+        pv_name=vac_gunb_pv2.pv_name,
+        description=vac_gunb_pv2.description,
+        creation_time=now,
+        data=False,
+    )
+
+    vac_gunb_snapshot = Snapshot(
+        uuid="8463a578-d327-4b92-8867-58e01c80f3c2",
+        description=vac_gunb_col.description,
+        creation_time=now,
+        title=vac_gunb_col.title,
+        children=[
+            vac_gunb_value1,
+            vac_gunb_value2,
+        ]
+    )
+
+    gunb_snapshot = Snapshot(
+        uuid="7d8655e1-c086-45a1-b89d-d5261e8375d0",
+        description=gunb_col.description,
+        creation_time=now,
+        title=gunb_col.title,
+        children=[
+            vac_gunb_snapshot,
+            mgnt_gunb_snapshot,
+            lasr_gunb_snapshot,
+        ]
+    )
+
+    vac_l0b_value = Setpoint(
+        uuid="2ef43192-40c9-4e79-96e7-2d7f6df58cd9",
+        pv_name=vac_l0b_pv.pv_name,
+        description=vac_l0b_pv.description,
+        creation_time=now,
+        data=-10,
+    )
+
+    vac_l0b_snapshot = Snapshot(
+        uuid="ed223bb4-ce6f-4b58-b53e-c2c538b1a2c7",
+        description=vac_l0b_col.description,
+        creation_time=now,
+        title=vac_l0b_col.title,
+        children=[
+            vac_l0b_value,
+        ]
+    )
+
+    l0b_snapshot = Snapshot(
+        uuid="cb2a6de0-84b4-4f9c-b7b7-ec67ccfd622f",
+        description=l0b_col.description,
+        creation_time=now,
+        title=l0b_col.title,
+        children=[
+            vac_l0b_snapshot,
+        ]
+    )
+
+    vac_bsy_value = Setpoint(
+        uuid="6bebcb59-884f-4e68-927d-f3053effd698",
+        pv_name=vac_bsy_pv.pv_name,
+        description=vac_bsy_pv.description,
+        creation_time=now,
+        data="",
+    )
+
+    vac_bsy_snapshot = Snapshot(
+        uuid="aca9400b-d37c-4b86-ada7-4801cdc6aa72",
+        description=vac_bsy_col.description,
+        creation_time=now,
+        title=vac_bsy_col.title,
+        children=[
+            vac_bsy_value,
+        ]
+    )
+
+    bsy_snapshot = Snapshot(
+        uuid="a62f1386-39de-4d19-9ea4-82f0212169a7",
+        description=bsy_col.description,
+        creation_time=now,
+        title=bsy_col.title,
+        children=[
+            vac_bsy_snapshot,
+        ]
+    )
+
+    lcls_sc_snapshot = Snapshot(
+        uuid="f01dd01b-bf48-49b2-bbb0-68dcc0b737f8",
+        description=lcls_sc_col.description,
+        creation_time=now,
+        title=lcls_sc_col.title,
+        children=[
+            gunb_snapshot,
+            l0b_snapshot,
+            bsy_snapshot,
+        ]
+    )
+
+    vac_li10_value = Setpoint(
+        uuid="ee56d60b-b8b9-447d-b857-6117e22f1462",
+        pv_name=vac_li10_pv.pv_name,
+        description=vac_li10_pv.description,
+        creation_time=now,
+        data=.25,
+    )
+
+    vac_li10_snapshot = Snapshot(
+        uuid="fb3a429c-1d2b-4505-8265-3d8988df2db1",
+        description=vac_li10_col.description,
+        creation_time=now,
+        title=vac_li10_col.title,
+        children=[
+            vac_li10_value,
+        ]
+    )
+
+    li10_snapshot = Snapshot(
+        uuid="c407e473-9287-4462-b3d3-9036008ea7f1",
+        description=li10_col.description,
+        creation_time=now,
+        title=li10_col.title,
+        children=[
+            vac_li10_snapshot,
+        ]
+    )
+
+    lasr_in10_value = Setpoint(
+        uuid="fb809d22-76fb-493e-b7f2-b522319e5e2f",
+        pv_name=lasr_in10_pv.pv_name,
+        description=lasr_in10_pv.description,
+        creation_time=now,
+        data=645.26,
+    )
+
+    lasr_in10_snapshot = Snapshot(
+        uuid="b815aed4-82b4-4dc2-9eeb-0e54bcbeb5c5",
+        description=lasr_in10_col.description,
+        creation_time=now,
+        title=lasr_in10_col.title,
+        children=[
+            lasr_in10_value,
+        ]
+    )
+
+    in10_snapshot = Snapshot(
+        uuid="5d1763cc-41a2-4c6e-bffb-4197a3994b2d",
+        description=in10_col.description,
+        creation_time=now,
+        title=in10_col.title,
+        children=[
+            lasr_in10_snapshot,
+        ]
+    )
+
+    facet_snapshot = Snapshot(
+        uuid="c48a332a-9c79-4b6f-850a-844237b83737",
+        description=facet_col.description,
+        creation_time=now,
+        title=facet_col.title,
+        children=[
+            in10_snapshot,
+            li10_snapshot,
+        ]
+    )
+
+    lasr_in20_value = Setpoint(
+        uuid="4d2f7bf2-af71-492b-8528-ba9b6e3ab964",
+        pv_name=lasr_in20_pv.pv_name,
+        description=lasr_in20_pv.description,
+        creation_time=now,
+        data=0,
+    )
+
+    lasr_in20_snapshot = Snapshot(
+        uuid="278875de-7adf-4c52-bc88-5b188eb26d4f",
+        description=lasr_in20_col.description,
+        creation_time=now,
+        title=lasr_in20_col.title,
+        children=[
+            lasr_in20_value,
+        ]
+    )
+
+    in20_snapshot = Snapshot(
+        uuid="f9965c8f-55eb-4e5c-8d52-cc939eed76db",
+        description=in20_col.description,
+        creation_time=now,
+        title=in20_col.title,
+        children=[
+            lasr_in20_snapshot,
+        ]
+    )
+
+    vac_li21_readback = Readback(
+        uuid="de66d08e-09c3-4c45-8978-900e51d00248",
+        pv_name=vac_li21_pv.pv_name,
+        description=vac_li21_pv.description,
+        creation_time=now,
+        data=0.0,
+    )
+
+    vac_li21_setpoint = Setpoint(
+        uuid="4bffe9a5-f198-41d8-90ab-870d1b5a325b",
+        pv_name=vac_li21_pv.pv_name,
+        description=vac_li21_pv.description,
+        creation_time=now,
+        data=5.0,
+        readback=vac_li21_readback,
+    )
+
+    vac_li21_snapshot = Snapshot(
+        uuid="97833e7b-e49d-4898-a602-bb39c493b0ee",
+        description=vac_li21_col.description,
+        creation_time=now,
+        title=vac_li21_col.title,
+        children=[
+            vac_li21_setpoint,
+            vac_li21_readback,
+        ]
+    )
+
+    li21_snapshot = Snapshot(
+        uuid="63a4fab8-17f9-4066-92c7-311e2eb6a44f",
+        description=li21_col.description,
+        creation_time=now,
+        title=li21_col.title,
+        children=[
+            vac_li21_snapshot,
+        ]
+    )
+
+    lcls_nc_snapshot = Snapshot(
+        uuid="7f86856a-8963-4cf2-9830-f3cce6c1b4b2",
+        description=lcls_nc_col.description,
+        creation_time=now,
+        title=lcls_nc_col.title,
+        children=[
+            in20_snapshot,
+            li21_snapshot,
+            bsy_snapshot,
+        ]
+    )
+
+    all_snapshot = Snapshot(
+        uuid="06282731-33ea-4270-ba14-098872e627dc",
+        description=all_col.description,
+        title=all_col.title,
+        children=[
+            lcls_nc_snapshot,
+            facet_snapshot,
+            lcls_sc_snapshot,
+        ]
+    )
+
+    return TestBackend([all_col, all_snapshot])
 
 
 @pytest.fixture(scope='function')
