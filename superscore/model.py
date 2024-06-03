@@ -195,16 +195,15 @@ class Nestable:
 
     def has_cycle(self, parents=None) -> bool:
         if parents is None:
-            parents = set()
+            parents = frozenset()
 
         if self.uuid in parents:
             return True
         else:
-            parents.add(self.uuid)
+            parents_including_self = parents | {self.uuid}
             for child in self.children:
-                if isinstance(child, type(self)) and child.has_cycle(parents=parents):
+                if isinstance(child, type(self)) and child.has_cycle(parents=parents_including_self):
                     return True
-            parents.remove(self.uuid)
             return False
 
 
