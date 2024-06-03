@@ -88,6 +88,10 @@ class TestEntryValidation:
         vac_bsy_col.children.append(bsy_col)
         assert not linac_model.validate()
 
+        # ensure there's no hysteresis in cycle detection
+        vac_bsy_col.children.remove(bsy_col)
+        assert linac_model.validate()
+
     @staticmethod
     def test_collection_reachable_from_snapshot_validation(linac_backend):
         linac_snapshot = linac_backend.get_entry("06282731-33ea-4270-ba14-098872e627dc")
