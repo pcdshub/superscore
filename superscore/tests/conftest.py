@@ -736,7 +736,10 @@ def sample_client(
 
 
 @pytest.fixture(scope='function')
-def ioc(linac_backend):
-    linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
-    with IOCFactory.from_entries(linac_model.children, prefix="SCORETEST:"):
+def ioc(request, linac_backend):
+    if request.param == "linac":
+        entries = linac_backend.get_entry("06282731-33ea-4270-ba14-098872e627dc").children
+    else:
+        entries = request.param
+    with IOCFactory.from_entries(entries, prefix="SCORETEST:"):
         yield
