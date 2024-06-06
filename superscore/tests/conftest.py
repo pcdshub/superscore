@@ -13,6 +13,7 @@ from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
                               Snapshot)
+from superscore.tests.ioc.ioc import IOCFactory
 
 
 @pytest.fixture(scope='function')
@@ -732,3 +733,10 @@ def sample_client(
     client.cl = dummy_cl
 
     return client
+
+
+@pytest.fixture(scope='function')
+def ioc(linac_backend):
+    linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+    with IOCFactory.from_entries(linac_model.children, prefix="SCORETEST:"):
+        yield
