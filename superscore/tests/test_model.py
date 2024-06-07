@@ -89,14 +89,14 @@ class TestEntryValidation:
             description="A Collection without any children",
             children=[],
         )
-        assert not empty_col.validate()
+        assert empty_col.validate()
 
         parent_col = Collection(
             title="Non-empty Collection",
             description="A Collection whose child is empty",
             children=[empty_col],
         )
-        assert not parent_col.validate()
+        assert parent_col.validate()
 
     @staticmethod
     def test_nestable_cycle_validation():

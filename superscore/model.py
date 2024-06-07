@@ -190,8 +190,7 @@ class Nestable:
         Overrides Entry.validate().
         """
         tree_is_valid = not toplevel or (not self.has_cycle() and super().validate(toplevel=True))
-        not_empty = len(self.children) > 0
-        return tree_is_valid and not_empty and all(child.validate(toplevel=False) for child in self.children)
+        return tree_is_valid and all(child.validate(toplevel=False) for child in self.children)
 
     def has_cycle(self, parents=None) -> bool:
         if parents is None:
