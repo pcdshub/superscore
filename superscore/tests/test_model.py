@@ -1,7 +1,7 @@
 import apischema
 
-from superscore.model import (Collection, Parameter, Root, Setpoint, Severity,
-                              Snapshot, Status)
+from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
+                              Severity, Snapshot, Status)
 
 
 def test_serialize_collection_roundtrip():
@@ -42,3 +42,114 @@ def test_sample_database_roundtrip(sample_database: Root):
     ser = apischema.serialize(Root, sample_database)
     deser = apischema.deserialize(Root, ser)
     assert deser == sample_database
+
+
+class TestEntryValidation:
+    @staticmethod
+    def test_parameter_readback_validation():
+        readback_pv = Parameter(
+            pv_name="TEST:PV:READBACK",
+            description="Used as a readback for another PV",
+        )
+        main_pv = Parameter(
+            pv_name="TEST:PV:MAIN",
+            description="A PV with a separate readback",
+            readback=readback_pv,
+        )
+        assert readback_pv.validate()
+        assert main_pv.validate()
+
+        readback_pv.abs_tolerance = "1"
+        assert not main_pv.validate()
+
+    @staticmethod
+    def test_setpoint_validation():
+        readback = Readback(
+            pv_name="TEST:PV:READBACK",
+            description="Used as a readback for another PV",
+            data=0.0,
+        )
+        setpoint = Setpoint(
+            pv_name="TEST:PV:SETPOINT",
+            description="A PV with a separate readback",
+            data=5.0,
+            readback=readback,
+            creation_time=readback.creation_time,
+        )
+        assert readback.validate()
+        assert setpoint.validate()
+
+        readback.rel_tolerance = "10%"
+        assert not setpoint.validate()
+
+    @staticmethod
+    def test_nestable_empty_validation():
+        empty_col = Collection(
+            title="Emtpy Collection",
+            description="A Collection without any children",
+            children=[],
+        )
+        assert empty_col.validate()
+
+        parent_col = Collection(
+            title="Non-empty Collection",
+            description="A Collection whose child is empty",
+            children=[empty_col],
+        )
+        assert parent_col.validate()
+
+    @staticmethod
+    def test_nestable_cycle_validation():
+        pv = Parameter(
+            pv_name="TEST:PV:1",
+            description="An ordinary, valid PV",
+        )
+        col = Collection(
+            title="Collection",
+            description="A valid Collection that becomes invalid when it becomes its own parent",
+            children=[pv]
+        )
+        assert col.validate()
+
+        col.children.append(col)
+        assert not col.validate()
+
+        # ensure there's no hysteresis in cycle detection
+        col.children.remove(col)
+        assert col.validate()
+
+    @staticmethod
+    def test_collection_reachable_from_snapshot_validation():
+        pv = Parameter(
+            pv_name="TEST:PV:1",
+            description="An ordinary, valid PV",
+        )
+        col = Collection(
+            title="Collection",
+            description="An ordinary, valid Collection",
+            children=[pv]
+        )
+        assert col.validate()
+
+        setpoint = Setpoint(
+            pv_name=pv.pv_name,
+            description=pv.description,
+            data=0,
+        )
+        snapshot = Snapshot(
+            title="Snapshot",
+            description="A valid Snapshot that becomes invalid when it gains a child Collection",
+            children=[setpoint]
+        )
+        assert snapshot.validate()
+
+        snapshot.children.append(col)
+        assert not snapshot.validate()
+
+    @staticmethod
+    def test_fixture_validation(linac_backend):
+        linac_model = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+        assert linac_model.validate()
+
+        linac_snapshot = linac_backend.get_entry("06282731-33ea-4270-ba14-098872e627dc")
+        assert linac_snapshot.validate()

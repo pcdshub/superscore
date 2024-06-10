@@ -9,6 +9,8 @@ from enum import Flag, IntEnum, auto
 from typing import ClassVar, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
+import apischema
+
 from superscore.serialization import as_tagged_union
 from superscore.type_hints import AnyEpicsType
 from superscore.utils import utcnow
@@ -73,6 +75,23 @@ class Entry:
         """
         return []
 
+    def validate(self, toplevel: bool = True) -> bool:
+        """
+        Ensures Entry is properly formed.
+
+        Raises apischema.ValidationError if type checking fails during
+        deserialization
+        """
+        if toplevel:
+            try:
+                serial = apischema.serialize(self)
+                apischema.deserialize(type(self), serial)
+                return True
+            except apischema.ValidationError:
+                return False
+        else:
+            return True
+
 
 @dataclass
 class Parameter(Entry):
@@ -82,6 +101,10 @@ class Parameter(Entry):
     rel_tolerance: Optional[float] = None
     readback: Optional[Parameter] = None
     read_only: bool = False
+
+    def validate(self, toplevel: bool = True) -> bool:
+        readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
+        return readback_is_valid and super().validate(toplevel=toplevel)
 
 
 @dataclass
@@ -109,6 +132,10 @@ class Setpoint(Entry):
             severity=severity,
             readback=origin.readback,
         )
+
+    def validate(self, toplevel: bool = True) -> bool:
+        readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
+        return readback_is_valid and super().validate(toplevel=toplevel)
 
 
 @dataclass
@@ -152,8 +179,35 @@ class Readback(Entry):
         )
 
 
+class Nestable:
+    """Mix-in class that provides methods for nested container Entries"""
+    def validate(self, toplevel: bool = True):
+        """
+        Validates self and all children. If toplevel, also validates structure
+        of the Entry tree. This avoids redundant work by only performing tree-
+        level validation once.
+
+        Overrides Entry.validate().
+        """
+        tree_is_valid = not toplevel or (not self.has_cycle() and super().validate(toplevel=True))
+        return tree_is_valid and all(child.validate(toplevel=False) for child in self.children)
+
+    def has_cycle(self, parents=None) -> bool:
+        if parents is None:
+            parents = frozenset()
+
+        if self.uuid in parents:
+            return True
+        else:
+            parents_including_self = parents | {self.uuid}
+            for child in self.children:
+                if isinstance(child, type(self)) and child.has_cycle(parents=parents_including_self):
+                    return True
+            return False
+
+
 @dataclass
-class Collection(Entry):
+class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
     meta_pvs: ClassVar[List[Parameter]] = []
     all_tags: ClassVar[Set[Tag]] = set()
@@ -180,7 +234,7 @@ class Collection(Entry):
 
 
 @dataclass
-class Snapshot(Entry):
+class Snapshot(Nestable, Entry):
     """
     Nestable group of Values and Snapshots.  Effectively a data-filled Collection
     """
