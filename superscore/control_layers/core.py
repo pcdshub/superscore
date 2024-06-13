@@ -4,7 +4,9 @@ and dispatches to various shims depending on the context.
 """
 import asyncio
 from functools import singledispatchmethod
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
+
+from superscore.control_layers.status import TaskStatus
 
 from ._aioca import AiocaShim
 from ._base_shim import _ShimBase
@@ -59,26 +61,46 @@ class ControlLayer:
         return await shim.get(pv)
 
     @singledispatchmethod
-    def put(self, pv, value: Any):
+    def put(self, pv, value: Any, cb: Optional[Callable]):
         print(f"PV is of an unsupported type: {type(pv)}. Provide either "
               "a string or list of strings")
 
     @put.register
-    def _(self, pv: str, value: Any):
-        return asyncio.run(self._put_one(pv, value))
+    def _(self, pv: str, value: Any, cb: Optional[Callable] = None):
+        async def status_coro():
+            status = self._put_one(pv, value)
+            if cb is not None:
+                status.add_callback(cb)
+            await status.task
+            return status
+
+        return asyncio.run(status_coro())
 
     @put.register
-    def _(self, pv: list, value: list, sequential: bool = False):
-        coros = []
-        for p, val in zip(pv, value):
-            coros.append(self._put_one(p, val))
+    def _(self, pv: list, value: list, cb: Optional[list[Callable]] = None):
 
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(asyncio.gather(*coros))
+        async def status_coros():
+            statuses = []
+            if cb is None:
+                callbacks = [None for _ in range(len(pv))]
+            else:
+                callbacks = cb
 
+            for p, val, c in zip(pv, value, callbacks):
+                status = self._put_one(p, val)
+                if c is not None:
+                    status.add_callback(c)
+
+                statuses.append(status)
+            await asyncio.gather(*[s.task for s in statuses])
+            return statuses
+
+        return asyncio.run(status_coros())
+
+    @TaskStatus.wrap
     async def _put_one(self, pv: str, value: Any):
         shim = self.shim_from_pv(pv)
-        return await shim.put(pv, value)
+        await shim.put(pv, value)
 
     def subscribe(self, pv, cb):
         # Subscribes a callback to the PV address

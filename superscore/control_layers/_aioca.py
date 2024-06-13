@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 from aioca import caget, camonitor, caput
 
-from ._base_shim import _ShimBase
+from superscore.control_layers._base_shim import _ShimBase
 
 
 class AiocaShim(_ShimBase):
@@ -15,7 +15,7 @@ class AiocaShim(_ShimBase):
         return await caget(address)
 
     async def put(self, address: str, value: Any):
-        return await caput(address, value)
+        await caput(address, value)
 
     def monitor(self, address: str, callback: Callable):
         camonitor(address, callback)
