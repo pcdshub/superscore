@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional
 from superscore.control_layers.status import TaskStatus
 
 from ._aioca import AiocaShim
-from ._base_shim import _ShimBase
+from ._base_shim import _BaseShim
 
 
 class ControlLayer:
@@ -17,14 +17,14 @@ class ControlLayer:
     Control Layer used to communicate with the control system, dispatching to
     whichever shim is relevant.
     """
-    shims: Dict[str, _ShimBase]
+    shims: Dict[str, _BaseShim]
 
     def __init__(self, *args, **kwargs):
         self.shims = {
             'ca': AiocaShim(),
         }
 
-    def shim_from_pv(self, pv: str) -> _ShimBase:
+    def shim_from_pv(self, pv: str) -> _BaseShim:
         split = pv.split("://", 1)
         if len(split) > 1:
             # We got something like pva://mydevice, so use specified comms mode

@@ -5,10 +5,10 @@ from typing import Any, Callable
 
 from aioca import caget, camonitor, caput
 
-from superscore.control_layers._base_shim import _ShimBase
+from superscore.control_layers._base_shim import _BaseShim
 
 
-class AiocaShim(_ShimBase):
+class AiocaShim(_BaseShim):
     # TODO: consider handling datatype arguments in caput/get
     # TODO: wrap CANothing results into unified status object
     async def get(self, address: str):

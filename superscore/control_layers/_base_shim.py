@@ -1,7 +1,7 @@
 from typing import Any, Callable
 
 
-class _ShimBase:
+class _BaseShim:
     async def get(self, address: str):
         raise NotImplementedError
 
