@@ -3,7 +3,6 @@ Main control layer objects.  Exposes basic communication operations,
 and dispatches to various shims depending on the context.
 """
 import asyncio
-from contextlib import suppress
 from functools import singledispatchmethod
 from typing import Any, Dict
 
@@ -85,14 +84,3 @@ class ControlLayer:
         # Subscribes a callback to the PV address
         shim = self.shim_from_pv(pv)
         shim.monitor(pv, cb)
-
-    def stop(self):
-        # stop all currently running tasks.
-        # TODO: make all tasks generated in superscore actually handle
-        # CancelledError properly and clean up...
-        loop = asyncio.get_event_loop()
-        pending_tasks = asyncio.all_tasks(loop)
-        for task in pending_tasks:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                loop.run_until_complete(task)
