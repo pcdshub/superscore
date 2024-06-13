@@ -1,4 +1,5 @@
 # List requirements here.
+aioca
 apischema
 pcdsutils
 PyQt5
