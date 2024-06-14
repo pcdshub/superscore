@@ -1,5 +1,7 @@
 from unittest.mock import AsyncMock
 
+import pytest
+
 from superscore.control_layers.status import TaskStatus
 
 
@@ -21,6 +23,22 @@ def test_put(dummy_cl):
     results = dummy_cl.put(["OTHER:PREFIX", "GE", "LT"], [4, 5, 6])
     assert all(isinstance(res, TaskStatus) for res in results)
     assert result.done
+
+
+def test_fail(dummy_cl):
+    mock_ca_get = AsyncMock(side_effect=ValueError)
+    dummy_cl.shims['ca'].get = mock_ca_get
+
+    # exceptions get passed through the control layer
+    with pytest.raises(ValueError):
+        dummy_cl.get("THIS:PV")
+
+    mock_ca_put = AsyncMock(side_effect=ValueError)
+    dummy_cl.shims['ca'].put = mock_ca_put
+
+    # exceptions get passed through the control layer
+    with pytest.raises(ValueError):
+        dummy_cl.put("THAT:PV", 4)
 
 
 def test_put_callback(dummy_cl):
