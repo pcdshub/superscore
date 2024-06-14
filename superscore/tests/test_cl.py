@@ -14,6 +14,8 @@ def test_get(dummy_cl):
     assert dummy_cl.get("ca://SOME_PREFIX") == "ca_value"
     assert dummy_cl.get("pva://SOME_PREFIX") == "pva_value"
 
+    assert dummy_cl.get(['a', 'b', 'c']) == ["ca_value" for i in range(3)]
+
 
 def test_put(dummy_cl):
     result = dummy_cl.put("OTHER:PREFIX", 4)

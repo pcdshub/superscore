@@ -1,3 +1,6 @@
+"""
+Base shim abstract base class
+"""
 from typing import Any, Callable
 
 
