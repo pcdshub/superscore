@@ -14,3 +14,8 @@ class EntryExistsError(BackendError):
 class EntryNotFoundError(BackendError):
     """Raised when an Entry is fetched from the backend but can't be found"""
     pass
+
+
+class CommunicationError(Exception):
+    """Raised when communication with the control system fails"""
+    pass
