@@ -32,6 +32,7 @@ test:
   requires:
     - coverage
     - pytest
+    - pytest-asyncio
     - pytest-qt
     - sphinx
     - sphinx_rtd_theme
