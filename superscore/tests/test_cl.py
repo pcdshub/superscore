@@ -24,7 +24,7 @@ def test_put(dummy_cl):
 
     results = dummy_cl.put(["OTHER:PREFIX", "GE", "LT"], [4, 5, 6])
     assert all(isinstance(res, TaskStatus) for res in results)
-    assert result.done
+    assert all(res.done for res in results)
 
 
 def test_fail(dummy_cl):

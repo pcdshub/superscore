@@ -24,28 +24,28 @@ class ControlLayer:
             'ca': AiocaShim(),
         }
 
-    def shim_from_pv(self, pv: str) -> _BaseShim:
+    def shim_from_pv(self, address: str) -> _BaseShim:
         """
-        Determine the correct shim to use for the provided ``pv``.
-        ``pv`` can optionally hold a protocol defining prefix such as "ca://" or
+        Determine the correct shim to use for the provided ``address``.
+        ``address`` can optionally hold a protocol defining prefix such as "ca://" or
         "pva://".  If no prefix is provided, will select the first available shim.
 
         Parameters
         ----------
-        pv : str
+        address : str
             a PV address such as "MY:PREFIX:mtr1" or "pva://MY:PREFIX:dt"
 
         Returns
         -------
         _BaseShim
-            The shim held by this ControlLayer for ``pv``'s protocol
+            The shim held by this ControlLayer for ``address``'s protocol
 
         Raises
         ------
         ValueError
-            If pv cannot be recognized or a matching shim cannot be found
+            If address cannot be recognized or a matching shim cannot be found
         """
-        split = pv.split("://", 1)
+        split = address.split("://", 1)
         if len(split) > 1:
             # We got something like pva://mydevice, so use specified comms mode
             shim = self.shims.get(split[0], None)
@@ -54,20 +54,20 @@ class ControlLayer:
             shim = list(self.shims.values())[0]
 
         if shim is None:
-            raise ValueError(f"PV is of an unsupported protocol: {pv}")
+            raise ValueError(f"PV is of an unsupported protocol: {address}")
 
         return shim
 
     @singledispatchmethod
-    def get(self, pv: Union[str, list[str]]) -> Any:
+    def get(self, address: Union[str, list[str]]) -> Any:
         """
-        Get the value(s) in ``pv``.
+        Get the value(s) in ``address``.
         If a single pv is provided, will return a single value.
         If a list of pvs is provided, will get the values for each asynchronously.
 
         Parameters
         ----------
-        pv : Union[str, list[str]]
+        address : Union[str, list[str]]
             The PV(s) to get values for.
 
         Returns
@@ -76,49 +76,49 @@ class ControlLayer:
             The requested data
         """
         # Dispatches to _get_single and _get_list depending on type
-        print(f"PV is of an unsupported type: {type(pv)}. Provide either "
+        print(f"PV is of an unsupported type: {type(address)}. Provide either "
               "a string or list of strings")
 
     @get.register
-    def _get_single(self, pv: str) -> Any:
-        """Synchronously get a single ``pv``"""
-        return asyncio.run(self._get_one(pv))
+    def _get_single(self, address: str) -> Any:
+        """Synchronously get a single ``address``"""
+        return asyncio.run(self._get_one(address))
 
     @get.register
-    def _get_list(self, pv: list) -> Any:
-        """Synchronously get a list of ``pv``"""
+    def _get_list(self, address: list) -> Any:
+        """Synchronously get a list of ``address``"""
         async def gathered_coros():
             coros = []
-            for p in pv:
+            for p in address:
                 coros.append(self._get_one(p))
             return await asyncio.gather(*coros)
 
         return asyncio.run(gathered_coros())
 
-    async def _get_one(self, pv: str):
+    async def _get_one(self, address: str):
         """
         Base async get function.  Use this to construct higher-level get methods
         """
-        shim = self.shim_from_pv(pv)
-        return await shim.get(pv)
+        shim = self.shim_from_pv(address)
+        return await shim.get(address)
 
     @singledispatchmethod
     def put(
         self,
-        pv: Union[str, list[str]],
+        address: Union[str, list[str]],
         value: Union[Any, list[Any]],
-        cb: Optional[Callable] = None
+        cb: Optional[Union[Callable, list[Callable]]] = None
     ) -> Union[TaskStatus, list[TaskStatus]]:
         """
-        Put ``value`` to ``pv``
-        If ``pv`` is a list, ``value`` and ``cb`` must be lists of equal length
+        Put ``value`` to ``address``
+        If ``address`` is a list, ``value`` and ``cb`` must be lists of equal length
 
         Parameters
         ----------
-        pv : Union[str, list[str]]
+        address : Union[str, list[str]]
             The PV(s) to put ``values`` to
         value : Union[Any, list[Any]]
-            The value(s) to put to the ``pv``
+            The value(s) to put to the ``address``
         cb : Optional[Callable], by default None
             Callbacks to run on completion of the put task.
             Callbacks will be called with the associated TaskStatus as its
@@ -130,19 +130,19 @@ class ControlLayer:
             The TaskStatus object(s) for the put operation
         """
         # Dispatches to _put_single and _put_list depending on type
-        print(f"PV is of an unsupported type: {type(pv)}. Provide either "
+        print(f"PV is of an unsupported type: {type(address)}. Provide either "
               "a string or list of strings")
 
     @put.register
     def _put_single(
         self,
-        pv: str,
+        address: str,
         value: Any,
         cb: Optional[Callable] = None
     ) -> TaskStatus:
-        """Synchronously put ``value`` to ``pv``, running ``cb`` on completion"""
+        """Synchronously put ``value`` to ``address``, running ``cb`` on completion"""
         async def status_coro():
-            status = self._put_one(pv, value)
+            status = self._put_one(address, value)
             if cb is not None:
                 status.add_callback(cb)
             await status.task
@@ -153,33 +153,33 @@ class ControlLayer:
     @put.register
     def _put_list(
         self,
-        pv: list,
+        address: list,
         value: list,
         cb: Optional[list[Callable]] = None
     ) -> list[TaskStatus]:
         """
-        Synchronously put ``value`` to ``pv``, running ``cb`` on completion.
+        Synchronously put ``value`` to ``address``, running ``cb`` on completion.
         All arguments must be of equal length.
         """
         if cb is None:
-            cb_length = len(pv)
+            cb_length = len(address)
         else:
             cb_length = len(cb)
 
-        if not (len(pv) == len(value) == cb_length):
+        if not (len(address) == len(value) == cb_length):
             raise ValueError(
                 'Arguments are of different length: '
-                f'pvs({len(pv)}), values({len(value)}), cbs({len(cb)})'
+                f'addresses({len(address)}), values({len(value)}), cbs({len(cb)})'
             )
 
         async def status_coros():
             statuses = []
             if cb is None:
-                callbacks = [None for _ in range(len(pv))]
+                callbacks = [None for _ in range(len(address))]
             else:
                 callbacks = cb
 
-            for p, val, c in zip(pv, value, callbacks):
+            for p, val, c in zip(address, value, callbacks):
                 status = self._put_one(p, val)
                 if c is not None:
                     status.add_callback(c)
@@ -191,14 +191,14 @@ class ControlLayer:
         return asyncio.run(status_coros())
 
     @TaskStatus.wrap
-    async def _put_one(self, pv: str, value: Any):
+    async def _put_one(self, address: str, value: Any):
         """
         Base async get function.  Use this to construct higher-level get methods
         """
-        shim = self.shim_from_pv(pv)
-        await shim.put(pv, value)
+        shim = self.shim_from_pv(address)
+        await shim.put(address, value)
 
-    def subscribe(self, pv: str, cb: Callable):
-        """Subscribes a callback (``cb``) to the provide address (``pv``)"""
-        shim = self.shim_from_pv(pv)
-        shim.monitor(pv, cb)
+    def subscribe(self, address: str, cb: Callable):
+        """Subscribes a callback (``cb``) to the provide address (``address``)"""
+        shim = self.shim_from_pv(address)
+        shim.monitor(address, cb)

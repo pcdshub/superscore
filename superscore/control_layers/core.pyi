@@ -4,17 +4,17 @@ from superscore.control_layers.status import TaskStatus
 
 class ControlLayer:
     @overload
-    def get(self, pv: str) -> Any:
+    def get(self, address: str) -> Any:
         ...
 
     @overload
-    def get(self, pv: list[str]) -> list[Any]:
+    def get(self, address: list[str]) -> list[Any]:
         ...
 
     @overload
     def put(
         self,
-        pv: str,
+        address: str,
         value: Any,
         cb: Optional[Callable] = None
     ) -> TaskStatus:
@@ -23,7 +23,7 @@ class ControlLayer:
     @overload
     def put(
         self,
-        pv: list,
+        address: list,
         value: list,
         cb: Optional[list[Callable]] = None
     ) -> list[TaskStatus]:
