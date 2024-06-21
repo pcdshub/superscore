@@ -7,6 +7,8 @@ import pytest
 from superscore.backends.core import _Backend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
+from superscore.control_layers._base_shim import _BaseShim
+from superscore.control_layers.core import ControlLayer
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
                               Snapshot)
 
@@ -675,3 +677,23 @@ def test_backends(filestore_backend: FilestoreBackend) -> List[_Backend]:
 def backends(request, test_backends: List[_Backend]):
     i = request.param
     return test_backends[i]
+
+
+class DummyShim(_BaseShim):
+    """Shim that does nothing"""
+    async def get(self, *args, **kwargs):
+        return
+
+    async def put(self, *args, **kwargs):
+        return
+
+    def monitor(self, *args, **kwargs):
+        return
+
+
+@pytest.fixture(scope='function')
+def dummy_cl() -> ControlLayer:
+    cl = ControlLayer()
+    cl.shims['ca'] = DummyShim()
+    cl.shims['pva'] = DummyShim()
+    return cl
