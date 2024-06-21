@@ -37,7 +37,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QTreeView" name="child_table"/>
+    <widget class="QTreeView" name="child_tree_view"/>
    </item>
    <item>
     <widget class="QTextEdit" name="repr_text_edit"/>

@@ -4,6 +4,7 @@ from qtpy import QtWidgets
 from superscore.model import Collection
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
+from superscore.widgets.tree import RootTree
 
 
 class CollectionPage(Display, DataWidget):
@@ -11,7 +12,7 @@ class CollectionPage(Display, DataWidget):
 
     meta_placeholder: QtWidgets.QWidget
     meta_widget: NameDescTagsWidget
-    child_table: QtWidgets.QTreeView
+    child_tree_view: QtWidgets.QTreeView
     pv_table: QtWidgets.QTableWidget
     repr_text_edit: QtWidgets.QTextEdit
 
@@ -28,3 +29,5 @@ class CollectionPage(Display, DataWidget):
         self.repr_text_edit.setText(str(self.data))
         # recurse through children and gather PVs
         # show tree view
+        self.model = RootTree(base_entry=self.data)
+        self.child_tree_view.setModel(self.model)
