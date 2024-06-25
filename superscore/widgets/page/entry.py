@@ -1,3 +1,7 @@
+"""
+Widgets for visualizing and editing core model dataclasses
+"""
+
 
 from qtpy import QtWidgets
 
