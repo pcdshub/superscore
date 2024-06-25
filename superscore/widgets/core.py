@@ -45,7 +45,7 @@ class DataWidget(QtWidgets.QWidget):
         Even parent is unlikely to see use because parent is set automatically
         when a widget is inserted into a layout.
     """
-    # QDataclassBridge for this widget, other bridges may live in TreeItem
+    # QDataclassBridge for this widget, other bridges may live in EntryItem
     _bridge_cache: ClassVar[
         WeakValueDictionary[int, QDataclassBridge]
     ] = WeakValueDictionary()

@@ -2,7 +2,6 @@
 Widgets for visualizing and editing core model dataclasses
 """
 
-
 from qtpy import QtWidgets
 
 from superscore.model import Collection

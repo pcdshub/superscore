@@ -1,5 +1,10 @@
+"""
+Qt tree model and item classes for visualizing Entry dataclasses
+"""
+
 from __future__ import annotations
 
+import logging
 from typing import Any, ClassVar, Generator, List, Optional
 from weakref import WeakValueDictionary
 
@@ -9,7 +14,8 @@ from qtpy import QtCore
 from superscore.client import Client
 from superscore.model import Entry, Nestable
 from superscore.qt_helpers import QDataclassBridge
-from superscore.type_hints import AnyDataclass
+
+logger = logging.getLogger(__name__)
 
 
 class EntryItem:
@@ -18,7 +24,7 @@ class EntryItem:
         WeakValueDictionary[int, QDataclassBridge]
     ] = WeakValueDictionary()
     bridge: QDataclassBridge
-    _data: AnyDataclass
+    _data: Entry
 
     def __init__(
         self,
@@ -36,8 +42,8 @@ class EntryItem:
             tree_parent.addChild(self)
 
         # Assign bridge, for updating the entry properties when data changes?
-        # For this to be relevant we need to subscribe to the bridge, maybe to
-        # change icons?
+        # For this to be relevant we need to subscribe to the bridge,
+        # for example to change icons on type update
         if self._data:
             try:
                 self.bridge = self._bridge_cache[id(data)]
@@ -76,8 +82,8 @@ class EntryItem:
         # TODO: something about icons
 
     def tooltip(self) -> str:
-        """Construct the tooltip based on the stored result"""
-        return ''
+        """Construct the tooltip based on the stored entry"""
+        return self._data.uuid
 
     def columnCount(self) -> int:
         """Return the item's column count"""
@@ -110,16 +116,20 @@ class EntryItem:
 
         Parameters
         ----------
-        child : TreeItem
-            Child TreeItem to add to this TreeItem
+        child : EntryItem
+            Child EntryItem to add to this EntryItem
         """
         child._parent = self
         child._row = len(self._children)
         self._children.append(child)
 
     def removeChild(self, child: EntryItem) -> None:
-        """Remove ``child`` from this TreeItem"""
-        self._children.remove(child)
+        """Remove ``child`` from this EntryItem"""
+        try:
+            self._children.remove(child)
+        except ValueError:
+            logger.debug(f"EntryItem ({child}) is not a child of this parent ({self})")
+            return
         child._parent = None
         # re-assign rows to children
         remaining_children = self.takeChildren()
@@ -152,7 +162,7 @@ class EntryItem:
         return child
 
     def insertChild(self, idx: int, child: EntryItem) -> None:
-        """Add ``child`` to this TreeItem at index ``idx``"""
+        """Add ``child`` to this EntryItem at index ``idx``"""
         self._children.insert(idx, child)
         # re-assign rows to children
         remaining_children = self.takeChildren()
@@ -293,7 +303,7 @@ class RootTree(QtCore.QAbstractItemModel):
         if child_item:
             return self.createIndex(row, column, child_item)
 
-        # all else
+        # all else return invalid index
         return QtCore.QModelIndex()
 
     def index_from_item(self, item: EntryItem) -> QtCore.QModelIndex:
@@ -366,7 +376,7 @@ class RootTree(QtCore.QAbstractItemModel):
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
         Returns the data stored under the given ``role`` for the item
-        referred to by the ``index``.  Uses and assumes ``TreeItem`` methods.
+        referred to by the ``index``.  Uses and assumes ``EntryItem`` methods.
 
         Parameters
         ----------
@@ -383,13 +393,9 @@ class RootTree(QtCore.QAbstractItemModel):
         if not index.isValid():
             return None
 
-        item = index.internalPointer()  # Gives original TreeItem
+        item: EntryItem = index.internalPointer()  # Gives original EntryItem
         # special handling for status info
         if index.column() == 1:
-            # if role == Qt.ForegroundRole:
-            #     brush = QBrush()
-            #     brush.setColor(item.data(index.column())[1])
-            #     return brush
             if role == Qt.DisplayRole:
                 return item.data(1)
             if role == Qt.TextAlignmentRole:
