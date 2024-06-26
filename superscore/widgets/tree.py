@@ -12,7 +12,7 @@ from PyQt5.QtCore import Qt
 from qtpy import QtCore
 
 from superscore.client import Client
-from superscore.model import Entry, Nestable
+from superscore.model import Entry, Nestable, Root
 from superscore.qt_helpers import QDataclassBridge
 
 logger = logging.getLogger(__name__)
@@ -201,7 +201,10 @@ def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
     """
 
     item = EntryItem(entry, tree_parent=parent)
-    if isinstance(entry, Nestable):
+    if isinstance(entry, Root):
+        for child in entry.entries:
+            build_tree(child, parent=item)
+    elif isinstance(entry, Nestable):
         for child in entry.children:
             build_tree(child, parent=item)
 
