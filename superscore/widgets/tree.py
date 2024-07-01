@@ -75,9 +75,9 @@ class EntryItem:
             if isinstance(self._data, Nestable):
                 return getattr(self._data, 'title', 'root')
             else:
-                return getattr(self._data, 'pv_name')
+                return getattr(self._data, 'pv_name', '<no pv>')
         elif column == 1:
-            return getattr(self._data, 'description', 'fart')
+            return getattr(self._data, 'description', '<no desc>')
 
         # TODO: something about icons
 
