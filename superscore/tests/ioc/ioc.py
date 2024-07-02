@@ -29,14 +29,18 @@ class IOCFactory:
     """
     Generates TempIOC subclasses bound to a set of PVs.
     """
-    @staticmethod
-    def from_entries(entries: Iterable[Entry], **ioc_options) -> PVGroup:
+
+    count = 0
+
+    @classmethod
+    def from_entries(cls, entries: Iterable[Entry], **ioc_options) -> PVGroup:
         """
         Defines and instantiates a TempIOC subclass containing all PVs reachable
         from entries.
         """
         attrs = IOCFactory.prepare_attrs(entries)
-        IOC = type("IOC", (TempIOC,), attrs)
+        IOC = type(f"IOC{cls.count}", (TempIOC,), attrs)
+        cls.count += 1
         ioc = IOC(**ioc_options)
         return ioc
 
