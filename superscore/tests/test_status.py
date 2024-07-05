@@ -40,7 +40,7 @@ async def test_status_fail(failing_coroutine):
     with pytest.raises(ValueError):
         await status
 
-    assert type(status.exception()) == ValueError
+    assert isinstance(status.exception(), ValueError)
 
 
 async def test_status_wrap():
@@ -50,5 +50,5 @@ async def test_status_wrap():
 
     st = coro_status()
     assert isinstance(st, TaskStatus)
-    await st.task
+    await st
     assert st.done
