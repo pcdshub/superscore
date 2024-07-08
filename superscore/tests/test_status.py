@@ -23,6 +23,17 @@ async def failing_coroutine() -> Callable[[], Any]:
     return inner_coroutine
 
 
+@pytest.fixture
+async def long_coroutine_status() -> TaskStatus:
+    @TaskStatus.wrap
+    async def inner_coroutine():
+        for i in range(100):
+            print(f'coro wait: {i}')
+            await asyncio.sleep(1)
+
+    return inner_coroutine()
+
+
 async def test_status_success(normal_coroutine):
     st = TaskStatus(normal_coroutine())
     assert isinstance(st, TaskStatus)
@@ -41,6 +52,14 @@ async def test_status_fail(failing_coroutine):
         await status
 
     assert isinstance(status.exception(), ValueError)
+
+
+def test_status_wait(long_coroutine_status):
+    assert not long_coroutine_status.done
+    with pytest.raises(asyncio.TimeoutError):
+        long_coroutine_status.wait(1)
+    assert long_coroutine_status.done
+    assert isinstance(long_coroutine_status.exception(), asyncio.CancelledError)
 
 
 async def test_status_wrap():
