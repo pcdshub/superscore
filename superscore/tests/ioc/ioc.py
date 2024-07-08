@@ -17,11 +17,12 @@ class TempIOC(PVGroup):
         self.running_process = Process(
             target=run_ioc,
             args=(self.pvdb,),
+            daemon=True,
         )
         self.running_process.start()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.running_process.terminate()
+        pass
 
 
 class IOCFactory:
