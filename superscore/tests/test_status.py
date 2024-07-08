@@ -54,6 +54,25 @@ async def test_status_fail(failing_coroutine):
     assert isinstance(status.exception(), ValueError)
 
 
+def test_sync_status_fail(failing_coroutine):
+    # A usage note for the curious.  If we gather these tasks with
+    # `return_exceptions` = False (default), the first exception will be propagated,
+    # though the other tasks will complete.  This may stop tasks from being returned
+    # `retur_exceptions` = True will not raise exceptions, instead those exceptions
+    # will only be captured in `task.exception()`
+    async def wrap_coro(return_exc: bool):
+        status = TaskStatus(failing_coroutine())
+        await asyncio.gather(status, return_exceptions=return_exc)
+        return status
+
+    status = asyncio.run(wrap_coro(True))
+    assert status.done
+    assert isinstance(status.exception(), ValueError)
+
+    with pytest.raises(ValueError):
+        asyncio.run(wrap_coro(False))
+
+
 def test_status_wait(long_coroutine_status):
     assert not long_coroutine_status.done
     with pytest.raises(asyncio.TimeoutError):
