@@ -58,3 +58,11 @@ def test_from_cfg(sscore_cfg: str):
     client = Client.from_config()
     assert isinstance(client.backend, FilestoreBackend)
     assert 'ca' in client.cl.shims
+
+
+def test_find_config(sscore_cfg: str):
+    assert sscore_cfg == Client.find_config()
+
+    # explicit SUPERSCORE_CFG env var supercedes XDG_CONFIG_HOME
+    os.environ['SUPERSCORE_CFG'] = 'other/cfg'
+    assert 'other/cfg' == Client.find_config()
