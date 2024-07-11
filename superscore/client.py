@@ -51,8 +51,6 @@ class Client:
         If ``sequential`` is True, apply values in ``entry`` in sequence, blocking
         with each put request.  Else apply all values simultaneously (asynchronously)
 
-        Returns
-
         Parameters
         ----------
         entry : Union[Setpoint, Snapshot]
