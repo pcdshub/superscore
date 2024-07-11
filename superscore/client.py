@@ -35,6 +35,39 @@ class Client:
 
     @classmethod
     def from_config(cls, cfg: Path = None):
+        """
+        Create a client from the configuration file specification.
+
+        Configuration file should be of an "ini" format, along the lines of:
+
+        .. code::
+
+            [backend]
+            type = filestore
+            path = ./db/filestore.json
+
+            [control_layer]
+            ca = true
+            pva = true
+
+        The ``backend`` section has one special key ("type"), and the rest of the
+        settings are passed to the appropriate ``_Backend`` as keyword arguments.
+
+        The ``control_layer`` section has a key-value pair for each available shim.
+        The ``ControlLayer`` object will be created with all the valid shims with
+        True values.
+
+        Parameters
+        ----------
+        cfg : Path, optional
+            Path to a configuration file, by default None.  If omitted,
+            :meth:`.find_config` will be used to find one
+
+        Raises
+        ------
+        RuntimeError
+            If a configuration file cannot be found
+        """
         if not cfg:
             cfg = cls.find_config()
         if not os.path.exists(cfg):
@@ -68,7 +101,22 @@ class Client:
 
     @staticmethod
     def find_config() -> Path:
-        """search the locations and stuff"""
+        """
+        Search for a ``superscore`` configuation file.  Searches in the following
+        locations in order for a file named "superscore.cfg":
+        - environment variable ``$SUPERSCORE_CFG`` (a full path)
+        - folder set in environment variable ``$XDG_CONFIG_HOME``
+
+        Returns
+        -------
+        path : str
+            Absolute path to the configuration file
+
+        Raises
+        ------
+        OSError
+            If no configuration file can be found by the described methodology
+        """
         # Point to with an environment variable
         if os.environ.get('SUPERSCORE_CFG', False):
             happi_cfg = os.environ.get('SUPERSCORE_CFG')
@@ -80,7 +128,7 @@ class Client:
             config_dirs = [os.environ.get('XDG_CONFIG_HOME', "."),
                            os.path.expanduser('~/.config'),]
             for directory in config_dirs:
-                logger.debug('Searching for SuperScore config in %s', directory)
+                logger.debug('Searching for superscore config in %s', directory)
                 for path in ('.superscore.cfg', 'superscore.cfg'):
                     full_path = os.path.join(directory, path)
 
@@ -88,7 +136,7 @@ class Client:
                         logger.debug("Found configuration file at %r", full_path)
                         return full_path
         # If found nothing
-        raise OSError("No SuperScore configuration file found. Check SUPERSCORE_CFG.")
+        raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
     def search(self, **post) -> Generator[Entry, None, None]:
         """Search by key-value pair.  Can search by any field, including id"""
