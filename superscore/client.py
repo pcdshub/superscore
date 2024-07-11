@@ -1,8 +1,12 @@
 """Client for superscore.  Used for programmatic interactions with superscore"""
+import configparser
 import logging
+import os
+from pathlib import Path
 from typing import Any, Generator, List, Optional, Union
 from uuid import UUID
 
+from superscore.backends import BACKENDS
 from superscore.backends.core import _Backend
 from superscore.control_layers import ControlLayer
 from superscore.control_layers.status import TaskStatus
@@ -15,13 +19,76 @@ class Client:
     backend: _Backend
     cl: ControlLayer
 
-    def __init__(self, backend: _Backend, **kwargs) -> None:
+    def __init__(
+        self,
+        backend: Optional[_Backend] = None,
+        control_layer: Optional[ControlLayer] = None,
+    ) -> None:
+        if backend is None:
+            # set up a temp backend with temp file
+            backend = BACKENDS['test']
+        if control_layer is None:
+            control_layer = ControlLayer()
+
         self.backend = backend
-        self.cl = ControlLayer()
+        self.cl = control_layer
 
     @classmethod
-    def from_config(cls, cfg=None):
-        raise NotImplementedError
+    def from_config(cls, cfg: Path = None):
+        if not cfg:
+            cfg = cls.find_config()
+        if not os.path.exists(cfg):
+            raise RuntimeError(f"Superscore configuration file not found: {cfg}")
+
+        cfg_parser = configparser.ConfigParser()
+        cfg_file = cfg_parser.read(cfg)
+        logger.debug(f"Loading configuration file at ({cfg_file})")
+
+        # Gather Backend
+        if 'backend' in cfg_parser.sections():
+            backend_type = cfg_parser.get("backend", "type")
+            kwargs = {key: value for key, value
+                      in cfg_parser["backend"].items()
+                      if key != "type"}
+            backend = BACKENDS[backend_type](**kwargs)
+        else:
+            backend = BACKENDS['test']()
+
+        # configure control layer and shims
+        if 'control_layer' in cfg_parser.sections():
+            shim_choices = [val for val, enabled
+                            in cfg_parser["control_layer"].items()
+                            if enabled]
+            print(shim_choices)
+            control_layer = ControlLayer(shims=shim_choices)
+        else:
+            control_layer = ControlLayer()
+
+        return cls(backend=backend, control_layer=control_layer)
+
+    @staticmethod
+    def find_config() -> Path:
+        """search the locations and stuff"""
+        # Point to with an environment variable
+        if os.environ.get('SUPERSCORE_CFG', False):
+            happi_cfg = os.environ.get('SUPERSCORE_CFG')
+            logger.debug("Found $SUPERSCORE_CFG specification for Client "
+                         "configuration at %s", happi_cfg)
+            return happi_cfg
+        # Search in the current directory and home directory
+        else:
+            config_dirs = [os.environ.get('XDG_CONFIG_HOME', "."),
+                           os.path.expanduser('~/.config'),]
+            for directory in config_dirs:
+                logger.debug('Searching for SuperScore config in %s', directory)
+                for path in ('.superscore.cfg', 'superscore.cfg'):
+                    full_path = os.path.join(directory, path)
+
+                    if os.path.exists(full_path):
+                        logger.debug("Found configuration file at %r", full_path)
+                        return full_path
+        # If found nothing
+        raise OSError("No SuperScore configuration file found. Check SUPERSCORE_CFG.")
 
     def search(self, **post) -> Generator[Entry, None, None]:
         """Search by key-value pair.  Can search by any field, including id"""
