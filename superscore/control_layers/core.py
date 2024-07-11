@@ -4,12 +4,17 @@ and dispatches to various shims depending on the context.
 """
 import asyncio
 from functools import singledispatchmethod
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from superscore.control_layers.status import TaskStatus
 
 from ._aioca import AiocaShim
 from ._base_shim import _BaseShim
+
+# available communication shim layers
+SHIMS = {
+    'ca': AiocaShim()
+}
 
 
 class ControlLayer:
@@ -19,10 +24,13 @@ class ControlLayer:
     """
     shims: Dict[str, _BaseShim]
 
-    def __init__(self, *args, **kwargs):
-        self.shims = {
-            'ca': AiocaShim(),
-        }
+    def __init__(self, *args, shims: Optional[List[str]] = None, **kwargs):
+        if shims is None:
+            # load all available shims
+            self.shims = SHIMS
+        else:
+            self.shims = {key: shim for key, shim in SHIMS.items() if key in shims}
+            print(self.shims)
 
     def shim_from_pv(self, address: str) -> _BaseShim:
         """
