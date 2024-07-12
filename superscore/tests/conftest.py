@@ -1,12 +1,14 @@
 import shutil
 from pathlib import Path
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
 
 from superscore.backends.core import _Backend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
+from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
@@ -697,3 +699,28 @@ def dummy_cl() -> ControlLayer:
     cl.shims['ca'] = DummyShim()
     cl.shims['pva'] = DummyShim()
     return cl
+
+
+@pytest.fixture(scope='function')
+def mock_backend() -> _Backend:
+    bk = _Backend()
+    bk.delete_entry = MagicMock()
+    bk.save_entry = MagicMock()
+    bk.get_entry = MagicMock()
+    bk.search = MagicMock()
+    bk.update_entry = MagicMock()
+
+
+class MockTaskStatus:
+    def exception(self):
+        return None
+
+    @property
+    def done(self):
+        return True
+
+
+@pytest.fixture(scope='function')
+def mock_client(mock_backend: _Backend) -> Client:
+    client = Client(backend=mock_backend)
+    return client

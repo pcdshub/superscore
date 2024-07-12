@@ -145,7 +145,7 @@ class ControlLayer:
             status = self._put_one(address, value)
             if cb is not None:
                 status.add_callback(cb)
-            await status.task
+            await asyncio.gather(status, return_exceptions=True)
             return status
 
         return asyncio.run(status_coro())
@@ -185,7 +185,7 @@ class ControlLayer:
                     status.add_callback(c)
 
                 statuses.append(status)
-            await asyncio.gather(*[s.task for s in statuses])
+            await asyncio.gather(*statuses, return_exceptions=True)
             return statuses
 
         return asyncio.run(status_coros())
@@ -193,7 +193,7 @@ class ControlLayer:
     @TaskStatus.wrap
     async def _put_one(self, address: str, value: Any):
         """
-        Base async get function.  Use this to construct higher-level get methods
+        Base async put function.  Use this to construct higher-level put methods
         """
         shim = self.shim_from_pv(address)
         await shim.put(address, value)

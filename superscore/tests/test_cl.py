@@ -38,9 +38,11 @@ def test_fail(dummy_cl):
     mock_ca_put = AsyncMock(side_effect=ValueError)
     dummy_cl.shims['ca'].put = mock_ca_put
 
-    # exceptions get passed through the control layer
-    with pytest.raises(ValueError):
-        dummy_cl.put("THAT:PV", 4)
+    # exceptions get captured in status object
+    status = dummy_cl.put("THAT:PV", 4)
+    assert isinstance(status.exception(), ValueError)
+
+    assert mock_ca_put.called
 
 
 def test_put_callback(dummy_cl):

@@ -10,8 +10,10 @@ TS = TypeVar("TS", bound="TaskStatus")
 class TaskStatus:
     """
     Unified Status object for wrapping task completion information and attaching
-    callbacks This must be created inside of a coroutine, but can be returned to
-    synchronous scope for examining the task
+    callbacks. This must be created inside of a coroutine, but can be returned to
+    synchronous scope for examining the task.
+
+    Awaiting this status is similar to awaiting the wrapped task.
 
     Largely vendored from bluesky/ophyd-async
     """
@@ -55,6 +57,27 @@ class TaskStatus:
             self.task.done()
             and not self.task.cancelled()
             and self.task.exception() is None
+        )
+
+    def wait(self, timeout=None) -> None:
+        """
+        Block until the coroutine finishes.  Raises asyncio.TimeoutError if
+        the timeout elapses before the task is completed
+
+        To be called in a synchronous context, if the status has not been awaited
+
+        Parameters
+        ----------
+        timeout : number, optional
+            timeout in seconds, by default None
+
+        Raises
+        ------
+        asyncio.TimeoutError
+        """
+        # ensure task runs in the event loop it was assigned to originally
+        asyncio.get_event_loop().run_until_complete(
+            asyncio.wait_for(self.task, timeout)
         )
 
     def __repr__(self) -> str:
