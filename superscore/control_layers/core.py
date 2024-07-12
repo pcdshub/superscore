@@ -30,7 +30,6 @@ class ControlLayer:
             self.shims = SHIMS
         else:
             self.shims = {key: shim for key, shim in SHIMS.items() if key in shims}
-            print(self.shims)
 
     def shim_from_pv(self, address: str) -> _BaseShim:
         """

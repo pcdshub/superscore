@@ -92,7 +92,6 @@ class Client:
             shim_choices = [val for val, enabled
                             in cfg_parser["control_layer"].items()
                             if enabled]
-            print(shim_choices)
             control_layer = ControlLayer(shims=shim_choices)
         else:
             control_layer = ControlLayer()
@@ -103,9 +102,10 @@ class Client:
     def find_config() -> Path:
         """
         Search for a ``superscore`` configuation file.  Searches in the following
-        locations in order for a file named "superscore.cfg":
-        - environment variable ``$SUPERSCORE_CFG`` (a full path)
-        - folder set in environment variable ``$XDG_CONFIG_HOME``
+        locations in order
+        - ``$SUPERSCORE_CFG`` (a full path to a config file)
+        - ``$XDG_CONFIG_HOME/{superscore.cfg, .superscore.cfg}`` (either filename)
+        - ``~/.config/{superscore.cfg, .superscore.cfg}``
 
         Returns
         -------
