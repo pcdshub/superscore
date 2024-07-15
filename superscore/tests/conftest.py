@@ -662,6 +662,25 @@ def sample_database() -> Root:
 
 
 @pytest.fixture(scope='function')
+def parameter_with_readback() -> Parameter:
+    """
+    A simple setpoint-readback parameter pair
+    """
+    readback = Parameter(
+        uuid="64772c61-c117-445b-b0c8-4c17fd1625d9",
+        pv_name="RBV",
+        description="A readback PV",
+    )
+    setpoint = Parameter(
+        uuid="b508344d-1fe9-473b-8d43-9499d0e8e23f",
+        pv_name="SET",
+        description="A setpoint PV",
+        readback=readback,
+    )
+    return setpoint
+
+
+@pytest.fixture(scope='function')
 def filestore_backend(tmp_path: Path) -> FilestoreBackend:
     fp = Path(__file__).parent / 'db' / 'filestore.json'
     tmp_fp = tmp_path / 'tmp_filestore.json'
