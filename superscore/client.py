@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Generator, List, Optional, Union
 from uuid import UUID
 
-from superscore.backends import BACKENDS
+from superscore.backends import get_backend
 from superscore.backends.core import _Backend
 from superscore.control_layers import ControlLayer
 from superscore.control_layers.status import TaskStatus
@@ -26,7 +26,8 @@ class Client:
     ) -> None:
         if backend is None:
             # set up a temp backend with temp file
-            backend = BACKENDS['test']
+            logger.warning('No backend specified, loading an empty test backend')
+            backend = get_backend('test')()
         if control_layer is None:
             control_layer = ControlLayer()
 
@@ -83,9 +84,11 @@ class Client:
             kwargs = {key: value for key, value
                       in cfg_parser["backend"].items()
                       if key != "type"}
-            backend = BACKENDS[backend_type](**kwargs)
+            backend_class = get_backend(backend_type)
+            backend = backend_class(**kwargs)
         else:
-            backend = BACKENDS['test']()
+            logger.warning('No backend specified, loading an empty test backend')
+            backend = get_backend('test')()
 
         # configure control layer and shims
         if 'control_layer' in cfg_parser.sections():
@@ -94,6 +97,7 @@ class Client:
                             if enabled]
             control_layer = ControlLayer(shims=shim_choices)
         else:
+            logger.debug('No control layer shims specified, loading all available')
             control_layer = ControlLayer()
 
         return cls(backend=backend, control_layer=control_layer)
@@ -119,10 +123,10 @@ class Client:
         """
         # Point to with an environment variable
         if os.environ.get('SUPERSCORE_CFG', False):
-            happi_cfg = os.environ.get('SUPERSCORE_CFG')
+            superscore_cfg = os.environ.get('SUPERSCORE_CFG')
             logger.debug("Found $SUPERSCORE_CFG specification for Client "
-                         "configuration at %s", happi_cfg)
-            return happi_cfg
+                         "configuration at %s", superscore_cfg)
+            return superscore_cfg
         # Search in the current directory and home directory
         else:
             config_dirs = [os.environ.get('XDG_CONFIG_HOME', "."),

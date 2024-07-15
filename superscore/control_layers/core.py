@@ -3,6 +3,7 @@ Main control layer objects.  Exposes basic communication operations,
 and dispatches to various shims depending on the context.
 """
 import asyncio
+import logging
 from functools import singledispatchmethod
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -10,6 +11,8 @@ from superscore.control_layers.status import TaskStatus
 
 from ._aioca import AiocaShim
 from ._base_shim import _BaseShim
+
+logger = logging.getLogger(__name__)
 
 # available communication shim layers
 SHIMS = {
@@ -28,8 +31,12 @@ class ControlLayer:
         if shims is None:
             # load all available shims
             self.shims = SHIMS
+            logger.debug('No shims specified, loading all available communication '
+                         f'shims: {list(self.shims.keys())}')
         else:
             self.shims = {key: shim for key, shim in SHIMS.items() if key in shims}
+            logger.debug('Loaded valid shims from the requested list: '
+                         f'{list(self.shims.keys())}')
 
     def shim_from_pv(self, address: str) -> _BaseShim:
         """
