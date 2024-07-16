@@ -35,7 +35,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="name_line_edit"/>
+        <widget class="QLineEdit" name="name_line_edit">
+         <property name="placeholderText">
+          <string>names, comma, separated</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="type_label">
@@ -59,16 +63,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="readback_checkbox">
+        <widget class="QCheckBox" name="setpoint_checkbox">
          <property name="text">
-          <string>Readback</string>
+          <string>Setpoint</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="setpoint_checkbox">
+        <widget class="QCheckBox" name="readback_checkbox">
          <property name="text">
-          <string>Setpoint</string>
+          <string>Readback</string>
          </property>
         </widget>
        </item>
@@ -80,7 +84,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="desc_line_edit"/>
+        <widget class="QLineEdit" name="desc_line_edit">
+         <property name="placeholderText">
+          <string>description</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="pv_label">
@@ -90,7 +98,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="pv_line_edit"/>
+        <widget class="QLineEdit" name="pv_line_edit">
+         <property name="placeholderText">
+          <string>PVS:TO:INCLUDE, COMMA:SEP</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="time_label">
@@ -118,15 +130,19 @@
           </widget>
          </item>
          <item>
-          <widget class="QDateTimeEdit" name="start_dt_edit"/>
+          <widget class="QDateTimeEdit" name="start_dt_edit">
+           <property name="displayFormat">
+            <string>yyyy/MM/dd hh:mm AP</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="end_dt_hlayout">
-         <property name="topMargin">
-          <number>10</number>
-         </property>
          <item>
           <widget class="QLabel" name="end_time_label">
            <property name="sizePolicy">
@@ -141,7 +157,14 @@
           </widget>
          </item>
          <item>
-          <widget class="QDateTimeEdit" name="end_dt_edit"/>
+          <widget class="QDateTimeEdit" name="end_dt_edit">
+           <property name="displayFormat">
+            <string>yyyy/MM/dd hh:mm AP</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
