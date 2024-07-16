@@ -295,9 +295,20 @@ class FilestoreBackend(_Backend):
                 match_found = True
                 for key, value in search_kwargs.items():
                     # specific type handling, assuming is tuple
-                    if "entry_type" in search_kwargs:
+                    if key == "entry_type":
                         if not isinstance(entry, search_kwargs["entry_type"]):
                             match_found = False
+
+                    elif key == "start_time":
+                        if value > entry.creation_time:
+                            match_found = False
+                    elif key == "end_time":
+                        if entry.creation_time > value:
+                            match_found = False
+
+                    # TODO: search for child pvs?
+
+                    # plain key-value match
                     else:
                         entry_value = getattr(entry, key, None)
                         if isinstance(value, tuple):
