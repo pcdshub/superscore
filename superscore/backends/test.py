@@ -1,7 +1,7 @@
 """
 Backend that manipulates Entries in-memory for testing purposes.
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from superscore.backends.core import _Backend
@@ -12,8 +12,11 @@ from superscore.model import Entry, Nestable
 
 class TestBackend(_Backend):
     """Backend that manipulates Entries in-memory, for testing purposes."""
-    def __init__(self, data: List[Entry]):
-        self.data = data
+    def __init__(self, data: Optional[List[Entry]] = None):
+        if data is None:
+            self.data = []
+        else:
+            self.data = data
 
     def save_entry(self, entry: Entry) -> None:
         try:

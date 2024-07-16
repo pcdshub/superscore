@@ -1,8 +1,12 @@
 """Client for superscore.  Used for programmatic interactions with superscore"""
+import configparser
 import logging
+import os
+from pathlib import Path
 from typing import Any, Generator, List, Optional, Union
 from uuid import UUID
 
+from superscore.backends import get_backend
 from superscore.backends.core import _Backend
 from superscore.control_layers import ControlLayer
 from superscore.control_layers.status import TaskStatus
@@ -15,13 +19,128 @@ class Client:
     backend: _Backend
     cl: ControlLayer
 
-    def __init__(self, backend: _Backend, **kwargs) -> None:
+    def __init__(
+        self,
+        backend: Optional[_Backend] = None,
+        control_layer: Optional[ControlLayer] = None,
+    ) -> None:
+        if backend is None:
+            # set up a temp backend with temp file
+            logger.warning('No backend specified, loading an empty test backend')
+            backend = get_backend('test')()
+        if control_layer is None:
+            control_layer = ControlLayer()
+
         self.backend = backend
-        self.cl = ControlLayer()
+        self.cl = control_layer
 
     @classmethod
-    def from_config(cls, cfg=None):
-        raise NotImplementedError
+    def from_config(cls, cfg: Path = None):
+        """
+        Create a client from the configuration file specification.
+
+        Configuration file should be of an "ini" format, along the lines of:
+
+        .. code::
+
+            [backend]
+            type = filestore
+            path = ./db/filestore.json
+
+            [control_layer]
+            ca = true
+            pva = true
+
+        The ``backend`` section has one special key ("type"), and the rest of the
+        settings are passed to the appropriate ``_Backend`` as keyword arguments.
+
+        The ``control_layer`` section has a key-value pair for each available shim.
+        The ``ControlLayer`` object will be created with all the valid shims with
+        True values.
+
+        Parameters
+        ----------
+        cfg : Path, optional
+            Path to a configuration file, by default None.  If omitted,
+            :meth:`.find_config` will be used to find one
+
+        Raises
+        ------
+        RuntimeError
+            If a configuration file cannot be found
+        """
+        if not cfg:
+            cfg = cls.find_config()
+        if not os.path.exists(cfg):
+            raise RuntimeError(f"Superscore configuration file not found: {cfg}")
+
+        cfg_parser = configparser.ConfigParser()
+        cfg_file = cfg_parser.read(cfg)
+        logger.debug(f"Loading configuration file at ({cfg_file})")
+
+        # Gather Backend
+        if 'backend' in cfg_parser.sections():
+            backend_type = cfg_parser.get("backend", "type")
+            kwargs = {key: value for key, value
+                      in cfg_parser["backend"].items()
+                      if key != "type"}
+            backend_class = get_backend(backend_type)
+            backend = backend_class(**kwargs)
+        else:
+            logger.warning('No backend specified, loading an empty test backend')
+            backend = get_backend('test')()
+
+        # configure control layer and shims
+        if 'control_layer' in cfg_parser.sections():
+            shim_choices = [val for val, enabled
+                            in cfg_parser["control_layer"].items()
+                            if enabled]
+            control_layer = ControlLayer(shims=shim_choices)
+        else:
+            logger.debug('No control layer shims specified, loading all available')
+            control_layer = ControlLayer()
+
+        return cls(backend=backend, control_layer=control_layer)
+
+    @staticmethod
+    def find_config() -> Path:
+        """
+        Search for a ``superscore`` configuation file.  Searches in the following
+        locations in order
+        - ``$SUPERSCORE_CFG`` (a full path to a config file)
+        - ``$XDG_CONFIG_HOME/{superscore.cfg, .superscore.cfg}`` (either filename)
+        - ``~/.config/{superscore.cfg, .superscore.cfg}``
+
+        Returns
+        -------
+        path : str
+            Absolute path to the configuration file
+
+        Raises
+        ------
+        OSError
+            If no configuration file can be found by the described methodology
+        """
+        # Point to with an environment variable
+        if os.environ.get('SUPERSCORE_CFG', False):
+            superscore_cfg = os.environ.get('SUPERSCORE_CFG')
+            logger.debug("Found $SUPERSCORE_CFG specification for Client "
+                         "configuration at %s", superscore_cfg)
+            return superscore_cfg
+        # Search in the current directory and home directory
+        else:
+            config_dirs = [os.environ.get('XDG_CONFIG_HOME', "."),
+                           os.path.expanduser('~/.config'),]
+            for directory in config_dirs:
+                logger.debug('Searching for superscore config in %s', directory)
+                for path in ('.superscore.cfg', 'superscore.cfg'):
+                    full_path = os.path.join(directory, path)
+
+                    if os.path.exists(full_path):
+                        logger.debug("Found configuration file at %r", full_path)
+                        return full_path
+        # If found nothing
+        raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
     def search(self, **post) -> Generator[Entry, None, None]:
         """Search by key-value pair.  Can search by any field, including id"""
