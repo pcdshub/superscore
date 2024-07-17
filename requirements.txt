@@ -3,4 +3,5 @@ aioca
 apischema
 pcdsutils
 PyQt5
+python-dateutil
 qtpy

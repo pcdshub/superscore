@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class SearchPage(Display, QtWidgets.QWidget):
+    """
+    Widget for searching and displaying Entry's.  Contains a variety of filter
+    option input widgets, a sortable table view, and a filter management table.
+
+    TODO: Implement filters (saving/loading)
+    TODO: string-ified search query
+    TODO: integration with global tree-view
+    """
     filename = 'search_page.ui'
 
     # Left splitter, filter options select
@@ -52,10 +60,12 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.setup_ui()
 
     def setup_ui(self) -> None:
+        # set up filter option widgets
         self.start_dt_edit.setDate(QtCore.QDate.currentDate().addDays(-365))
         self.end_dt_edit.setDate(QtCore.QDate.currentDate())
         self.apply_filter_button.clicked.connect(self.show_current_filter)
 
+        # set up filter table view
         self.model = ResultModel(entries=[])
         self.proxy_model = ResultFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
@@ -110,6 +120,9 @@ class SearchPage(Display, QtWidgets.QWidget):
         return search_kwargs
 
     def show_current_filter(self) -> None:
+        """
+        Gather filter options and update source model with valid entries
+        """
         # gather filter details
         search_kwargs = self._gather_search_terms()
         entries = self.client.search(**search_kwargs)
@@ -246,8 +259,8 @@ class ButtonDelegate(QtWidgets.QStyledItemDelegate):
 
 class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
     """
-    Filter proxy model specifically for ResultModel.
-    Combines multiple filter conditions.
+    Filter proxy model specifically for ResultModel.  Enables per-column sorting
+    and filtering table contents by name.
     """
 
     name_regexp: QtCore.QRegularExpression
