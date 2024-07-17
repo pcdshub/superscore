@@ -57,13 +57,18 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.apply_filter_button.clicked.connect(self.show_current_filter)
 
         self.model = ResultModel(entries=[])
-        self.results_table_view.setModel(self.model)
+        self.proxy_model = ResultFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.results_table_view.setModel(self.proxy_model)
+        self.results_table_view.setSortingEnabled(True)
         horiz_header = self.results_table_view.horizontalHeader()
         horiz_header.setSectionResizeMode(horiz_header.Interactive)
 
         self.open_delegate = ButtonDelegate(button_text='open me')
         del_col = len(ResultModel.headers) - 1
         self.results_table_view.setItemDelegateForColumn(del_col, self.open_delegate)
+
+        self.name_subfilter_line_edit.textChanged.connect(self.subfilter_results)
 
     def _gather_search_terms(self) -> Dict[str, Any]:
         search_kwargs = {}
@@ -109,9 +114,15 @@ class SearchPage(Display, QtWidgets.QWidget):
         search_kwargs = self._gather_search_terms()
         entries = self.client.search(**search_kwargs)
 
-        # create table
-        self.model = ResultModel(entries=list(entries))
-        self.results_table_view.setModel(self.model)
+        # update source table model
+        self.model.modelAboutToBeReset.emit()
+        self.model.entries = list(entries)
+        self.model.modelReset.emit()
+
+    def subfilter_results(self) -> None:
+        """Filter the table once more by name"""
+        self.proxy_model.name_regexp.setPattern(self.name_subfilter_line_edit.text())
+        self.proxy_model.invalidateFilter()
 
 
 class ResultModel(QtCore.QAbstractTableModel):
@@ -231,3 +242,29 @@ class ButtonDelegate(QtWidgets.QStyledItemDelegate):
         index: QModelIndex
     ) -> None:
         return editor.setGeometry(option.rect)
+
+
+class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
+    """
+    Filter proxy model specifically for ResultModel.
+    Combines multiple filter conditions.
+    """
+
+    name_regexp: QtCore.QRegularExpression
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.name_regexp = QtCore.QRegularExpression()
+
+    def filterAcceptsRow(
+        self,
+        source_row: int,
+        source_parent: QtCore.QModelIndex
+    ) -> bool:
+        name_ok = True
+
+        name_index = self.sourceModel().index(source_row, 0, source_parent)
+        name = self.sourceModel().data(name_index, QtCore.Qt.DisplayRole)
+        name_ok = self.name_regexp.match(name).hasMatch()
+
+        return name_ok
