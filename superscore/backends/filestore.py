@@ -214,6 +214,7 @@ class FilestoreBackend(_Backend):
         try:
             with open(temp_path, 'w') as fd:
                 json.dump(serialized, fd, indent=2)
+                fd.write('\n')
 
             if os.path.exists(self.path):
                 shutil.copymode(self.path, temp_path)
