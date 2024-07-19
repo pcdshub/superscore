@@ -5,7 +5,7 @@ import pytest
 from superscore.backends.core import _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
-from superscore.model import Collection, Parameter
+from superscore.model import Collection, Parameter, Snapshot
 
 
 class TestTestBackend:
@@ -89,6 +89,12 @@ def test_search_entry(backends: _Backend):
         uuid=UUID('ecb42cdb-b703-4562-86e1-45bd67a2ab1a'), data=2
     )
     assert len(list(results)) == 1
+
+    results = backends.search(entry_type=Snapshot,)
+    assert len(list(results)) == 1
+
+    results = backends.search(entry_type=(Snapshot, Collection))
+    assert len(list(results)) == 2
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)

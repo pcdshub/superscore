@@ -11,6 +11,7 @@ from superscore.backends.core import _Backend
 from superscore.control_layers import ControlLayer
 from superscore.control_layers.status import TaskStatus
 from superscore.model import Entry, Setpoint, Snapshot
+from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,8 @@ class Client:
                       in cfg_parser["backend"].items()
                       if key != "type"}
             backend_class = get_backend(backend_type)
+            if 'path' in kwargs:
+                kwargs['path'] = build_abs_path(Path(cfg).parent, kwargs['path'])
             backend = backend_class(**kwargs)
         else:
             logger.warning('No backend specified, loading an empty test backend')

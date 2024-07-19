@@ -25,6 +25,7 @@ requirements:
     - apischema
     - pcdsutils
     - pyqt
+    - python-dateutil
     - qtpy
 
 test:

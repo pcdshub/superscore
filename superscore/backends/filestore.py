@@ -287,13 +287,39 @@ class FilestoreBackend(_Backend):
     def search(self, **search_kwargs) -> Generator[Entry, None, None]:
         """
         Search for an entry that matches ``search_kwargs``.
+        Keys are attributes on `Entry` subclasses
+        Values can be either a single value to match or a tuple of valid values
         Currently does not support partial matches.
         """
         with self._load_and_store_context() as db:
             for entry in db.values():
-                match = (getattr(entry, key, None) == value
-                         for key, value in search_kwargs.items())
-                if all(match):
+                match_found = True
+                for key, value in search_kwargs.items():
+                    # specific type handling, assuming is tuple
+                    if key == "entry_type":
+                        if not isinstance(entry, search_kwargs["entry_type"]):
+                            match_found = False
+
+                    elif key == "start_time":
+                        if value > entry.creation_time:
+                            match_found = False
+                    elif key == "end_time":
+                        if entry.creation_time > value:
+                            match_found = False
+
+                    # TODO: search for child pvs?
+
+                    # plain key-value match
+                    else:
+                        entry_value = getattr(entry, key, None)
+                        if isinstance(value, tuple):
+                            matched = entry_value in value
+                        else:
+                            matched = entry_value == value
+
+                        match_found = match_found and matched
+
+                if match_found:
                     yield entry
 
     @contextlib.contextmanager
