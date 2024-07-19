@@ -33,6 +33,7 @@ class Window(Display, QtWidgets.QMainWindow):
         else:
             self.client = Client.from_config()
 
+        self.setup_ui()
         self.open_search_page()
 
     def setup_ui(self) -> None:
