@@ -97,16 +97,15 @@ class SearchPage(Display, QtWidgets.QWidget):
         search_kwargs = {}
 
         # type
-        entry_type_list = []
+        entry_type_list = [Snapshot, Collection, Setpoint, Readback]
         for checkbox, entry_type in zip(
             self.type_checkboxes,
             (Snapshot, Collection, Setpoint, Readback)
         ):
-            if checkbox.isChecked():
-                entry_type_list.append(entry_type)
+            if not checkbox.isChecked():
+                entry_type_list.remove(entry_type)
 
-        if entry_type_list:
-            search_kwargs["entry_type"] = tuple(entry_type_list)
+        search_kwargs["entry_type"] = tuple(entry_type_list)
 
         # name
         name = self.name_line_edit.text()
@@ -180,7 +179,7 @@ class ResultModel(QtCore.QAbstractTableModel):
         # Special handling for open button delegate
         if index.column() == (len(self.headers) - 1):
             if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'open'
+                return 'click to open'
 
         if role != QtCore.Qt.DisplayRole:
             # table is read only

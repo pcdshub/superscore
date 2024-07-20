@@ -53,12 +53,18 @@
          <property name="text">
           <string>Snapshot</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="collection_checkbox">
          <property name="text">
           <string>Collection</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -67,12 +73,18 @@
          <property name="text">
           <string>Setpoint</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="readback_checkbox">
          <property name="text">
           <string>Readback</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
