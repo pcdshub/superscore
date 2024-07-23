@@ -14,8 +14,6 @@ from inspect import iscoroutinefunction
 import superscore
 
 DESCRIPTION = __doc__
-
-
 MODULES = ("help", "ui")
 
 
@@ -50,10 +48,8 @@ def _build_commands():
     return result
 
 
-COMMANDS = _build_commands()
-
-
 def main():
+    COMMANDS = _build_commands()
     top_parser = argparse.ArgumentParser(
         prog='superscore',
         description=DESCRIPTION,
