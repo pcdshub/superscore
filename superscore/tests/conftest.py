@@ -703,12 +703,8 @@ def dummy_cl() -> ControlLayer:
 
 @pytest.fixture(scope='function')
 def mock_backend() -> _Backend:
-    bk = _Backend()
-    bk.delete_entry = MagicMock()
-    bk.save_entry = MagicMock()
-    bk.get_entry = MagicMock()
-    bk.search = MagicMock()
-    bk.update_entry = MagicMock()
+    mock_bk = MagicMock(spec=_Backend)
+    return mock_bk
 
 
 class MockTaskStatus:
