@@ -26,6 +26,7 @@ requirements:
     - pcdsutils
     - pyqt
     - python-dateutil
+    - qtawesome
     - qtpy
 
 test:

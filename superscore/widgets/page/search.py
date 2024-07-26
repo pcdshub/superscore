@@ -1,16 +1,16 @@
 """Search page"""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+import qtawesome as qta
 from dateutil import tz
-from PyQt5.QtCore import QModelIndex
-from PyQt5.QtWidgets import QStyleOptionViewItem, QWidget
 from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
 from superscore.widgets.core import Display
+from superscore.widgets.page import ICON_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,16 @@ class SearchPage(Display, QtWidgets.QWidget):
     filter_table_view: QtWidgets.QTableView
     results_table_view: QtWidgets.QTableView
 
-    def __init__(self, *args, client: Client, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        client: Client,
+        open_page_slot: Optional[Callable] = None,
+        **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.client = client
+        self.open_page_slot = open_page_slot
         self.model: Optional[ResultModel] = None
 
         self.type_checkboxes: List[QtWidgets.QCheckBox] = [
@@ -65,9 +72,14 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.end_dt_edit.setDate(QtCore.QDate.currentDate())
         self.apply_filter_button.clicked.connect(self.show_current_filter)
 
+        self.collection_checkbox.setIcon(qta.icon(ICON_MAP[Collection]))
+        self.snapshot_checkbox.setIcon(qta.icon(ICON_MAP[Snapshot]))
+        self.setpoint_checkbox.setIcon(qta.icon(ICON_MAP[Setpoint]))
+        self.readback_checkbox.setIcon(qta.icon(ICON_MAP[Readback]))
+
         # set up filter table view
         self.model = ResultModel(entries=[])
-        self.proxy_model = ResultFilterProxyModel()
+        self.proxy_model = ResultFilterProxyModel(open_page_slot=self.open_page_slot)
         self.proxy_model.setSourceModel(self.model)
         self.results_table_view.setModel(self.proxy_model)
         self.results_table_view.setSortingEnabled(True)
@@ -77,6 +89,7 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.open_delegate = ButtonDelegate(button_text='open me')
         del_col = len(ResultModel.headers) - 1
         self.results_table_view.setItemDelegateForColumn(del_col, self.open_delegate)
+        self.open_delegate.clicked.connect(self.proxy_model.open_row)
 
         self.name_subfilter_line_edit.textChanged.connect(self.subfilter_results)
 
@@ -84,16 +97,15 @@ class SearchPage(Display, QtWidgets.QWidget):
         search_kwargs = {}
 
         # type
-        entry_type_list = []
+        entry_type_list = [Snapshot, Collection, Setpoint, Readback]
         for checkbox, entry_type in zip(
             self.type_checkboxes,
             (Snapshot, Collection, Setpoint, Readback)
         ):
-            if checkbox.isChecked():
-                entry_type_list.append(entry_type)
+            if not checkbox.isChecked():
+                entry_type_list.remove(entry_type)
 
-        if entry_type_list:
-            search_kwargs["entry_type"] = tuple(entry_type_list)
+        search_kwargs["entry_type"] = tuple(entry_type_list)
 
         # name
         name = self.name_line_edit.text()
@@ -167,13 +179,13 @@ class ResultModel(QtCore.QAbstractTableModel):
         # Special handling for open button delegate
         if index.column() == (len(self.headers) - 1):
             if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'open'
+                return 'click to open'
 
         if role != QtCore.Qt.DisplayRole:
             # table is read only
             return QtCore.QVariant()
 
-        if index.column() == 0:  # name column, no edit permissions
+        if index.column() == 0:  # name column
             name_text = getattr(entry, 'title', getattr(entry, 'pv_name', '<N/A>'))
             return name_text
         elif index.column() == 1:  # Type
@@ -230,7 +242,7 @@ class ResultModel(QtCore.QAbstractTableModel):
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):
-    clicked = QtCore.Signal(int)
+    clicked = QtCore.Signal(QtCore.QModelIndex)
 
     def __init__(self, *args, button_text: str = '', **kwargs):
         self.button_text = button_text
@@ -244,15 +256,15 @@ class ButtonDelegate(QtWidgets.QStyledItemDelegate):
     ) -> QtWidgets.QWidget:
         button = QtWidgets.QPushButton(self.button_text, parent)
         button.clicked.connect(
-            lambda _, row=index.row(): self.clicked.emit(row)
+            lambda _, index=index: self.clicked.emit(index)
         )
         return button
 
     def updateEditorGeometry(
         self,
-        editor: QWidget,
-        option: QStyleOptionViewItem,
-        index: QModelIndex
+        editor: QtWidgets.QWidget,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex
     ) -> None:
         return editor.setGeometry(option.rect)
 
@@ -264,9 +276,16 @@ class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
     """
 
     name_regexp: QtCore.QRegularExpression
+    sourceModel: ResultModel
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        open_page_slot: Optional[Callable] = None,
+        **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
+        self.open_page_slot = open_page_slot
         self.name_regexp = QtCore.QRegularExpression()
 
     def filterAcceptsRow(
@@ -281,3 +300,10 @@ class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
         name_ok = self.name_regexp.match(name).hasMatch()
 
         return name_ok
+
+    def open_row(self, proxy_index: QtCore.QModelIndex) -> None:
+        """opens page for entry data at ``row`` (in proxy model)"""
+        if self.open_page_slot is not None:
+            source_row = self.mapToSource(proxy_index)
+            logger.debug(f'Open page button for row: {proxy_index.row()}')
+            self.open_page_slot(self.sourceModel().entries[source_row.row()])
