@@ -11,8 +11,9 @@ from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
 from superscore.model import Entry
+from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
-from superscore.widgets.page import ICON_MAP, PAGE_MAP
+from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.search import SearchPage
 
 logger = logging.getLogger(__name__)
