@@ -720,3 +720,15 @@ class MockTaskStatus:
 def mock_client(mock_backend: _Backend) -> Client:
     client = Client(backend=mock_backend)
     return client
+
+
+@pytest.fixture(scope='function')
+def sample_client(
+    filestore_backend: FilestoreBackend,
+    dummy_cl: ControlLayer
+) -> Client:
+    """Return a client with actula data, but no communication capabilities"""
+    client = Client(backend=filestore_backend)
+    client.cl = dummy_cl
+
+    return client
