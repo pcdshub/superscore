@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, ClassVar, Generator, List, Optional
+from uuid import UUID
 from weakref import WeakValueDictionary
 
 import qtawesome as qta
@@ -53,6 +54,11 @@ class EntryItem:
                 bridge = QDataclassBridge(data)
                 self._bridge_cache[id(data)] = bridge
                 self.bridge = bridge
+
+    def fill_uuids(self, client: Optional[Client] = None) -> None:
+        """Fill this item's data if it is a uuid, using ``client``"""
+        if isinstance(self._data, UUID) and client is not None:
+            self._data = list(client.search(uuid=self._data))[0]
 
     def data(self, column: int) -> Any:
         """
@@ -406,6 +412,8 @@ class RootTree(QtCore.QAbstractItemModel):
             return None
 
         item: EntryItem = index.internalPointer()  # Gives original EntryItem
+        item.fill_uuids(client=self.client)
+
         # special handling for status info
         if index.column() == 1:
             if role == Qt.DisplayRole:
