@@ -286,7 +286,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self,
         row: int,
         column: int,
-        parent: QtCore.QModelIndex = None
+        parent: QtCore.QModelIndex = QtCore.QModelIndex()
     ) -> QtCore.QModelIndex:
         """
         Returns the index of the item in the model.
