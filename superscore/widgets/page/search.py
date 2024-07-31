@@ -11,6 +11,7 @@ from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
+from superscore.widgets.views import BaseTableEntryModel, ButtonDelegate
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.proxy_model.invalidateFilter()
 
 
-class ResultModel(QtCore.QAbstractTableModel):
+class ResultModel(BaseTableEntryModel):
     headers: List[str] = ['Name', 'Type', 'Description', 'Created', 'Open']
 
     def __init__(self, *args, entries: List[Entry] = None, **kwargs) -> None:
@@ -197,76 +198,6 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
-
-    def rowCount(self, index):
-        return len(self.entries)
-
-    def columnCount(self, index):
-        return len(self.headers)
-
-    def headerData(
-        self,
-        section: int,
-        orientation: QtCore.Qt.Orientation,
-        role: int
-    ) -> Any:
-        """
-        Returns the header data for the model.
-        Currently only displays horizontal header data
-        """
-        if role != QtCore.Qt.DisplayRole:
-            return
-
-        if orientation == QtCore.Qt.Horizontal:
-            return self.headers[section]
-
-    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
-        """
-        Returns the item flags for the given ``index``.  The returned
-        item flag controls what behaviors the item supports.
-
-        Parameters
-        ----------
-        index : QtCore.QModelIndex
-            the index referring to a cell of the TableView
-
-        Returns
-        -------
-        QtCore.Qt.ItemFlag
-            the ItemFlag corresponding to the cell
-        """
-        if (index.column() == len(self.headers) - 1):
-            return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
-        else:
-            return QtCore.Qt.ItemIsEnabled
-
-
-class ButtonDelegate(QtWidgets.QStyledItemDelegate):
-    clicked = QtCore.Signal(QtCore.QModelIndex)
-
-    def __init__(self, *args, button_text: str = '', **kwargs):
-        self.button_text = button_text
-        super().__init__(*args, **kwargs)
-
-    def createEditor(
-        self,
-        parent: QtWidgets.QWidget,
-        option,
-        index: QtCore.QModelIndex
-    ) -> QtWidgets.QWidget:
-        button = QtWidgets.QPushButton(self.button_text, parent)
-        button.clicked.connect(
-            lambda _, index=index: self.clicked.emit(index)
-        )
-        return button
-
-    def updateEditorGeometry(
-        self,
-        editor: QtWidgets.QWidget,
-        option: QtWidgets.QStyleOptionViewItem,
-        index: QtCore.QModelIndex
-    ) -> None:
-        return editor.setGeometry(option.rect)
 
 
 class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):

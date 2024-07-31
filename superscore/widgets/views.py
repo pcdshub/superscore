@@ -5,16 +5,16 @@ Qt tree model and item classes for visualizing Entry dataclasses
 from __future__ import annotations
 
 import logging
-from typing import Any, ClassVar, Generator, List, Optional
+from typing import Any, Callable, ClassVar, Generator, List, Optional, Union
 from uuid import UUID
 from weakref import WeakValueDictionary
 
+import numpy as np
 import qtawesome as qta
-from PyQt5.QtCore import Qt
-from qtpy import QtCore
+from qtpy import QtCore, QtGui, QtWidgets
 
 from superscore.client import Client
-from superscore.model import Entry, Nestable, Root
+from superscore.model import Collection, Entry, Nestable, Root, Snapshot
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP
 
@@ -255,7 +255,7 @@ class RootTree(QtCore.QAbstractItemModel):
     def headerData(
         self,
         section: int,
-        orientation: Qt.Orientation,
+        orientation: QtCore.Qt.Orientation,
         role: int
     ) -> Any:
         """
@@ -276,10 +276,10 @@ class RootTree(QtCore.QAbstractItemModel):
         Any
             requested header data
         """
-        if role != Qt.DisplayRole:
+        if role != QtCore.Qt.DisplayRole:
             return
 
-        if orientation == Qt.Horizontal:
+        if orientation == QtCore.Qt.Horizontal:
             return self.headers[section]
 
     def index(
@@ -416,20 +416,259 @@ class RootTree(QtCore.QAbstractItemModel):
 
         # special handling for status info
         if index.column() == 1:
-            if role == Qt.DisplayRole:
+            if role == QtCore.Qt.DisplayRole:
                 return item.data(1)
-            if role == Qt.TextAlignmentRole:
-                return Qt.AlignLeft
+            if role == QtCore.Qt.TextAlignmentRole:
+                return QtCore.Qt.AlignLeft
 
-        if role == Qt.ToolTipRole:
+        if role == QtCore.Qt.ToolTipRole:
             return item.tooltip()
-        if role == Qt.DisplayRole:
+        if role == QtCore.Qt.DisplayRole:
             return item.data(index.column())
 
-        if role == Qt.UserRole:
+        if role == QtCore.Qt.UserRole:
             return item
 
-        if role == Qt.DecorationRole and index.column() == 0:
+        if role == QtCore.Qt.DecorationRole and index.column() == 0:
             return item.icon()
 
         return None
+
+
+class BaseTableEntryModel(QtCore.QAbstractTableModel):
+    """
+    Common methods for table model that holds onto entries.
+    To subclass this:
+    - implement the `.data()` method and specify handling for your chosen columns
+    and Qt display roles
+    - define the header names
+
+    Enables the editable flag for the last row for open-page-buttons
+    """
+    entries: List[Entry]
+    headers: List[str]
+
+    def __init__(
+        self,
+        *args,
+        entries: Optional[List[Entry]] = None,
+        **kwargs
+    ) -> None:
+        self.entries = entries or []
+        super().__init__(*args, **kwargs)
+
+    def rowCount(self, index):
+        return len(self.entries)
+
+    def columnCount(self, index):
+        return len(self.headers)
+
+    def headerData(
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: int
+    ) -> Any:
+        """
+        Returns the header data for the model.
+        Currently only displays horizontal header data
+        """
+        if role != QtCore.Qt.DisplayRole:
+            return
+
+        if orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
+
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
+        """
+        Returns the item flags for the given ``index``.  The returned
+        item flag controls what behaviors the item supports.
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            the index referring to a cell of the TableView
+
+        Returns
+        -------
+        QtCore.Qt.ItemFlag
+            the ItemFlag corresponding to the cell
+        """
+        if (index.column() == len(self.headers) - 1):
+            return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
+        else:
+            return QtCore.Qt.ItemIsEnabled
+
+    def add_entry(self, entry: Entry) -> None:
+        if entry in self.entries or not isinstance(entry, Entry):
+            return
+
+        self.entries.append[entry]
+
+
+class LivePVTableModel(BaseTableEntryModel):
+    # Takes PV-entries (Parameter, Setpoint, Readback)
+    # shows live details (current PV status, severity)
+    # shows setpoints (can be blank)
+    # open details delegate
+
+    # Hide un-needed rows
+    headers: List[str] = ['PV Name', 'Stored Value', 'Live Value', 'Timestamp',
+                          'Status', 'Severity', 'Open']
+
+    def __init__(
+        self,
+        *args,
+        entries: Optional[List[Entry]] = None,
+        client: Optional[Client] = None,
+        open_page_slot: Optional[Callable] = None,
+        **kwargs
+    ) -> None:
+        self.client = client
+        self.open_page_slot = open_page_slot
+        super().__init__(*args, entries=entries, **kwargs)
+
+    def data(self, index: QtCore.QModelIndex, role: int) -> Any:
+        """
+        Returns the data stored under the given role for the item
+        referred to by the index.
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            An index referring to a cell of the TableView
+        role : int
+            The requested data role.
+
+        Returns
+        -------
+        Any
+            the requested data
+        """
+        entry: Entry = self.entries[index.row()]
+
+        # Special handling for open button delegate
+        if index.column() == (len(self.headers) - 1):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
+                return 'click to open'
+
+        if index.column() == 0:  # name column
+            if role == QtCore.Qt.DecorationRole:
+                return ICON_MAP.get(type(entry), QtCore.QVariant())
+            name_text = getattr(entry, 'pv_name')
+            return name_text
+
+        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundRole):
+            # table is read only
+            return QtCore.QVariant()
+
+        if index.column() == 1:  # Stored Value
+            return getattr(entry, 'data', '--')
+        elif index.column() == 2:  # Live Value
+            # TODO: cache / control polling
+            live_value = self.client.cl.get(entry.pv_name)
+            is_close = self.is_close(live_value, getattr(entry, 'data', None))
+            if role == QtCore.Qt.BackgroundRole and not is_close:
+                return QtGui.QColor('red')
+            return str(live_value)
+        elif index.column() == 3:  # Timestamp
+            return entry.creation_time.strftime('%Y/%m/%d %H:%M')
+        elif index.column() == 4:  # Status
+            return getattr(entry, 'status', '--')
+        elif index.column() == 5:  # Severity
+            return getattr(entry, 'severity', '--')
+        elif index.column() == 6:  # Severity
+            return "Open"
+
+        # if nothing is found, return invalid QVariant
+        return QtCore.QVariant()
+
+    def is_close(self, l_data, r_data) -> bool:
+        """returns true if ``l_data`` is close to ``r_data``"""
+        if l_data is None or r_data is None:
+            return False
+        return np.isclose(l_data, r_data)
+
+
+class NestableTableModel(BaseTableEntryModel):
+    # Shows simplified details (created time, description, # pvs, # child colls)
+    # Open details delegate
+    headers: List[str] = ['Name', 'Description', 'Created', 'Open']
+
+    def __init__(
+        self,
+        *args,
+        entries: Optional[List[Union[Snapshot, Collection]]] = None,
+        open_page_slot: Optional[Callable] = None,
+        **kwargs
+    ) -> None:
+        self.open_page_slot = open_page_slot
+        super().__init__(*args, entries=entries, **kwargs)
+
+    def data(self, index: QtCore.QModelIndex, role: int) -> Any:
+        """
+        Returns the data stored under the given role for the item
+        referred to by the index.
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            An index referring to a cell of the TableView
+        role : int
+            The requested data role.
+
+        Returns
+        -------
+        Any
+            the requested data
+        """
+        entry: Entry = self.entries[index.row()]
+
+        # Special handling for open button delegate
+        if index.column() == (len(self.headers) - 1):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
+                return 'click to open'
+
+        if role != QtCore.Qt.DisplayRole:
+            # table is read only
+            return QtCore.QVariant()
+
+        if index.column() == 0:  # name column
+            if role == QtCore.Qt.DecorationRole:
+                return ICON_MAP[type(entry)]
+            name_text = getattr(entry, 'title')
+            return name_text
+        elif index.column() == 1:  # description
+            return getattr(entry, 'description')
+        elif index.column() == 2:  # Created
+            return entry.creation_time.strftime('%Y/%m/%d %H:%M')
+        elif index.column() == 3:  # Open Delegate
+            return "Open"
+
+
+class ButtonDelegate(QtWidgets.QStyledItemDelegate):
+    clicked = QtCore.Signal(QtCore.QModelIndex)
+
+    def __init__(self, *args, button_text: str = '', **kwargs):
+        self.button_text = button_text
+        super().__init__(*args, **kwargs)
+
+    def createEditor(
+        self,
+        parent: QtWidgets.QWidget,
+        option,
+        index: QtCore.QModelIndex
+    ) -> QtWidgets.QWidget:
+        button = QtWidgets.QPushButton(self.button_text, parent)
+        button.clicked.connect(
+            lambda _, index=index: self.clicked.emit(index)
+        )
+        return button
+
+    def updateEditorGeometry(
+        self,
+        editor: QtWidgets.QWidget,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex
+    ) -> None:
+        return editor.setGeometry(option.rect)

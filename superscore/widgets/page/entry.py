@@ -7,7 +7,7 @@ from qtpy import QtWidgets
 from superscore.model import Collection
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
-from superscore.widgets.tree import RootTree
+from superscore.widgets.views import RootTree
 
 
 class CollectionPage(Display, DataWidget):
