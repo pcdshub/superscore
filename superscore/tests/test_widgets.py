@@ -7,7 +7,7 @@ from pytestqt.qtbot import QtBot
 
 from superscore.model import Collection, Root
 from superscore.widgets.core import DataWidget
-from superscore.widgets.tree import RootTree
+from superscore.widgets.views import RootTree
 
 
 @pytest.mark.parametrize(

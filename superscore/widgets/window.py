@@ -15,7 +15,7 @@ from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.search import SearchPage
-from superscore.widgets.tree import RootTree
+from superscore.widgets.views import RootTree
 
 logger = logging.getLogger(__name__)
 
