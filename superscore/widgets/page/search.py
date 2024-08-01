@@ -9,8 +9,8 @@ from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
+from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
-from superscore.widgets.page import ICON_MAP
 
 logger = logging.getLogger(__name__)
 

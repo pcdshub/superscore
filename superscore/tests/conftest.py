@@ -703,12 +703,8 @@ def dummy_cl() -> ControlLayer:
 
 @pytest.fixture(scope='function')
 def mock_backend() -> _Backend:
-    bk = _Backend()
-    bk.delete_entry = MagicMock()
-    bk.save_entry = MagicMock()
-    bk.get_entry = MagicMock()
-    bk.search = MagicMock()
-    bk.update_entry = MagicMock()
+    mock_bk = MagicMock(spec=_Backend)
+    return mock_bk
 
 
 class MockTaskStatus:
@@ -723,4 +719,16 @@ class MockTaskStatus:
 @pytest.fixture(scope='function')
 def mock_client(mock_backend: _Backend) -> Client:
     client = Client(backend=mock_backend)
+    return client
+
+
+@pytest.fixture(scope='function')
+def sample_client(
+    filestore_backend: FilestoreBackend,
+    dummy_cl: ControlLayer
+) -> Client:
+    """Return a client with actula data, but no communication capabilities"""
+    client = Client(backend=filestore_backend)
+    client.cl = dummy_cl
+
     return client

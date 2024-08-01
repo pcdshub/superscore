@@ -6,14 +6,17 @@ from __future__ import annotations
 
 import logging
 from typing import Any, ClassVar, Generator, List, Optional
+from uuid import UUID
 from weakref import WeakValueDictionary
 
+import qtawesome as qta
 from PyQt5.QtCore import Qt
 from qtpy import QtCore
 
 from superscore.client import Client
 from superscore.model import Entry, Nestable, Root
 from superscore.qt_helpers import QDataclassBridge
+from superscore.widgets import ICON_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,11 @@ class EntryItem:
                 bridge = QDataclassBridge(data)
                 self._bridge_cache[id(data)] = bridge
                 self.bridge = bridge
+
+    def fill_uuids(self, client: Optional[Client] = None) -> None:
+        """Fill this item's data if it is a uuid, using ``client``"""
+        if isinstance(self._data, UUID) and client is not None:
+            self._data = list(client.search(uuid=self._data))[0]
 
     def data(self, column: int) -> Any:
         """
@@ -180,6 +188,13 @@ class EntryItem:
 
         return children
 
+    def icon(self):
+        """return icon for this item"""
+        icon_id = ICON_MAP.get(type(self._data), None)
+        if icon_id is None:
+            return
+        return qta.icon(ICON_MAP[type(self._data)])
+
 
 def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
     """
@@ -271,7 +286,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self,
         row: int,
         column: int,
-        parent: QtCore.QModelIndex = None
+        parent: QtCore.QModelIndex = QtCore.QModelIndex()
     ) -> QtCore.QModelIndex:
         """
         Returns the index of the item in the model.
@@ -397,12 +412,14 @@ class RootTree(QtCore.QAbstractItemModel):
             return None
 
         item: EntryItem = index.internalPointer()  # Gives original EntryItem
+        item.fill_uuids(client=self.client)
+
         # special handling for status info
         if index.column() == 1:
             if role == Qt.DisplayRole:
                 return item.data(1)
             if role == Qt.TextAlignmentRole:
-                return Qt.AlignCenter
+                return Qt.AlignLeft
 
         if role == Qt.ToolTipRole:
             return item.tooltip()
@@ -411,5 +428,8 @@ class RootTree(QtCore.QAbstractItemModel):
 
         if role == Qt.UserRole:
             return item
+
+        if role == Qt.DecorationRole and index.column() == 0:
+            return item.icon()
 
         return None

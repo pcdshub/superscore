@@ -11,9 +11,11 @@ from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
 from superscore.model import Entry
+from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
-from superscore.widgets.page import ICON_MAP, PAGE_MAP
+from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.tree import RootTree
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,13 @@ class Window(Display, QtWidgets.QMainWindow):
         tab_bar.setUsesScrollButtons(True)
         tab_bar.setElideMode(QtCore.Qt.ElideNone)
         self.tab_widget.tabCloseRequested.connect(self.tab_widget.removeTab)
+
+        # setup tree view
+        self.tree_model = RootTree(base_entry=self.client.backend.root,
+                                   client=self.client)
+        self.tree_view.setModel(self.tree_model)
+        self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
 
     def open_page(self, entry: Entry) -> None:
         """
@@ -77,3 +86,20 @@ class Window(Display, QtWidgets.QMainWindow):
     def open_search_page(self) -> None:
         page = SearchPage(client=self.client, open_page_slot=self.open_page)
         self.tab_widget.addTab(page, 'search')
+
+    def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
+        self.menu = QtWidgets.QMenu(self)
+        index: QtCore.QModelIndex = self.tree_view.indexAt(pos)
+        entry: Entry = index.internalPointer()._data
+
+        if index is not None and index.data() is not None:
+            # WeakPartialMethodSlot may not be needed, menus are transient
+            def open(*_, **__):
+                self.open_page(entry)
+
+            open_action = self.menu.addAction(
+                f'&Open Detailed {type(entry).__name__} page'
+            )
+            open_action.triggered.connect(open)
+
+        self.menu.exec_(self.tree_view.mapToGlobal(pos))

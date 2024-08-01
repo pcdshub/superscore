@@ -1,13 +1,10 @@
 """Largely smoke tests for various pages"""
 
-from typing import List
-
 import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.client import Client
 from superscore.model import Collection
-from superscore.widgets.core import DataWidget
 from superscore.widgets.page.entry import CollectionPage
 from superscore.widgets.page.search import SearchPage
 
@@ -21,27 +18,40 @@ def collection_page(qtbot: QtBot):
 
 
 @pytest.fixture(scope='function')
-def search_page(qtbot: QtBot, mock_client: Client):
-    page = SearchPage(client=mock_client)
+def search_page(qtbot: QtBot, sample_client: Client):
+    page = SearchPage(client=sample_client)
     qtbot.addWidget(page)
     return page
 
 
-@pytest.fixture(scope='function')
-def test_pages(
-    collection_page: CollectionPage,
-    search_page: SearchPage,
-) -> List[DataWidget]:
-    return [collection_page, search_page,]
-
-
-@pytest.fixture(scope='function')
-def pages(request, test_pages: List[DataWidget]):
-    i = request.param
-    return test_pages[i]
-
-
-@pytest.mark.parametrize('pages', [0, 1], indirect=True)
-def test_page_smoke(pages):
+@pytest.mark.parametrize('page', ["collection_page", "search_page"])
+def test_page_smoke(page: str, request: pytest.FixtureRequest):
     """smoke test, just create each page and see if they fail"""
-    print(type(pages))
+    print(type(request.getfixturevalue(page)))
+
+
+def test_apply_filter(search_page: SearchPage):
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 6
+
+    search_page.snapshot_checkbox.setChecked(False)
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 5
+
+    search_page.readback_checkbox.setChecked(False)
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 2
+
+    search_page.setpoint_checkbox.setChecked(False)
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 1
+
+    # reset and try name filter
+    for box in search_page.type_checkboxes:
+        box.setChecked(True)
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 6
+
+    search_page.name_line_edit.setText('collection 1')
+    search_page.apply_filter_button.clicked.emit()
+    assert search_page.results_table_view.model().rowCount() == 1

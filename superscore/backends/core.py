@@ -4,7 +4,7 @@ Base superscore data storage backend interface
 from typing import Generator
 from uuid import UUID
 
-from superscore.model import Entry
+from superscore.model import Entry, Root
 
 
 class _Backend:
@@ -42,4 +42,9 @@ class _Backend:
 
     def search(self, **search_kwargs) -> Generator[Entry, None, None]:
         """Yield a Entry objects corresponding matching ``search_kwargs``"""
+        raise NotImplementedError
+
+    @property
+    def root(self) -> Root:
+        """Return the Root Entry in this backend"""
         raise NotImplementedError
