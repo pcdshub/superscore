@@ -2,7 +2,6 @@
 aioca
 apischema
 pcdsutils
-pyepics
 PyQt5
 python-dateutil
 qtawesome
