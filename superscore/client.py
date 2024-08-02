@@ -3,14 +3,17 @@ import configparser
 import logging
 import os
 from pathlib import Path
-from typing import Any, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 from uuid import UUID
 
 from superscore.backends import get_backend
 from superscore.backends.core import _Backend
 from superscore.control_layers import ControlLayer
 from superscore.control_layers.status import TaskStatus
-from superscore.model import Entry, Setpoint, Snapshot
+from superscore.errors import CommunicationError
+from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
+                              Setpoint, Snapshot)
+from superscore.type_hints import AnyEpicsType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -163,6 +166,35 @@ class Client:
         """Compare two entries.  Should be of same type, and return a diff"""
         raise NotImplementedError
 
+    def snap(self, entry: Collection) -> Snapshot:
+        """
+        Asyncronously read data for all PVs under ``entry``, and store in a
+        Snapshot.  PVs that can't be read will have an exception as their value.
+
+        Parameters
+        ----------
+        entry : Collection
+            the Collection to save
+
+        Returns
+        -------
+        Snapshot
+            a Snapshot corresponding to the input Collection
+        """
+        logger.debug(f"Saving Snapshot for Collection {entry.uuid}")
+        pvs, _ = self._gather_data(entry)
+        pvs.extend(Collection.meta_pvs)
+        values = self.cl.get(pvs)
+        data = {}
+        for pv, value in zip(pvs, values):
+            if isinstance(value, CommunicationError):
+                logger.debug(f"Couldn't read value for {pv}, storing \"None\"")
+                data[pv] = None
+            else:
+                logger.debug(f"Storing {pv} = {value}")
+                data[pv] = value
+        return self._build_snapshot(entry, data)
+
     def apply(
         self,
         entry: Union[Setpoint, Snapshot],
@@ -194,7 +226,7 @@ class Client:
 
         # Gather pv-value list and apply at once
         status_list = []
-        pv_list, data_list = self._gather_data(entry)
+        pv_list, data_list = self._gather_data(entry, writable_only=True)
         if sequential:
             for pv, data in zip(pv_list, data_list):
                 logger.debug(f'Putting {pv} = {data}')
@@ -210,57 +242,109 @@ class Client:
 
     def _gather_data(
         self,
-        entry: Union[Setpoint, Snapshot, UUID],
-        pv_list: Optional[List[str]] = None,
-        data_list: Optional[List[Any]] = None
-    ) -> Optional[tuple[List[str], List[Any]]]:
+        entry: Union[Entry, UUID],
+        writable_only: bool = False,
+    ) -> tuple[List[str], Optional[List[Any]]]:
         """
-        Gather writable pv name - data pairs recursively.
-        If pv_list and data_list are provided, gathered data will be added to
-        these lists in-place. If both lists are omitted, this function will return
-        the two lists after gathering.
-
-        Queries the backend to fill any UUID values found.
+        Gather PV name - data pairs that are accessible from ``entry``.  Queries
+        the backend to fill any UUIDs found.
 
         Parameters
         ----------
-        entry : Union[Setpoint, Snapshot, UUID]
-            Entry to gather writable data from
-        pv_list : Optional[List[str]], optional
-            List of addresses to write data to, by default None
-        data_list : Optional[List[Any]], optional
-            List of data to write to addresses in ``pv_list``, by default None
+        entry : Union[Entry, UUID]
+            Entry to gather data from
+        writable_only : bool
+            If True, only include writable data e.g. omit Readbacks; by default False
 
         Returns
         -------
-        Optional[tuple[List[str], List[Any]]]
+        tuple[List[str], Optional[List[Any]]]
             the filled pv_list and data_list
         """
-        top_level = False
-        if (pv_list is None) and (data_list is None):
-            pv_list = []
-            data_list = []
-            top_level = True
-        elif (pv_list is None) or (data_list is None):
-            raise ValueError(
-                "Arguments pv_list and data_list must either both be provided "
-                "or both omitted."
+        pv_list = []
+        data_list = []
+
+        seen = set()
+        q = [entry]
+        while len(q) > 0:
+            entry = q.pop()
+            uuid = entry if isinstance(entry, UUID) else entry.uuid
+            if uuid in seen:
+                continue
+            elif isinstance(entry, UUID):
+                entry = self.backend.get_entry(entry)
+            seen.add(entry.uuid)
+
+            if isinstance(entry, Nestable):
+                q.extend(reversed(entry.children))  # preserve execution order
+            elif isinstance(entry, Readback) and writable_only:
+                pass
+            else:  # entry is Parameter, Setpoint, or Readback
+                pv_list.append(entry.pv_name)
+                if hasattr(entry, "data"):
+                    data_list.append(entry.data)
+                if getattr(entry, "readback", None) is not None:
+                    q.append(entry.readback)
+        return pv_list, data_list
+
+    def _build_snapshot(
+        self,
+        coll: Collection,
+        values: Dict[str, AnyEpicsType],
+    ) -> Snapshot:
+        """
+        Traverse a Collection, assembling a Snapshot using pre-fetched data
+        along the way
+
+        Parameters
+        ----------
+        coll : Collection
+            The collection being saved
+        values : Dict[str, AnyEpicsType]
+            A dictionary mapping PV names to pre-fetched values
+
+        Returns
+        -------
+        Snapshot
+            A Snapshot corresponding to the input Collection
+        """
+        snapshot = Snapshot(
+            title=coll.title,
+            tags=coll.tags.copy(),
+            origin_collection=coll
+        )
+
+        for child in coll.children:
+            if isinstance(child, UUID):
+                child = self.backend.get(child)
+            if isinstance(child, Parameter):
+                if child.readback is not None:
+                    readback = Readback(
+                        pv_name=child.readback.pv_name,
+                        description=child.readback.description,
+                        data=values[child.readback.pv_name]
+                    )
+                else:
+                    readback = None
+                setpoint = Setpoint(
+                    pv_name=child.pv_name,
+                    description=child.description,
+                    data=values[child.pv_name],
+                    readback=readback
+                )
+                snapshot.children.append(setpoint)
+            elif isinstance(child, Collection):
+                snapshot.append(self._build_snapshot(child, values))
+
+        snapshot.meta_pvs = []
+        for pv in Collection.meta_pvs:
+            readback = Readback(
+                pv_name=readback.pv_name,
+                data=values[readback.pv_name]
             )
+            snapshot.meta_pvs.append(readback)
 
-        if isinstance(entry, Snapshot):
-            for child in entry.children:
-                self._gather_data(child, pv_list, data_list)
-        elif isinstance(entry, UUID):
-            child_entry = self.backend.get_entry(entry)
-            self._gather_data(child_entry, pv_list, data_list)
-        elif isinstance(entry, Setpoint):
-            pv_list.append(entry.pv_name)
-            data_list.append(entry.data)
-
-        # Readbacks are not writable, and are not gathered
-
-        if top_level:
-            return pv_list, data_list
+        return snapshot
 
     def validate(self, entry: Entry):
         """

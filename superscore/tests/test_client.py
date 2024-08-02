@@ -6,7 +6,8 @@ import pytest
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
-from superscore.model import Root
+from superscore.errors import CommunicationError
+from superscore.model import Parameter, Readback, Root, Setpoint
 
 from .conftest import MockTaskStatus
 
@@ -39,8 +40,23 @@ def sscore_cfg(xdg_config_patch: Path):
     os.environ["XDG_CONFIG_HOME"] = xdg_cfg
 
 
+def test_gather_data(mock_client, sample_database):
+    snapshot = sample_database.entries[3]
+    orig_pv = snapshot.children[0]
+    dup_pv = Setpoint(
+        uuid=orig_pv.uuid,
+        description=orig_pv.description,
+        pv_name=orig_pv.pv_name,
+        data="You shouldn't see this",
+    )
+    snapshot.children.append(dup_pv)
+    pvs, data_list = mock_client._gather_data(snapshot)
+    assert len(pvs) == len(data_list) == 3
+    assert data_list[pvs.index("MY:PREFIX:mtr1.ACCL")] == 2
+
+
 @patch('superscore.control_layers.core.ControlLayer.put')
-def test_apply(put_mock, mock_client: Client, sample_database: Root):
+def test_apply(put_mock, mock_client: Client, sample_database: Root, setpoint_with_readback):
     put_mock.return_value = MockTaskStatus()
     snap = sample_database.entries[3]
     mock_client.apply(snap)
@@ -52,6 +68,38 @@ def test_apply(put_mock, mock_client: Client, sample_database: Root):
 
     mock_client.apply(snap, sequential=True)
     assert put_mock.call_count == 3
+
+    put_mock.reset_mock()
+    mock_client.apply(setpoint_with_readback, sequential=True)
+    assert put_mock.call_count == 1
+
+
+@patch('superscore.control_layers.core.ControlLayer._get_one')
+def test_snap(
+    get_mock,
+    mock_client: Client,
+    sample_database: Root,
+    parameter_with_readback: Parameter
+):
+    coll = sample_database.entries[2]
+    coll.children.append(parameter_with_readback)
+
+    get_mock.side_effect = range(5)
+    snapshot = mock_client.snap(coll)
+    assert get_mock.call_count == 5
+    assert all([snapshot.children[i].data == i for i in range(4)])  # children saved in order
+    setpoint = snapshot.children[-1]
+    assert isinstance(setpoint, Setpoint)
+    assert isinstance(setpoint.readback, Readback)
+    assert setpoint.readback.data == 4  # readback saved after setpoint
+
+
+@patch('superscore.control_layers.core.ControlLayer._get_one')
+def test_snap_exception(get_mock, mock_client: Client, sample_database: Root):
+    coll = sample_database.entries[2]
+    get_mock.side_effect = [0, 1, CommunicationError, 3, 4]
+    snapshot = mock_client.snap(coll)
+    assert snapshot.children[2].data is None
 
 
 def test_from_cfg(sscore_cfg: str):

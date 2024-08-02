@@ -4,6 +4,7 @@ and dispatches to various shims depending on the context.
 """
 import asyncio
 import logging
+from collections.abc import Iterable
 from functools import singledispatchmethod
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -99,13 +100,13 @@ class ControlLayer:
         return asyncio.run(self._get_one(address))
 
     @get.register
-    def _get_list(self, address: list) -> Any:
+    def _get_list(self, address: Iterable) -> Any:
         """Synchronously get a list of ``address``"""
         async def gathered_coros():
             coros = []
             for p in address:
                 coros.append(self._get_one(p))
-            return await asyncio.gather(*coros)
+            return await asyncio.gather(*coros, return_exceptions=True)
 
         return asyncio.run(gathered_coros())
 

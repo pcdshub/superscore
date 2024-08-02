@@ -26,14 +26,16 @@ def test_serialize_snapshot_roundtrip():
     v2 = Setpoint(pv_name="TEST:PV2", description="Second test Value", data=1.8, status=Status.UDF, severity=Severity.INVALID)
     v3 = Setpoint(pv_name="TEST:PV3", description="Third test Value", data="TRIM", status=Status.DISABLE, severity=Severity.NO_ALARM)
     v4 = Setpoint(pv_name="TEST:PV4", description="Fourth test Value", data=False, status=Status.HIGH, severity=Severity.MAJOR)
+    v5 = Setpoint(pv_name="TEST:PV2", description="Fifth test Value", data=None, status=Status.UDF, severity=Severity.INVALID)
     s1 = Snapshot(title="Snapshot 1", description="Snapshot of Inner Collection", children=[v1, v2])
-    s2 = Snapshot(title="Snapshot 2", description="Snapshot of Outer Collection", children=[v3, s1, v4])
+    s2 = Snapshot(title="Snapshot 2", description="Snapshot of Outer Collection", children=[v3, s1, v4, v5])
     serial = apischema.serialize(Snapshot, s2)
     deserialized = apischema.deserialize(Snapshot, serial)
     assert deserialized == s2
     assert deserialized.children[0] == v3
     assert deserialized.children[1] == s1
     assert deserialized.children[2] == v4
+    assert deserialized.children[3] == v5
     assert deserialized.children[1].children[0] == v1
     assert deserialized.children[1].children[1] == v2
 
