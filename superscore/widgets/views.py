@@ -5,7 +5,9 @@ Qt tree model and item classes for visualizing Entry dataclasses
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, ClassVar, Generator, List, Optional, Union
+import time
+from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
+                    Union)
 from uuid import UUID
 from weakref import WeakValueDictionary
 
@@ -193,7 +195,7 @@ class EntryItem:
         icon_id = ICON_MAP.get(type(self._data), None)
         if icon_id is None:
             return
-        return qta.icon(ICON_MAP[type(self._data)])
+        return qta.icon(icon_id)
 
 
 def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
@@ -505,6 +507,13 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
 
         self.entries.append[entry]
 
+    def icon(self, entry: Entry) -> Optional[QtGui.QIcon]:
+        """return icon for this ``entry``"""
+        icon_id = ICON_MAP.get(type(entry), None)
+        if icon_id is None:
+            return
+        return qta.icon(icon_id)
+
 
 class LivePVTableModel(BaseTableEntryModel):
     # Takes PV-entries (Parameter, Setpoint, Readback)
@@ -527,6 +536,64 @@ class LivePVTableModel(BaseTableEntryModel):
         self.client = client
         self.open_page_slot = open_page_slot
         super().__init__(*args, entries=entries, **kwargs)
+        self._data_cache: Dict[str, Any] = {e.pv_name: None for e in self.entries}
+        self._workers: List[_PVPollThread] = []
+
+        self._polling = False
+
+        self.start()
+
+    def start(self) -> None:
+        """Start the polling thread"""
+        if self._polling:
+            return
+
+        self._polling = True
+        self._poll_thread = _PVPollThread(
+            data=self._data_cache,
+            poll_rate=1.0,
+            client=self.client
+        )
+
+        self._data_cache = self._poll_thread.data  # Shared reference
+        self._poll_thread.data_ready.connect(self._data_ready)
+        self._poll_thread.finished.connect(self._poll_thread_finished)
+
+        self._poll_thread.start()
+
+    @QtCore.Slot()
+    def _poll_thread_finished(self):
+        """Slot: poll thread finished and returned."""
+        if self._poll_thread is None:
+            return
+
+        self._poll_thread.data_ready.disconnect(self._data_ready)
+        self._poll_thread.finished.disconnect(self._poll_thread_finished)
+        self._polling = False
+
+    @QtCore.Slot()
+    def _data_ready(self) -> None:
+        """
+        Slot: initial indication from _DevicePollThread that the data dictionary is ready.
+        """
+        self.beginResetModel()
+
+        self.endResetModel()
+        if self._poll_thread is not None:
+            self._poll_thread.data_changed.connect(self._data_changed)
+
+    @QtCore.Slot(str)
+    def _data_changed(self, pv_name: str) -> None:
+        """Slot: data changed for the given attribute in the thread."""
+        try:
+            row = list(self._data_cache).index(pv_name)
+        except IndexError:
+            ...
+        else:
+            self.dataChanged.emit(
+                self.createIndex(row, 0),
+                self.createIndex(row, self.columnCount()),
+            )
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
@@ -554,19 +621,20 @@ class LivePVTableModel(BaseTableEntryModel):
 
         if index.column() == 0:  # name column
             if role == QtCore.Qt.DecorationRole:
-                return ICON_MAP.get(type(entry), QtCore.QVariant())
+                return self.icon(entry)
+
             name_text = getattr(entry, 'pv_name')
             return name_text
 
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundRole):
-            # table is read only
+            # Other parts of the table are read only
             return QtCore.QVariant()
 
         if index.column() == 1:  # Stored Value
             return getattr(entry, 'data', '--')
         elif index.column() == 2:  # Live Value
             # TODO: cache / control polling
-            live_value = self.client.cl.get(entry.pv_name)
+            live_value = self.get_cache_data(entry.pv_name)
             is_close = self.is_close(live_value, getattr(entry, 'data', None))
             if role == QtCore.Qt.BackgroundRole and not is_close:
                 return QtGui.QColor('red')
@@ -588,6 +656,81 @@ class LivePVTableModel(BaseTableEntryModel):
         if l_data is None or r_data is None:
             return False
         return np.isclose(l_data, r_data)
+
+    def get_cache_data(self, pv_name: str) -> str:
+        """
+        Get data from cache if possible.  If unavailable, dispatch to background
+        thread to fill.  String-ifies data for display
+        """
+        data = self._data_cache.get(pv_name, None)
+        if data is None:
+            # TODO: A neat spinny icon maybe?
+            return "fetching..."
+        else:
+            return str(data)
+
+
+class _PVPollThread(QtCore.QThread):
+    """
+    Polling thread for LivePVTableModel
+
+    emits ``data_changed(pv: str)`` when a pv has new data
+    """
+    data_ready: ClassVar[QtCore.Signal] = QtCore.Signal()
+    data_changed: ClassVar[QtCore.Signal] = QtCore.Signal(str)
+    running: bool
+
+    # TODO: replace Any with unified superscore data type
+    data: Dict[str, Any]
+    poll_rate: float
+
+    def __init__(
+        self,
+        poll_rate: float,
+        data: Dict[str, Any],
+        client: Client,
+        *,
+        parent: Optional[QtWidgets.QWidget] = None
+    ):
+        super().__init__(parent=parent)
+        self.data = data
+        self.poll_rate = poll_rate
+        self.client = client
+        self.running = False
+        self._attrs = set()
+
+    def stop(self) -> None:
+        """Stop the polling thread."""
+        self.running = False
+
+    def _update_data(self, pv_name):
+        try:
+            val = self.client.cl.get(pv_name)
+        except Exception as e:
+            logger.warning(f'Unable to get data from {pv_name}: {e}')
+            return
+        self.data[pv_name] = val
+
+    def run(self):
+        """The thread polling loop."""
+        self.running = True
+
+        self.data_ready.emit()
+
+        while self.running:
+            t0 = time.monotonic()
+            for pv_name in self.data:
+                self._update_data(pv_name)
+                if not self.running:
+                    break
+                time.sleep(0)
+
+            if self.poll_rate <= 0.0:
+                # A zero or below means "single shot" updates.
+                break
+
+            elapsed = time.monotonic() - t0
+            time.sleep(max((0, self.poll_rate - elapsed)))
 
 
 class NestableTableModel(BaseTableEntryModel):
@@ -635,7 +778,7 @@ class NestableTableModel(BaseTableEntryModel):
 
         if index.column() == 0:  # name column
             if role == QtCore.Qt.DecorationRole:
-                return ICON_MAP[type(entry)]
+                return self.icon(entry)
             name_text = getattr(entry, 'title')
             return name_text
         elif index.column() == 1:  # description
