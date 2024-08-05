@@ -5,8 +5,9 @@ import logging
 from typing import Any, Callable
 
 from aioca import CANothing, caget, camonitor, caput
+from epicscorelibs.ca import dbr
 
-from superscore.control_layers._base_shim import _BaseShim
+from superscore.control_layers._base_shim import EpicsData, _BaseShim
 from superscore.errors import CommunicationError
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class AiocaShim(_BaseShim):
     """async compatible EPICS channel access shim layer"""
-    async def get(self, address: str) -> Any:
+    async def get(self, address: str) -> EpicsData:
         """
         Get the value at the PV: ``address``.
 
@@ -34,10 +35,12 @@ class AiocaShim(_BaseShim):
             If the caget operation fails for any reason.
         """
         try:
-            return await caget(address)
+            value = await caget(address, format=dbr.FORMAT_TIME)
         except CANothing as ex:
             logger.debug(f"CA get failed {ex.__repr__()}")
             raise CommunicationError(f'CA get failed for {ex}')
+
+        return EpicsData.from_aioca(value)
 
     async def put(self, address: str, value: Any) -> None:
         """
