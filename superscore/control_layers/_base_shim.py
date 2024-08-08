@@ -13,7 +13,7 @@ from superscore.utils import utcnow
 
 
 class _BaseShim:
-    async def get(self, address: str) -> AnyEpicsType:
+    async def get(self, address: str) -> EpicsData:
         raise NotImplementedError
 
     async def put(self, address: str, value: Any):
