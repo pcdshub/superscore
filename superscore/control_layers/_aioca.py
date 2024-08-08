@@ -5,10 +5,12 @@ import logging
 from typing import Any, Callable
 
 from aioca import CANothing, caget, camonitor, caput
+from aioca.types import AugmentedValue
 from epicscorelibs.ca import dbr
 
 from superscore.control_layers._base_shim import EpicsData, _BaseShim
 from superscore.errors import CommunicationError
+from superscore.model import Severity, Status
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class AiocaShim(_BaseShim):
             logger.debug(f"CA get failed {ex.__repr__()}")
             raise CommunicationError(f'CA get failed for {ex}')
 
-        return EpicsData.from_aioca(value)
+        return self.value_to_epics_data(value)
 
     async def put(self, address: str, value: Any) -> None:
         """
@@ -76,3 +78,31 @@ class AiocaShim(_BaseShim):
             The callback to run on updates to ``address``
         """
         camonitor(address, callback)
+
+    def value_to_epics_data(cls, value: AugmentedValue) -> EpicsData:
+        """
+        Creates an EpicsData instance from an aioca provided AugmentedValue
+        Assumes the augmented value was collected with FORMAT_TIME qualifier.
+        AugmentedValue subclasses primitive datatypes, so they can be used as
+        data directly.
+
+        Parameters
+        ----------
+        value : AugmentedValue
+            The value to repackage
+
+        Returns
+        -------
+        EpicsData
+            The filled EpicsData instance
+        """
+        severity = Severity(value.severity)
+        status = Status(value.status)
+        timestamp = value.timestamp
+
+        return EpicsData(
+            data=value,
+            status=status,
+            severity=severity,
+            timestamp=timestamp
+        )
