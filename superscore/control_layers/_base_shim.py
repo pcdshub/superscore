@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from superscore.model import Severity, Status
 from superscore.type_hints import AnyEpicsType
@@ -26,7 +26,7 @@ class _BaseShim:
 @dataclass
 class EpicsData:
     """Unified EPICS data type for holding data and relevant metadata"""
-    data: AnyEpicsType
+    data: Optional[AnyEpicsType]
     status: Severity = Status.UDF
     severity: Status = Severity.INVALID
     timestamp: datetime = field(default_factory=utcnow)

@@ -75,7 +75,7 @@ class ControlLayer:
         return shim
 
     @singledispatchmethod
-    def get(self, address: Union[str, list[str]]) -> Union[EpicsData, list[EpicsData]]:
+    def get(self, address: Union[str, Iterable[str]]) -> Union[EpicsData, Iterable[EpicsData]]:
         """
         Get the value(s) in ``address``.
         If a single pv is provided, will return a single value.

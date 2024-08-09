@@ -28,7 +28,7 @@ class AiocaShim(_BaseShim):
 
         Returns
         -------
-        Any
+        EpicsData
             The data at ``address``.
 
         Raises
@@ -79,7 +79,8 @@ class AiocaShim(_BaseShim):
         """
         camonitor(address, callback)
 
-    def value_to_epics_data(cls, value: AugmentedValue) -> EpicsData:
+    @staticmethod
+    def value_to_epics_data(value: AugmentedValue) -> EpicsData:
         """
         Creates an EpicsData instance from an aioca provided AugmentedValue
         Assumes the augmented value was collected with FORMAT_TIME qualifier.
