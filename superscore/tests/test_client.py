@@ -6,6 +6,7 @@ import pytest
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
+from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
 from superscore.model import Parameter, Readback, Root, Setpoint
 
@@ -84,7 +85,7 @@ def test_snap(
     coll = sample_database.entries[2]
     coll.children.append(parameter_with_readback)
 
-    get_mock.side_effect = range(5)
+    get_mock.side_effect = [EpicsData(i) for i in range(5)]
     snapshot = mock_client.snap(coll)
     assert get_mock.call_count == 5
     assert all([snapshot.children[i].data == i for i in range(4)])  # children saved in order
@@ -97,7 +98,8 @@ def test_snap(
 @patch('superscore.control_layers.core.ControlLayer._get_one')
 def test_snap_exception(get_mock, mock_client: Client, sample_database: Root):
     coll = sample_database.entries[2]
-    get_mock.side_effect = [0, 1, CommunicationError, 3, 4]
+    get_mock.side_effect = [EpicsData(0), EpicsData(1), CommunicationError,
+                            EpicsData(3), EpicsData(4)]
     snapshot = mock_client.snap(coll)
     assert snapshot.children[2].data is None
 

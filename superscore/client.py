@@ -8,12 +8,11 @@ from uuid import UUID
 
 from superscore.backends import get_backend
 from superscore.backends.core import _Backend
-from superscore.control_layers import ControlLayer
+from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Setpoint, Snapshot)
-from superscore.type_hints import AnyEpicsType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,7 @@ class Client:
         self.cl = control_layer
 
     @classmethod
-    def from_config(cls, cfg: Path = None):
+    def from_config(cls, cfg: Optional[Path] = None):
         """
         Create a client from the configuration file specification.
 
@@ -290,7 +289,7 @@ class Client:
     def _build_snapshot(
         self,
         coll: Collection,
-        values: Dict[str, AnyEpicsType],
+        values: Dict[str, EpicsData],
     ) -> Snapshot:
         """
         Traverse a Collection, assembling a Snapshot using pre-fetched data
@@ -300,7 +299,7 @@ class Client:
         ----------
         coll : Collection
             The collection being saved
-        values : Dict[str, AnyEpicsType]
+        values : Dict[str, EpicsData]
             A dictionary mapping PV names to pre-fetched values
 
         Returns
@@ -319,32 +318,49 @@ class Client:
                 child = self.backend.get(child)
             if isinstance(child, Parameter):
                 if child.readback is not None:
+                    edata = self._value_or_default(
+                        values.get(child.readback.pv_name, None)
+                    )
                     readback = Readback(
                         pv_name=child.readback.pv_name,
                         description=child.readback.description,
-                        data=values[child.readback.pv_name]
+                        data=edata.data,
+                        status=edata.status,
+                        severity=edata.severity
                     )
                 else:
                     readback = None
+                edata = self._value_or_default(values.get(child.pv_name, None))
                 setpoint = Setpoint(
                     pv_name=child.pv_name,
                     description=child.description,
-                    data=values[child.pv_name],
+                    data=edata.data,
+                    status=edata.status,
+                    severity=edata.severity,
                     readback=readback
                 )
                 snapshot.children.append(setpoint)
             elif isinstance(child, Collection):
-                snapshot.append(self._build_snapshot(child, values))
+                snapshot.children.append(self._build_snapshot(child, values))
 
         snapshot.meta_pvs = []
         for pv in Collection.meta_pvs:
+            edata = self._value_or_default(values.get(pv, None))
             readback = Readback(
-                pv_name=readback.pv_name,
-                data=values[readback.pv_name]
+                pv_name=pv,
+                data=edata.data,
+                status=edata.status,
+                severity=edata.severity,
             )
             snapshot.meta_pvs.append(readback)
 
         return snapshot
+
+    def _value_or_default(self, value: Any) -> EpicsData:
+        """small helper for ensuring value is an EpicsData instance"""
+        if value is None or not isinstance(value, EpicsData):
+            return EpicsData(data=None)
+        return value
 
     def validate(self, entry: Entry):
         """

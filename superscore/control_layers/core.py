@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from functools import singledispatchmethod
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from superscore.control_layers._base_shim import EpicsData
 from superscore.control_layers.status import TaskStatus
 
 from ._aioca import AiocaShim
@@ -74,7 +75,7 @@ class ControlLayer:
         return shim
 
     @singledispatchmethod
-    def get(self, address: Union[str, list[str]]) -> Any:
+    def get(self, address: Union[str, Iterable[str]]) -> Union[EpicsData, Iterable[EpicsData]]:
         """
         Get the value(s) in ``address``.
         If a single pv is provided, will return a single value.
@@ -87,7 +88,7 @@ class ControlLayer:
 
         Returns
         -------
-        Any
+        Union[EpicsData, list[EpicsData]]
             The requested data
         """
         # Dispatches to _get_single and _get_list depending on type
@@ -95,12 +96,12 @@ class ControlLayer:
               "a string or list of strings")
 
     @get.register
-    def _get_single(self, address: str) -> Any:
+    def _get_single(self, address: str) -> EpicsData:
         """Synchronously get a single ``address``"""
         return asyncio.run(self._get_one(address))
 
     @get.register
-    def _get_list(self, address: Iterable) -> Any:
+    def _get_list(self, address: Iterable) -> Iterable[EpicsData]:
         """Synchronously get a list of ``address``"""
         async def gathered_coros():
             coros = []
