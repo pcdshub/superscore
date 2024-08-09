@@ -38,7 +38,7 @@ class Client:
         self.cl = control_layer
 
     @classmethod
-    def from_config(cls, cfg: Path = None):
+    def from_config(cls, cfg: Optional[Path] = None):
         """
         Create a client from the configuration file specification.
 
@@ -318,7 +318,9 @@ class Client:
                 child = self.backend.get(child)
             if isinstance(child, Parameter):
                 if child.readback is not None:
-                    edata = values[child.readback.pv_name] or EpicsData(data=None)
+                    edata = self._value_or_default(
+                        values.get(child.readback.pv_name, None)
+                    )
                     readback = Readback(
                         pv_name=child.readback.pv_name,
                         description=child.readback.description,
@@ -328,7 +330,7 @@ class Client:
                     )
                 else:
                     readback = None
-                edata = values[child.pv_name] or EpicsData(data=None)
+                edata = self._value_or_default(values.get(child.pv_name, None))
                 setpoint = Setpoint(
                     pv_name=child.pv_name,
                     description=child.description,
@@ -339,11 +341,11 @@ class Client:
                 )
                 snapshot.children.append(setpoint)
             elif isinstance(child, Collection):
-                snapshot.append(self._build_snapshot(child, values))
+                snapshot.children.append(self._build_snapshot(child, values))
 
         snapshot.meta_pvs = []
         for pv in Collection.meta_pvs:
-            edata = values[pv] or EpicsData(data=None)
+            edata = self._value_or_default(values.get(pv, None))
             readback = Readback(
                 pv_name=pv,
                 data=edata.data,
@@ -353,6 +355,12 @@ class Client:
             snapshot.meta_pvs.append(readback)
 
         return snapshot
+
+    def _value_or_default(self, value: Any) -> EpicsData:
+        """small helper for ensuring value is an EpicsData instance"""
+        if value is None or not isinstance(value, EpicsData):
+            return EpicsData(data=None)
+        return value
 
     def validate(self, entry: Entry):
         """
