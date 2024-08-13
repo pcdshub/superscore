@@ -20,14 +20,14 @@ _root_uuid = _root_uuid = UUID("a28cd77d-cc92-46cc-90cb-758f0f36f041")
 
 
 class Severity(IntEnum):
-    NO_ALARM = auto()
+    NO_ALARM = 0
     MINOR = auto()
     MAJOR = auto()
     INVALID = auto()
 
 
 class Status(IntEnum):
-    NO_ALARM = auto()
+    NO_ALARM = 0
     READ = auto()
     WRITE = auto()
     HIHI = auto()
