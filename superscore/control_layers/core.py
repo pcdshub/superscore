@@ -32,7 +32,7 @@ class ControlLayer:
     def __init__(self, *args, shims: Optional[List[str]] = None, **kwargs):
         if shims is None:
             # load all available shims
-            self.shims = SHIMS
+            self.shims = SHIMS.copy()
             logger.debug('No shims specified, loading all available communication '
                          f'shims: {list(self.shims.keys())}')
         else:

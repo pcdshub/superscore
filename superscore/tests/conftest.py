@@ -742,8 +742,7 @@ class DummyShim(_BaseShim):
 @pytest.fixture(scope='function')
 def dummy_cl() -> ControlLayer:
     cl = ControlLayer()
-    cl.shims['ca'] = DummyShim()
-    cl.shims['pva'] = DummyShim()
+    cl.shims = {protocol: DummyShim() for protocol in ['ca', 'pva']}
     return cl
 
 
