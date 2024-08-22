@@ -1,16 +1,20 @@
 """
 Base superscore data storage backend interface
 """
+from collections import namedtuple
 from typing import Generator
 from uuid import UUID
 
 from superscore.model import Entry, Root
+
+SearchTerm = namedtuple('SearchTerm', ('attr', 'operator', 'value'))
 
 
 class _Backend:
     """
     Base class for data storage backend.
     """
+
     def get_entry(self, meta_id: UUID) -> Entry:
         """
         Get entry with ``meta_id``
@@ -40,8 +44,18 @@ class _Backend:
         """
         raise NotImplementedError
 
-    def search(self, **search_kwargs) -> Generator[Entry, None, None]:
-        """Yield a Entry objects corresponding matching ``search_kwargs``"""
+    def search(self, *search_terms) -> Generator[Entry, None, None]:
+        """
+        Yield Entry objects matching all ``search_terms``. Each SearchTerm has the format
+        (<attr>, <operator>, <value>).  Some operators take tuples as values.
+
+        The supported operators are:
+        - eq (equals)
+        - lt (less than or equal to)
+        - gt (greater than or equal to)
+        - in
+        - like (fuzzy match, depends on type of value)
+        """
         raise NotImplementedError
 
     @property

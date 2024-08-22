@@ -6,6 +6,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import shutil
 from dataclasses import fields, replace
 from typing import Any, Dict, Generator, Optional, Union
@@ -284,32 +285,64 @@ class FilestoreBackend(_Backend):
         with self._load_and_store_context() as db:
             db.pop(entry.uuid, None)
 
-    def search(self, **search_kwargs) -> Generator[Entry, None, None]:
+    def search(self, *search_terms) -> Generator[Entry, None, None]:
         """
-        Search for an entry that matches ``search_kwargs``.
-        Keys are attributes on `Entry` subclasses
-        Values can be either a single value to match or a tuple of valid values
-        Currently does not support partial matches.
+        Return entries that match all ``search_terms``.
+        Keys are attributes on `Entry` subclasses, or special keywords.
+        Values can be a single value or a tuple of values depending on operator.
         """
         with self._load_and_store_context() as db:
             for entry in db.values():
                 conditions = []
-                for key, value in search_kwargs.items():
-                    if key == "entry_type":  # specific type handling, assume value is tuple
-                        conditions.append(isinstance(entry, value))
-                    elif key == "start_time":
-                        conditions.append(entry.creation_time > value)
-                    elif key == "end_time":
-                        conditions.append(entry.creation_time < value)
+                for attr, op, target in search_terms:
                     # TODO: search for child pvs?
-                    else:  # plain key-value match
-                        entry_value = getattr(entry, key, None)
-                        if isinstance(value, tuple):
-                            conditions.append(entry_value in value)
-                        else:
-                            conditions.append(entry_value == value)
+                    if attr == "entry_type":
+                        conditions.append(isinstance(entry, target))
+                    else:
+                        try:
+                            # check entry attribute by name
+                            value = getattr(entry, attr)
+                            conditions.append(self.compare(op, value, target))
+                        except AttributeError:
+                            conditions.append(False)
                 if all(conditions):
                     yield entry
+
+    @staticmethod
+    def compare(op: str, data, target) -> bool:
+        """
+        Return whether data and target satisfy the op comparator, typically durihg application
+        of a search filter. Possible values of op are detailed in _Backend.search
+
+        Parameters
+        ----------
+        op: str
+            one of the comparators that all backends must support, detailed in _Backend.search
+        data: AnyEpicsType | Tuple[AnyEpicsType]
+            data from an Entry that is being used to decide whether the Entry passes a filter
+        target: AnyEpicsType | Tuple[AnyEpicsType]
+            the filter value
+
+        Returns
+        -------
+        bool
+            whether data and target satisfy the op condition
+        """
+        if op == "eq":
+            return data == target
+        elif op == "lt":
+            return data <= target
+        elif op == "gt":
+            return data >= target
+        elif op == "in":
+            return data in target
+        elif op == "like":
+            if isinstance(data, str):
+                return re.search(target, data)
+            elif isinstance(data, (int, float)):
+                return data < 1.05 * target and data > .95 * target
+            else:
+                return NotImplemented
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:

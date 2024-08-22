@@ -147,9 +147,12 @@ class Client:
         # If found nothing
         raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
-    def search(self, **post) -> Generator[Entry, None, None]:
-        """Search by key-value pair.  Can search by any field, including id"""
-        return self.backend.search(**post)
+    def search(self, *post) -> Generator[Entry, None, None]:
+        """
+        Search backend for entries matching all SearchTerms in ``post``.  Can search by any
+        field, plus some special keywords. Backends support operators listed in _Backend.search.
+        """
+        return self.backend.search(*post)
 
     def save(self, entry: Entry):
         """Save information in ``entry`` to database"""
