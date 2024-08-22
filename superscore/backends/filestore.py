@@ -293,33 +293,22 @@ class FilestoreBackend(_Backend):
         """
         with self._load_and_store_context() as db:
             for entry in db.values():
-                match_found = True
+                conditions = []
                 for key, value in search_kwargs.items():
-                    # specific type handling, assuming is tuple
-                    if key == "entry_type":
-                        if not isinstance(entry, search_kwargs["entry_type"]):
-                            match_found = False
-
+                    if key == "entry_type":  # specific type handling, assume value is tuple
+                        conditions.append(isinstance(entry, value))
                     elif key == "start_time":
-                        if value > entry.creation_time:
-                            match_found = False
+                        conditions.append(entry.creation_time > value)
                     elif key == "end_time":
-                        if entry.creation_time > value:
-                            match_found = False
-
+                        conditions.append(entry.creation_time < value)
                     # TODO: search for child pvs?
-
-                    # plain key-value match
-                    else:
+                    else:  # plain key-value match
                         entry_value = getattr(entry, key, None)
                         if isinstance(value, tuple):
-                            matched = entry_value in value
+                            conditions.append(entry_value in value)
                         else:
-                            matched = entry_value == value
-
-                        match_found = match_found and matched
-
-                if match_found:
+                            conditions.append(entry_value == value)
+                if all(conditions):
                     yield entry
 
     @contextlib.contextmanager
