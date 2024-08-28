@@ -450,8 +450,15 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     - implement the `.data()` method and specify handling for your chosen columns
     and Qt display roles
     - define the header names
+    - define any custom functionality
 
     Enables the editable flag for the last row for open-page-buttons
+
+    Parameters
+    ----------
+    entries : Optional[List[Entry]], optional
+        A list of Entry objects to display in the table, by default None
+
     """
     entries: List[Entry]
     headers: List[str]
@@ -465,17 +472,17 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         self.entries = entries or []
         super().__init__(*args, **kwargs)
 
-    def rowCount(self, index):
+    def rowCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
         return len(self.entries)
 
-    def columnCount(self, index):
+    def columnCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
         return len(self.headers)
 
     def headerData(
         self,
         section: int,
         orientation: QtCore.Qt.Orientation,
-        role: int
+        role: int = QtCore.Qt.DisplayRole
     ) -> Any:
         """
         Returns the header data for the model.
@@ -542,27 +549,31 @@ class LivePVTableModel(BaseTableEntryModel):
     # shows setpoints (can be blank)
     # TO-DO:
     # open details delegate
-    # Hide un-needed rows
+    # methods for hide un-needed rows (user interaction?)
     headers: List[str]
+    _data_cache: Dict[str, EpicsData]
+    _poll_thread: Optional[_PVPollThread]
 
     def __init__(
         self,
         *args,
+        client: Client,
         entries: Optional[List[PVEntry]] = None,
-        client: Optional[Client] = None,
         open_page_slot: Optional[Callable] = None,
+        poll_rate: float = 1.0,
         **kwargs
     ) -> None:
+        super().__init__(*args, entries=entries, **kwargs)
+
         self.headers = [h.name.replace('_', ' ') for h in LivePVHeaderEnum]
         self.HEADS = LivePVHeaderEnum
         self.client = client
         self.open_page_slot = open_page_slot
-        super().__init__(*args, entries=entries, **kwargs)
-        self._data_cache: Dict[str, EpicsData] = {e.pv_name: None for e in self.entries}  # noqa: F821
-        self._poll_thread: Optional[_PVPollThread] = None
+        self.poll_rate = poll_rate
+        self._data_cache = {e.pv_name: None for e in self.entries}  # noqa: F821
+        self._poll_thread = None
 
         self._polling = False
-
         self.start_polling()
 
     def start_polling(self) -> None:
@@ -572,11 +583,10 @@ class LivePVTableModel(BaseTableEntryModel):
 
         self._poll_thread = _PVPollThread(
             data=self._data_cache,
-            poll_rate=1.0,
+            poll_rate=self.poll_rate,
             client=self.client
         )
 
-        self._data_cache = self._poll_thread.data  # Shared reference
         self._poll_thread.data_ready.connect(self._data_ready)
         self._poll_thread.finished.connect(self._poll_thread_finished)
 
@@ -584,6 +594,7 @@ class LivePVTableModel(BaseTableEntryModel):
         self._polling = True
 
     def stop_polling(self) -> None:
+        """stop the polling thread, and mark it as stopped"""
         if not self._polling:
             return
 
@@ -606,14 +617,17 @@ class LivePVTableModel(BaseTableEntryModel):
         Slot: initial indication from _DevicePollThread that the data dictionary is ready.
         """
         self.beginResetModel()
-
         self.endResetModel()
+
         if self._poll_thread is not None:
             self._poll_thread.data_changed.connect(self._data_changed)
 
     @QtCore.Slot(str)
     def _data_changed(self, pv_name: str) -> None:
-        """Slot: data changed for the given attribute in the thread."""
+        """
+        Slot: data changed for the given attribute in the thread.
+        Signals the entire row to update (a single PV worth of data)
+        """
         try:
             row = list(self._data_cache).index(pv_name)
         except IndexError:
@@ -623,6 +637,18 @@ class LivePVTableModel(BaseTableEntryModel):
                 self.createIndex(row, 0),
                 self.createIndex(row, self.columnCount()),
             )
+
+    def index_from_item(
+        self,
+        item: PVEntry,
+        column: Union[str, int]
+    ) -> QtCore.QModelIndex:
+        row = self.entries.index(item)
+        if isinstance(column, int):
+            col = column
+        elif isinstance(column, str):
+            col = self.HEADS[column.replace(' ', '_')].value
+        return self.createIndex(row, col, item)
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
@@ -662,7 +688,6 @@ class LivePVTableModel(BaseTableEntryModel):
         if index.column() == self.HEADS.Stored_Value:
             return getattr(entry, 'data', '--')
         elif index.column() == self.HEADS.Live_Value:
-            # TODO: cache / control polling
             live_value = self._get_live_data_field(entry, 'data')
             is_close = self.is_close(live_value, getattr(entry, 'data', None))
             if role == QtCore.Qt.BackgroundRole and not is_close:
@@ -686,8 +711,22 @@ class LivePVTableModel(BaseTableEntryModel):
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
 
-    def _get_live_data_field(self, entry: PVEntry, field: str) -> str:
-        """helper to get field from data cache"""
+    def _get_live_data_field(self, entry: PVEntry, field: str) -> Any:
+        """
+        Helper to get field from data cache
+
+        Parameters
+        ----------
+        entry : PVEntry
+            The Entry to get data from
+        field : str
+            The field in the EpicsData to fetch (data, status, severity, timestamp)
+
+        Returns
+        -------
+        Any
+            The data from EpicsData(entry.pv_name).field
+        """
         live_data = self.get_cache_data(entry.pv_name)
         if not isinstance(live_data, EpicsData):
             # Data is probably fetching, return as is
@@ -700,7 +739,10 @@ class LivePVTableModel(BaseTableEntryModel):
             return data_field
 
     def is_close(self, l_data, r_data) -> bool:
-        """returns true if ``l_data`` is close to ``r_data``"""
+        """
+        Returns True if ``l_data`` is close to ``r_data``, False otherwise.
+        Intended for use with numeric values.
+        """
         is_close = False
         try:
             is_close = np.isclose(l_data, r_data)
@@ -726,21 +768,35 @@ class _PVPollThread(QtCore.QThread):
     """
     Polling thread for LivePVTableModel
 
-    emits ``data_changed(pv: str)`` when a pv has new data
+    Emits ``data_changed(pv: str)`` when a pv has new data
+    Parameters
+    ----------
+    client : superscore.client.Client
+        The client to communicate to PVs through
+
+    data : dict[str, EpicsData]
+        Per-PV EpicsData, potentially generated previously.
+
+    poll_rate : float
+        The poll rate in seconds. A zero or negative poll rate will indicate
+        single-shot mode.  In "single shot" mode, the data is queried exactly
+        once and then the thread exits.
+
+    parent : QWidget, optional, keyword-only
+        The parent widget.
     """
     data_ready: ClassVar[QtCore.Signal] = QtCore.Signal()
     data_changed: ClassVar[QtCore.Signal] = QtCore.Signal(str)
     running: bool
 
-    # TODO: replace Any with unified superscore data type
-    data: Dict[str, Any]
+    data: Dict[str, EpicsData]
     poll_rate: float
 
     def __init__(
         self,
-        poll_rate: float,
-        data: Dict[str, Any],
         client: Client,
+        data: Dict[str, EpicsData],
+        poll_rate: float,
         *,
         parent: Optional[QtWidgets.QWidget] = None
     ):
@@ -756,12 +812,20 @@ class _PVPollThread(QtCore.QThread):
         self.running = False
 
     def _update_data(self, pv_name):
+        """
+        Update the internal data cache with new data from EPICS.
+        Emit self.data_changed signal if data has changed
+        """
         try:
             val = self.client.cl.get(pv_name)
         except Exception as e:
             logger.warning(f'Unable to get data from {pv_name}: {e}')
             return
-        self.data[pv_name] = val
+
+        # ControlLayer.get may return CommunicationError instead of raising
+        if not isinstance(val, Exception) and self.data[pv_name] != val:
+            self.data_changed.emit(pv_name)
+            self.data[pv_name] = val
 
     def run(self):
         """The thread polling loop."""
