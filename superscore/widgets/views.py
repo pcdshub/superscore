@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import time
+from enum import Enum, IntEnum, auto
 from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
                     Union)
 from uuid import UUID
@@ -16,11 +17,16 @@ import qtawesome as qta
 from qtpy import QtCore, QtGui, QtWidgets
 
 from superscore.client import Client
-from superscore.model import Collection, Entry, Nestable, Root, Snapshot
+from superscore.control_layers import EpicsData
+from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
+                              Root, Setpoint, Snapshot)
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP
 
 logger = logging.getLogger(__name__)
+
+
+PVEntry = Union[Parameter, Setpoint, Readback]
 
 
 class EntryItem:
@@ -515,40 +521,55 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         return qta.icon(icon_id)
 
 
+class LivePVHeaderEnum(IntEnum):
+    """
+    Enum for more readable header names.  Underscores will be replaced with spaces
+    """
+    PV_Name = 0
+    Stored_Value = auto()
+    Live_Value = auto()
+    Timestamp = auto()
+    Stored_Status = auto()
+    Live_Status = auto()
+    Stored_Severity = auto()
+    Live_Severity = auto()
+    Open = auto()
+
+
 class LivePVTableModel(BaseTableEntryModel):
-    # Takes PV-entries (Parameter, Setpoint, Readback)
+    # Takes PV-entries
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
+    # TO-DO:
     # open details delegate
-
     # Hide un-needed rows
-    headers: List[str] = ['PV Name', 'Stored Value', 'Live Value', 'Timestamp',
-                          'Status', 'Severity', 'Open']
+    headers: List[str]
 
     def __init__(
         self,
         *args,
-        entries: Optional[List[Entry]] = None,
+        entries: Optional[List[PVEntry]] = None,
         client: Optional[Client] = None,
         open_page_slot: Optional[Callable] = None,
         **kwargs
     ) -> None:
+        self.headers = [h.name.replace('_', ' ') for h in LivePVHeaderEnum]
+        self.HEADS = LivePVHeaderEnum
         self.client = client
         self.open_page_slot = open_page_slot
         super().__init__(*args, entries=entries, **kwargs)
-        self._data_cache: Dict[str, Any] = {e.pv_name: None for e in self.entries}
-        self._workers: List[_PVPollThread] = []
+        self._data_cache: Dict[str, EpicsData] = {e.pv_name: None for e in self.entries}  # noqa: F821
+        self._poll_thread: Optional[_PVPollThread] = None
 
         self._polling = False
 
-        self.start()
+        self.start_polling()
 
-    def start(self) -> None:
+    def start_polling(self) -> None:
         """Start the polling thread"""
         if self._polling:
             return
 
-        self._polling = True
         self._poll_thread = _PVPollThread(
             data=self._data_cache,
             poll_rate=1.0,
@@ -560,6 +581,14 @@ class LivePVTableModel(BaseTableEntryModel):
         self._poll_thread.finished.connect(self._poll_thread_finished)
 
         self._poll_thread.start()
+        self._polling = True
+
+    def stop_polling(self) -> None:
+        if not self._polling:
+            return
+
+        self._poll_thread.stop()
+        self._polling = False
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
@@ -612,52 +641,75 @@ class LivePVTableModel(BaseTableEntryModel):
         Any
             the requested data
         """
-        entry: Entry = self.entries[index.row()]
+        entry: PVEntry = self.entries[index.row()]
 
         # Special handling for open button delegate
         if index.column() == (len(self.headers) - 1):
             if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
                 return 'click to open'
 
-        if index.column() == 0:  # name column
+        if index.column() == self.HEADS.PV_Name:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
-
-            name_text = getattr(entry, 'pv_name')
-            return name_text
+            elif role == QtCore.Qt.DisplayRole:
+                name_text = getattr(entry, 'pv_name')
+                return name_text
 
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundRole):
             # Other parts of the table are read only
             return QtCore.QVariant()
 
-        if index.column() == 1:  # Stored Value
+        if index.column() == self.HEADS.Stored_Value:
             return getattr(entry, 'data', '--')
-        elif index.column() == 2:  # Live Value
+        elif index.column() == self.HEADS.Live_Value:
             # TODO: cache / control polling
-            live_value = self.get_cache_data(entry.pv_name)
+            live_value = self._get_live_data_field(entry, 'data')
             is_close = self.is_close(live_value, getattr(entry, 'data', None))
             if role == QtCore.Qt.BackgroundRole and not is_close:
                 return QtGui.QColor('red')
             return str(live_value)
-        elif index.column() == 3:  # Timestamp
+        elif index.column() == self.HEADS.Timestamp:
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
-        elif index.column() == 4:  # Status
-            return getattr(entry, 'status', '--')
-        elif index.column() == 5:  # Severity
-            return getattr(entry, 'severity', '--')
-        elif index.column() == 6:  # Severity
+        elif index.column() == self.HEADS.Stored_Status:
+            status = getattr(entry, 'status', '--')
+            return getattr(status, 'name', status)
+        elif index.column() == self.HEADS.Live_Status:
+            return self._get_live_data_field(entry, 'status')
+        elif index.column() == self.HEADS.Stored_Severity:
+            severity = getattr(entry, 'severity', '--')
+            return getattr(severity, 'name', severity)
+        elif index.column() == self.HEADS.Live_Severity:
+            return self._get_live_data_field(entry, 'severity')
+        elif index.column() == self.HEADS.Open:
             return "Open"
 
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
 
+    def _get_live_data_field(self, entry: PVEntry, field: str) -> str:
+        """helper to get field from data cache"""
+        live_data = self.get_cache_data(entry.pv_name)
+        if not isinstance(live_data, EpicsData):
+            # Data is probably fetching, return as is
+            return live_data
+
+        data_field = getattr(live_data, field)
+        if isinstance(data_field, Enum):
+            return str(getattr(data_field, 'name', data_field))
+        else:
+            return data_field
+
     def is_close(self, l_data, r_data) -> bool:
         """returns true if ``l_data`` is close to ``r_data``"""
-        if l_data is None or r_data is None:
-            return False
-        return np.isclose(l_data, r_data)
+        is_close = False
+        try:
+            is_close = np.isclose(l_data, r_data)
+        except TypeError:
+            pass
 
-    def get_cache_data(self, pv_name: str) -> str:
+        return is_close
+
+    def get_cache_data(self, pv_name: str) -> EpicsData:
         """
         Get data from cache if possible.  If unavailable, dispatch to background
         thread to fill.  String-ifies data for display
@@ -667,7 +719,7 @@ class LivePVTableModel(BaseTableEntryModel):
             # TODO: A neat spinny icon maybe?
             return "fetching..."
         else:
-            return str(data)
+            return data
 
 
 class _PVPollThread(QtCore.QThread):
