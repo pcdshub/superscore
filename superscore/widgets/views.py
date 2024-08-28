@@ -643,6 +643,23 @@ class LivePVTableModel(BaseTableEntryModel):
         item: PVEntry,
         column: Union[str, int]
     ) -> QtCore.QModelIndex:
+        """
+        Create an index given a `PVEntry` and desired column.
+        The column name must be an option in `LivePVHeaderEnum`, or able to be
+        converted to one by swapping ' ' with '_'
+
+        Parameters
+        ----------
+        item : PVEntry
+            A PVEntry dataclass instance
+        column : Union[str, int]
+            A column name or column index
+
+        Returns
+        -------
+        QtCore.QModelIndex
+            The corresponding model index
+        """
         row = self.entries.index(item)
         if isinstance(column, int):
             col = column
@@ -753,11 +770,15 @@ class LivePVTableModel(BaseTableEntryModel):
 
     def get_cache_data(self, pv_name: str) -> EpicsData:
         """
-        Get data from cache if possible.  If unavailable, dispatch to background
-        thread to fill.  String-ifies data for display
+        Get data from cache if possible.  If missing from cache, add pv_name for
+        the polling thread to update.
         """
         data = self._data_cache.get(pv_name, None)
+
         if data is None:
+            if pv_name not in self._data_cache:
+                self._data_cache[pv_name] = None
+
             # TODO: A neat spinny icon maybe?
             return "fetching..."
         else:
