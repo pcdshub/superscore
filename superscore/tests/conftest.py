@@ -13,10 +13,10 @@ from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
                               Snapshot)
+from superscore.tests.ioc import IOCFactory
 
 
-@pytest.fixture(scope='function')
-def linac_backend():
+def linac_data():
     lasr_gunb_pv1 = Parameter(
         uuid="5544c58f-88b6-40aa-9076-f180a44908f5",
         pv_name="LASR:GUNB:TEST1",
@@ -615,6 +615,12 @@ def linac_backend():
         ]
     )
 
+    return all_col, all_snapshot
+
+
+@pytest.fixture(scope='function')
+def linac_backend():
+    all_col, all_snapshot = linac_data()
     return TestBackend([all_col, all_snapshot])
 
 
@@ -736,8 +742,7 @@ class DummyShim(_BaseShim):
 @pytest.fixture(scope='function')
 def dummy_cl() -> ControlLayer:
     cl = ControlLayer()
-    cl.shims['ca'] = DummyShim()
-    cl.shims['pva'] = DummyShim()
+    cl.shims = {protocol: DummyShim() for protocol in ['ca', 'pva']}
     return cl
 
 
@@ -772,3 +777,10 @@ def sample_client(
     client.cl = dummy_cl
 
     return client
+
+
+@pytest.fixture(scope='module')
+def linac_ioc():
+    _, snapshot = linac_data()
+    with IOCFactory.from_entries(snapshot.children)(prefix="SCORETEST:") as ioc:
+        yield ioc
