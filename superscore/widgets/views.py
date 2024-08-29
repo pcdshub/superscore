@@ -528,19 +528,26 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         return qta.icon(icon_id)
 
 
-class LivePVHeaderEnum(IntEnum):
+class LivePVHeader(IntEnum):
     """
     Enum for more readable header names.  Underscores will be replaced with spaces
     """
-    PV_Name = 0
-    Stored_Value = auto()
-    Live_Value = auto()
-    Timestamp = auto()
-    Stored_Status = auto()
-    Live_Status = auto()
-    Stored_Severity = auto()
-    Live_Severity = auto()
-    Open = auto()
+    PV_NAME = 0
+    STORED_VALUE = auto()
+    LIVE_VALUE = auto()
+    TIMESTAMP = auto()
+    STORED_STATUS = auto()
+    LIVE_STATUS = auto()
+    STORED_SEVERITY = auto()
+    LIVE_SEVERITY = auto()
+    OPEN = auto()
+
+    def header_name(self) -> str:
+        return self.name.title().replace('_', ' ')
+
+    @classmethod
+    def from_header_name(cls, name: str) -> LivePVHeader:
+        return LivePVHeader[name.upper().replace(' ', '_')]
 
 
 class LivePVTableModel(BaseTableEntryModel):
@@ -560,46 +567,43 @@ class LivePVTableModel(BaseTableEntryModel):
         client: Client,
         entries: Optional[List[PVEntry]] = None,
         open_page_slot: Optional[Callable] = None,
-        poll_rate: float = 1.0,
+        poll_period: float = 1.0,
         **kwargs
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
 
-        self.headers = [h.name.replace('_', ' ') for h in LivePVHeaderEnum]
-        self.HEADS = LivePVHeaderEnum
+        self.headers = [h.header_name() for h in LivePVHeader]
         self.client = client
         self.open_page_slot = open_page_slot
-        self.poll_rate = poll_rate
-        self._data_cache = {e.pv_name: None for e in self.entries}  # noqa: F821
+        self.poll_period = poll_period
+        self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread = None
 
-        self._polling = False
         self.start_polling()
 
     def start_polling(self) -> None:
         """Start the polling thread"""
-        if self._polling:
+        if self._poll_thread and self._poll_thread.isRunning():
             return
 
         self._poll_thread = _PVPollThread(
             data=self._data_cache,
-            poll_rate=self.poll_rate,
-            client=self.client
+            poll_period=self.poll_period,
+            client=self.client,
+            parent=self
         )
 
         self._poll_thread.data_ready.connect(self._data_ready)
         self._poll_thread.finished.connect(self._poll_thread_finished)
 
         self._poll_thread.start()
-        self._polling = True
 
     def stop_polling(self) -> None:
         """stop the polling thread, and mark it as stopped"""
-        if not self._polling:
+        if not self._poll_thread.isRunning():
             return
 
         self._poll_thread.stop()
-        self._polling = False
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
@@ -609,7 +613,6 @@ class LivePVTableModel(BaseTableEntryModel):
 
         self._poll_thread.data_ready.disconnect(self._data_ready)
         self._poll_thread.finished.disconnect(self._poll_thread_finished)
-        self._polling = False
 
     @QtCore.Slot()
     def _data_ready(self) -> None:
@@ -664,7 +667,7 @@ class LivePVTableModel(BaseTableEntryModel):
         if isinstance(column, int):
             col = column
         elif isinstance(column, str):
-            col = self.HEADS[column.replace(' ', '_')].value
+            col = LivePVHeader.from_header_name(column).value
         return self.createIndex(row, col, item)
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
@@ -691,7 +694,7 @@ class LivePVTableModel(BaseTableEntryModel):
             if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
                 return 'click to open'
 
-        if index.column() == self.HEADS.PV_Name:
+        if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
             elif role == QtCore.Qt.DisplayRole:
@@ -702,27 +705,27 @@ class LivePVTableModel(BaseTableEntryModel):
             # Other parts of the table are read only
             return QtCore.QVariant()
 
-        if index.column() == self.HEADS.Stored_Value:
+        if index.column() == LivePVHeader.STORED_VALUE:
             return getattr(entry, 'data', '--')
-        elif index.column() == self.HEADS.Live_Value:
+        elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
             is_close = self.is_close(live_value, getattr(entry, 'data', None))
             if role == QtCore.Qt.BackgroundRole and not is_close:
                 return QtGui.QColor('red')
             return str(live_value)
-        elif index.column() == self.HEADS.Timestamp:
+        elif index.column() == LivePVHeader.TIMESTAMP:
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
-        elif index.column() == self.HEADS.Stored_Status:
+        elif index.column() == LivePVHeader.STORED_STATUS:
             status = getattr(entry, 'status', '--')
             return getattr(status, 'name', status)
-        elif index.column() == self.HEADS.Live_Status:
+        elif index.column() == LivePVHeader.LIVE_STATUS:
             return self._get_live_data_field(entry, 'status')
-        elif index.column() == self.HEADS.Stored_Severity:
+        elif index.column() == LivePVHeader.STORED_SEVERITY:
             severity = getattr(entry, 'severity', '--')
             return getattr(severity, 'name', severity)
-        elif index.column() == self.HEADS.Live_Severity:
+        elif index.column() == LivePVHeader.LIVE_SEVERITY:
             return self._get_live_data_field(entry, 'severity')
-        elif index.column() == self.HEADS.Open:
+        elif index.column() == LivePVHeader.OPEN:
             return "Open"
 
         # if nothing is found, return invalid QVariant
@@ -760,13 +763,10 @@ class LivePVTableModel(BaseTableEntryModel):
         Returns True if ``l_data`` is close to ``r_data``, False otherwise.
         Intended for use with numeric values.
         """
-        is_close = False
         try:
-            is_close = np.isclose(l_data, r_data)
+            return np.isclose(l_data, r_data)
         except TypeError:
-            pass
-
-        return is_close
+            return False
 
     def get_cache_data(self, pv_name: str) -> EpicsData:
         """
@@ -798,10 +798,10 @@ class _PVPollThread(QtCore.QThread):
     data : dict[str, EpicsData]
         Per-PV EpicsData, potentially generated previously.
 
-    poll_rate : float
-        The poll rate in seconds. A zero or negative poll rate will indicate
-        single-shot mode.  In "single shot" mode, the data is queried exactly
-        once and then the thread exits.
+    poll_period : float
+        The poll period in seconds (time between poll events). A zero or
+        negative poll rate will indicate single-shot mode.  In "single shot"
+        mode, the data is queried exactly once and then the thread exits.
 
     parent : QWidget, optional, keyword-only
         The parent widget.
@@ -811,19 +811,19 @@ class _PVPollThread(QtCore.QThread):
     running: bool
 
     data: Dict[str, EpicsData]
-    poll_rate: float
+    poll_period: float
 
     def __init__(
         self,
         client: Client,
         data: Dict[str, EpicsData],
-        poll_rate: float,
+        poll_period: float,
         *,
         parent: Optional[QtWidgets.QWidget] = None
     ):
         super().__init__(parent=parent)
         self.data = data
-        self.poll_rate = poll_rate
+        self.poll_period = poll_period
         self.client = client
         self.running = False
         self._attrs = set()
@@ -862,12 +862,12 @@ class _PVPollThread(QtCore.QThread):
                     break
                 time.sleep(0)
 
-            if self.poll_rate <= 0.0:
+            if self.poll_period <= 0.0:
                 # A zero or below means "single shot" updates.
                 break
 
             elapsed = time.monotonic() - t0
-            time.sleep(max((0, self.poll_rate - elapsed)))
+            time.sleep(max((0, self.poll_period - elapsed)))
 
 
 class NestableTableModel(BaseTableEntryModel):

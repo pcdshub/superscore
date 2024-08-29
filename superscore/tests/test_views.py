@@ -18,30 +18,27 @@ def pv_poll_model(
     model = LivePVTableModel(
         client=mock_client,
         entries=[parameter_with_readback],
-        poll_rate=1.0
+        poll_period=1.0
     )
 
     # Make sure we never actually call EPICS
     model.client.cl.get = MagicMock(return_value=1)
+    qtbot.wait_until(lambda: model._poll_thread.running)
     yield model
 
     model.stop_polling()
 
-    qtbot.wait_until(lambda: not model._polling)
+    qtbot.wait_until(lambda: not model._poll_thread.isRunning())
 
 
 def test_pvmodel_polling(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     thread = pv_poll_model._poll_thread
-    qtbot.wait_until(lambda: thread.running)
-
     pv_poll_model.stop_polling()
     qtbot.wait_until(lambda: thread.isFinished(), timeout=10000)
     assert not thread.running
 
 
 def test_pvmodel_update(pv_poll_model: LivePVTableModel, qtbot: QtBot):
-    qtbot.wait_until(lambda: pv_poll_model._poll_thread.running)
-
     assert pv_poll_model._data_cache
 
     # make the mock cl return a new value
