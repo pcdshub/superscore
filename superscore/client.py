@@ -326,20 +326,34 @@ class Client:
                         description=child.readback.description,
                         data=edata.data,
                         status=edata.status,
-                        severity=edata.severity
+                        severity=edata.severity,
+                        rel_tolerance=child.readback.rel_tolerance,
+                        abs_tolerance=child.readback.abs_tolerance,
                     )
                 else:
                     readback = None
                 edata = self._value_or_default(values.get(child.pv_name, None))
-                setpoint = Setpoint(
-                    pv_name=child.pv_name,
-                    description=child.description,
-                    data=edata.data,
-                    status=edata.status,
-                    severity=edata.severity,
-                    readback=readback
-                )
-                snapshot.children.append(setpoint)
+                if child.read_only:
+                    # create a readback and propagate tolerances
+                    new_entry = Readback(
+                        pv_name=child.pv_name,
+                        description=child.description,
+                        data=edata.data,
+                        status=edata.status,
+                        severity=edata.severity,
+                        rel_tolerance=child.rel_tolerance,
+                        abs_tolerance=child.abs_tolerance,
+                    )
+                else:
+                    new_entry = Setpoint(
+                        pv_name=child.pv_name,
+                        description=child.description,
+                        data=edata.data,
+                        status=edata.status,
+                        severity=edata.severity,
+                        readback=readback
+                    )
+                snapshot.children.append(new_entry)
             elif isinstance(child, Collection):
                 snapshot.children.append(self._build_snapshot(child, values))
 
