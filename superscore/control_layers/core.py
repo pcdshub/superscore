@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from superscore.control_layers._base_shim import EpicsData
 from superscore.control_layers.status import TaskStatus
+from superscore.errors import CommunicationError
 
 from ._aioca import AiocaShim
 from ._base_shim import _BaseShim
@@ -96,12 +97,15 @@ class ControlLayer:
               "a string or list of strings")
 
     @get.register
-    def _get_single(self, address: str) -> EpicsData:
+    def _get_single(self, address: str) -> Union[EpicsData, CommunicationError]:
         """Synchronously get a single ``address``"""
-        return asyncio.run(self._get_one(address))
+        try:
+            return asyncio.run(self._get_one(address))
+        except CommunicationError as e:
+            return e
 
     @get.register
-    def _get_list(self, address: Iterable) -> Iterable[EpicsData]:
+    def _get_list(self, address: Iterable) -> Iterable[Union[EpicsData, CommunicationError]]:
         """Synchronously get a list of ``address``"""
         async def gathered_coros():
             coros = []
