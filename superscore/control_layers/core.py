@@ -83,12 +83,12 @@ class ControlLayer:
 
         Parameters
         ----------
-        address : Union[str, list[str]]
+        address : Union[str, Iterable[str]]
             The PV(s) to get values for.
 
         Returns
         -------
-        Union[EpicsData, list[EpicsData]]
+        Union[EpicsData, Iterable[EpicsData]]
             The requested data
         """
         # Dispatches to _get_single and _get_list depending on type
