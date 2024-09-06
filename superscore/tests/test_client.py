@@ -8,7 +8,7 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
-from superscore.model import Parameter, Readback, Root, Setpoint
+from superscore.model import Collection, Parameter, Readback, Root, Setpoint
 
 from .conftest import MockTaskStatus
 
@@ -102,6 +102,26 @@ def test_snap_exception(get_mock, mock_client: Client, sample_database: Root):
                             EpicsData(3), EpicsData(4)]
     snapshot = mock_client.snap(coll)
     assert snapshot.children[2].data is None
+
+
+@patch('superscore.control_layers.core.ControlLayer._get_one')
+def test_snap_RO(get_mock, mock_client: Client, sample_database: Root):
+    coll: Collection = sample_database.entries[2]
+    coll.children.append(
+        Parameter(pv_name="RO:PV",
+                  abs_tolerance=1,
+                  rel_tolerance=-.1,
+                  read_only=True)
+    )
+    get_mock.side_effect = [EpicsData(i) for i in range(5)]
+    snapshot = mock_client.snap(coll)
+
+    assert get_mock.call_count == 4
+    for coll_child, snap_child in zip(coll.children, snapshot.children):
+        if coll_child.read_only:
+            assert isinstance(snap_child, Readback)
+        else:
+            assert isinstance(snap_child, Setpoint)
 
 
 def test_from_cfg(sscore_cfg: str):
