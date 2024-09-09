@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from superscore.control_layers.status import TaskStatus
+from superscore.errors import CommunicationError
 
 
 def test_get(dummy_cl):
@@ -15,6 +16,12 @@ def test_get(dummy_cl):
     assert dummy_cl.get("pva://SOME_PREFIX") == "pva_value"
 
     assert dummy_cl.get(['a', 'b', 'c']) == ["ca_value" for i in range(3)]
+
+
+def test_get_communication_error(dummy_cl):
+    mock_get = AsyncMock(side_effect=CommunicationError("Example error"))
+    dummy_cl.shims['ca'].get = mock_get
+    assert isinstance(dummy_cl.get("SOME_PREFIX"), CommunicationError)
 
 
 def test_put(dummy_cl):
