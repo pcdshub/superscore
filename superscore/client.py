@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 from uuid import UUID
 
 from superscore.backends import get_backend
-from superscore.backends.core import _Backend
+from superscore.backends.core import SearchTerm, _Backend
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
@@ -151,8 +151,20 @@ class Client:
         """
         Search backend for entries matching all SearchTerms in ``post``.  Can search by any
         field, plus some special keywords. Backends support operators listed in _Backend.search.
+        Some operators are supported in the UI / client and must be converted before being
+        passed to the backend.
         """
-        return self.backend.search(*post)
+        new_search_terms = []
+        for search_term in post:
+            if search_term.operator == 'like_with_tols':
+                target, rel_tol, abs_tol = search_term.value
+                lower = target - target * rel_tol - abs_tol
+                upper = target + target * rel_tol + abs_tol
+                new_search_terms.append(SearchTerm(search_term.attr, 'gt', lower))
+                new_search_terms.append(SearchTerm(search_term.attr, 'lt', upper))
+            else:
+                new_search_terms.append(search_term)
+        return self.backend.search(*new_search_terms)
 
     def save(self, entry: Entry):
         """Save information in ``entry`` to database"""

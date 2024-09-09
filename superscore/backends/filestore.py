@@ -339,10 +339,7 @@ class FilestoreBackend(_Backend):
         elif op == "like":
             if isinstance(data, str):
                 return re.search(target, data)
-            elif isinstance(data, (int, float)):
-                return data < 1.05 * target and data > .95 * target
-            else:
-                return NotImplemented
+        return NotImplemented
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:
