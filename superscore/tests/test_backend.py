@@ -1,3 +1,4 @@
+from enum import Flag, auto
 from uuid import UUID
 
 import pytest
@@ -125,6 +126,33 @@ def test_fuzzy_search(backends: _Backend):
         SearchTerm('description', 'like', 'motor field (?!PREC)'))
     )
     assert len(results) == 2
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
+def test_tag_search(backends: _Backend):
+    results = list(backends.search(
+        SearchTerm('tags', 'gt', set())
+    ))
+    assert len(results) == 2  # only the Collection and Snapshot have .tags
+
+    class Tag(Flag):
+        T1 = auto()
+        T2 = auto()
+
+    results[0].tags = {Tag.T1}
+    results[1].tags = {Tag.T1, Tag.T2}
+    backends.update_entry(results[0])
+    backends.update_entry(results[1])
+
+    results = list(backends.search(
+        SearchTerm('tags', 'gt', {Tag.T1})
+    ))
+    assert len(results) == 2
+
+    results = list(backends.search(
+        SearchTerm('tags', 'gt', {Tag.T1, Tag.T2})
+    ))
+    assert len(results) == 1
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
