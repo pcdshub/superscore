@@ -53,11 +53,6 @@ class CollectionBuilderPage(Display, DataWidget):
         self.meta_widget = NameDescTagsWidget(data=self.data)
         insert_widget(self.meta_widget, self.meta_placeholder)
 
-        # initialize tree
-        self.tree_model = RootTree(base_entry=self.data)
-        self.tree_view.setModel(self.tree_model)
-        # wire tree to update with collection / data updates
-
         # wire add-buttons
         self.coll_combo_box = FilterComboBox()
         insert_widget(self.coll_combo_box, self.coll_combo_box_placeholder)
@@ -75,6 +70,10 @@ class CollectionBuilderPage(Display, DataWidget):
         self.rbv_line_edit.setEnabled(not bool(state))
 
     def update_model_data(self):
+        # initialize tree
+        self.tree_model = RootTree(base_entry=self.data)
+        self.tree_view.setModel(self.tree_model)
+        # initialize tables
         self.sub_colls = [child for child in self.data.children
                           if isinstance(child, Collection)]
         self.sub_pvs = [child for child in self.data.children
