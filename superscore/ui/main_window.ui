@@ -20,7 +20,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <layout class="QHBoxLayout" name="search_hayout">
@@ -85,15 +85,21 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menu_new">
+     <property name="title">
+      <string>New</string>
+     </property>
+     <addaction name="action_new_coll"/>
+    </widget>
     <addaction name="separator"/>
-    <addaction name="action_open"/>
+    <addaction name="menu_new"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -118,11 +124,6 @@
   <action name="action_open_file">
    <property name="text">
     <string>Open File</string>
-   </property>
-  </action>
-  <action name="action_open">
-   <property name="text">
-    <string>Open</string>
    </property>
   </action>
   <action name="action_save_as">
@@ -168,6 +169,11 @@
   <action name="action_welcome_tab">
    <property name="text">
     <string>Welcome Tab</string>
+   </property>
+  </action>
+  <action name="action_new_coll">
+   <property name="text">
+    <string>Collection</string>
    </property>
   </action>
  </widget>

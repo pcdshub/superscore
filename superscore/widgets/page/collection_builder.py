@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from qtpy import QtWidgets
 from qtpy.QtGui import QCloseEvent
@@ -40,18 +41,29 @@ class CollectionBuilderPage(Display, DataWidget):
 
     save_button: QtWidgets.QPushButton
 
-    def __init__(self, *args, data: Collection, client: Client, **kwargs):
+    def __init__(
+        self,
+        *args,
+        client: Client,
+        data: Optional[Collection] = None,
+        **kwargs
+    ):
+        if data is None:
+            data = Collection()
         super().__init__(*args, data=data, **kwargs)
         self.client = client
         self.pv_model = None
         self.coll_model = None
         self._coll_options: list[Collection] = []
+        self._title = self.data.title
         # TODO: fill uuids here
         self.setup_ui()
 
     def setup_ui(self):
         self.meta_widget = NameDescTagsWidget(data=self.data)
         insert_widget(self.meta_widget, self.meta_placeholder)
+
+        self.bridge.title.updated.connect(self._update_title)
 
         # wire add-buttons
         self.coll_combo_box = FilterComboBox()
@@ -63,6 +75,10 @@ class CollectionBuilderPage(Display, DataWidget):
         self.ro_checkbox.stateChanged.connect(self.set_rbv_enabled)
 
         self.update_model_data()
+
+    def _update_title(self):
+        """Set title attribute for access by containing widgets"""
+        self._title = self.data.title
 
     def set_rbv_enabled(self, state: int):
         """Disable RBV line edit if read-only checkbox is enabled"""

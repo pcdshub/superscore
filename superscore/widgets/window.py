@@ -7,6 +7,7 @@ import logging
 from typing import Optional
 
 import qtawesome as qta
+from pcdsutils.qt.callbacks import WeakPartialMethodSlot
 from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
@@ -14,6 +15,7 @@ from superscore.model import Entry
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
 from superscore.widgets.page import PAGE_MAP
+from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.search import SearchPage
 from superscore.widgets.views import RootTree
 
@@ -28,12 +30,16 @@ class Window(Display, QtWidgets.QMainWindow):
     tree_view: QtWidgets.QTreeView
     tab_widget: QtWidgets.QTabWidget
 
+    action_new_coll: QtWidgets.QAction
+
     def __init__(self, *args, client: Optional[Client] = None, **kwargs):
         super().__init__(*args, **kwargs)
         if client:
             self.client = client
         else:
             self.client = Client.from_config()
+
+        self._partial_slots = []
 
         self.setup_ui()
         self.open_search_page()
@@ -51,6 +57,26 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
+
+        # setup actions
+        self.action_new_coll.triggered.connect(self.open_collection_builder)
+
+    def _update_tab_title(self, tab_index: int) -> None:
+        """Update a DataWidget tab title.  Assumes widget.title exists"""
+        title_text = self.tab_widget.widget(tab_index)._title
+        self.tab_widget.setTabText(tab_index, title_text)
+
+    def open_collection_builder(self):
+        """open collection builder page"""
+        page = CollectionBuilderPage(client=self.client)
+        self.tab_widget.addTab(page, 'new collection')
+        self.tab_widget.setCurrentWidget(page)
+        update_slot = WeakPartialMethodSlot(
+            page.bridge.title, page.bridge.title.updated,
+            self._update_tab_title,
+            tab_index=self.tab_widget.indexOf(page),
+        )
+        self._partial_slots.append(update_slot)
 
     def open_page(self, entry: Entry) -> None:
         """
