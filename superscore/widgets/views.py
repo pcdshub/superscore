@@ -541,6 +541,7 @@ class LivePVHeader(IntEnum):
     STORED_SEVERITY = auto()
     LIVE_SEVERITY = auto()
     OPEN = auto()
+    REMOVE = auto()
 
     def header_name(self) -> str:
         return self.name.title().replace('_', ' ')
@@ -709,8 +710,9 @@ class LivePVTableModel(BaseTableEntryModel):
             return getattr(entry, 'data', '--')
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
-            is_close = self.is_close(live_value, getattr(entry, 'data', None))
-            if role == QtCore.Qt.BackgroundRole and not is_close:
+            stored_data = getattr(entry, 'data', None)
+            is_close = self.is_close(live_value, stored_data)
+            if stored_data and role == QtCore.Qt.BackgroundRole and not is_close:
                 return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
@@ -727,6 +729,8 @@ class LivePVTableModel(BaseTableEntryModel):
             return self._get_live_data_field(entry, 'severity')
         elif index.column() == LivePVHeader.OPEN:
             return "Open"
+        elif index.column() == LivePVHeader.REMOVE:
+            return "Remove"
 
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
@@ -873,7 +877,7 @@ class _PVPollThread(QtCore.QThread):
 class NestableTableModel(BaseTableEntryModel):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
-    headers: List[str] = ['Name', 'Description', 'Created', 'Open']
+    headers: List[str] = ['Name', 'Description', 'Created', 'Open', 'Remove']
 
     def __init__(
         self,
@@ -924,6 +928,8 @@ class NestableTableModel(BaseTableEntryModel):
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
         elif index.column() == 3:  # Open Delegate
             return "Open"
+        elif index.column() == 4:  # Remove Delegate
+            return "Remove"
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):

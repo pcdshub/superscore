@@ -68,7 +68,8 @@ class Window(Display, QtWidgets.QMainWindow):
 
     def open_collection_builder(self):
         """open collection builder page"""
-        page = CollectionBuilderPage(client=self.client)
+        page = CollectionBuilderPage(client=self.client,
+                                     open_page_slot=self.open_page)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
         update_slot = WeakPartialMethodSlot(

@@ -1,7 +1,7 @@
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
@@ -9,8 +9,9 @@ from superscore.model import Collection, Entry, Parameter
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
-from superscore.widgets.views import (LivePVTableModel, NestableTableModel,
-                                      RootTree)
+from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
+                                      LivePVHeader, LivePVTableModel,
+                                      NestableTableModel, RootTree)
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +47,14 @@ class CollectionBuilderPage(Display, DataWidget):
         *args,
         client: Client,
         data: Optional[Collection] = None,
+        open_page_slot: Optional[Callable] = None,
         **kwargs
     ):
         if data is None:
             data = Collection()
         super().__init__(*args, data=data, **kwargs)
         self.client = client
+        self.open_page_slot = open_page_slot
         self.pv_model = None
         self.coll_model = None
         self._coll_options: list[Collection] = []
@@ -76,9 +79,58 @@ class CollectionBuilderPage(Display, DataWidget):
 
         self.update_model_data()
 
+        # Configure button delegates
+        self.pv_open_delegate = ButtonDelegate(button_text='open details')
+        self.sub_pv_table_view.setItemDelegateForColumn(LivePVHeader.OPEN,
+                                                        self.pv_open_delegate)
+        self.pv_open_delegate.clicked.connect(self.open_sub_pv_row)
+
+        self.pv_remove_delegate = ButtonDelegate(button_text='remove')
+        self.sub_pv_table_view.setItemDelegateForColumn(LivePVHeader.REMOVE,
+                                                        self.pv_remove_delegate)
+        self.pv_remove_delegate.clicked.connect(self.remove_sub_pv_row)
+
+        self.nest_open_delegate = ButtonDelegate(button_text='open details')
+        self.sub_coll_table_view.setItemDelegateForColumn(
+            3, self.nest_open_delegate
+        )
+        self.nest_open_delegate.clicked.connect(self.open_sub_coll_row)
+
+        self.nest_remove_delegate = ButtonDelegate(button_text='remove')
+        self.sub_coll_table_view.setItemDelegateForColumn(
+            4, self.nest_remove_delegate
+        )
+        self.nest_remove_delegate.clicked.connect(self.remove_sub_coll_row)
+
     def _update_title(self):
         """Set title attribute for access by containing widgets"""
         self._title = self.data.title
+
+    def open_row_details(
+        self, model: BaseTableEntryModel, index: QtCore.QModelIndex
+    ) -> None:
+        if self.open_page_slot is not None:
+            # If adding proxy model, more robust data retrieval is needed
+            entry = model.entries[index.row()]
+            self.open_page_slot(entry)
+
+    def open_sub_pv_row(self, index: QtCore.QModelIndex) -> None:
+        self.open_row_details(self.pv_model, index)
+
+    def open_sub_coll_row(self, index: QtCore.QModelIndex) -> None:
+        self.open_row_details(self.coll_model, index)
+
+    def remove_entry(self, entry: Entry) -> None:
+        self.data.children.remove(entry)
+        self.update_model_data()
+
+    def remove_sub_pv_row(self, index: QtCore.QModelIndex) -> None:
+        entry = self.pv_model.entries[index.row()]
+        self.remove_entry(entry)
+
+    def remove_sub_coll_row(self, index: QtCore.QModelIndex) -> None:
+        entry = self.coll_model.entries[index.row()]
+        self.remove_entry(entry)
 
     def set_rbv_enabled(self, state: int):
         """Disable RBV line edit if read-only checkbox is enabled"""
@@ -105,6 +157,12 @@ class CollectionBuilderPage(Display, DataWidget):
         self.pv_model = LivePVTableModel(entries=self.sub_pvs, client=self.client)
         self.coll_model = NestableTableModel(entries=self.sub_colls)
         self.sub_pv_table_view.setModel(self.pv_model)
+
+        # TODO: un-hard code this once there is a better way of managing columns
+        # Potentially dealing with columns that have moved
+        for i in [1, 4, 6]:
+            self.sub_pv_table_view.setColumnHidden(i, True)
+
         self.sub_coll_table_view.setModel(self.coll_model)
 
     def save_collection(self):
