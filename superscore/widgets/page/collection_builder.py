@@ -148,6 +148,7 @@ class CollectionBuilderPage(Display, DataWidget):
                         if not isinstance(child, Collection)]
         if self.pv_model is not None:
             logger.debug('stopping polling')
+            self.pv_model._poll_thread.data = {}
             self.pv_model.stop_polling()
             self.pv_model._poll_thread.wait(5000)
 
@@ -160,7 +161,8 @@ class CollectionBuilderPage(Display, DataWidget):
 
         # TODO: un-hard code this once there is a better way of managing columns
         # Potentially dealing with columns that have moved
-        for i in [1, 4, 6]:
+        for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
+                  LivePVHeader.STORED_STATUS]:
             self.sub_pv_table_view.setColumnHidden(i, True)
 
         self.sub_coll_table_view.setModel(self.coll_model)
