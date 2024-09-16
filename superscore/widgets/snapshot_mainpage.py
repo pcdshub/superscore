@@ -76,10 +76,10 @@ class SnapshotMainpage(Display, QtWidgets.QMainWindow):
         self.setup_ui()
 
     def setup_ui(self):
-        self.filterMenuButton.clicked.connect(self.openFilterMenu)
+        self.filterMenuButton.clicked.connect(self.open_filter_menu)
 
-        self.loadConfigButton.clicked.connect(self.openLoadConfig)
+        self.loadConfigButton.clicked.connect(self.open_load_config)
 
-        self.saveButton.clicked.connect(self.openSavePage)
+        self.saveButton.clicked.connect(self.open_save_page)
 
-        self.searchTitleButton.clicked.connect(self.searchStringTitle)
+        self.searchTitleButton.clicked.connect(self.search_string_title)
