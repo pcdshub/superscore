@@ -51,4 +51,4 @@ class FilterMenu(Display, QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.applyFiltersButton.clicked.connect(self.saveData)
+        self.applyFiltersButton.clicked.connect(self.save_data)
