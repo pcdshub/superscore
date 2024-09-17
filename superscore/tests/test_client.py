@@ -141,11 +141,11 @@ def test_find_config(sscore_cfg: str):
 
 def test_search(sample_client):
     results = list(sample_client.search(
-        SearchTerm('data', 'like_with_tols', (4, 0, 0))
+        ('data', 'like_with_tols', (4, 0, 0))
     ))
     assert len(results) == 0
 
     results = list(sample_client.search(
-        SearchTerm('data', 'like_with_tols', (4, .5, 1))
+        SearchTerm(operator='like_with_tols', attr='data', value=(4, .5, 1))
     ))
     assert len(results) == 4

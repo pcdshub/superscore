@@ -156,6 +156,8 @@ class Client:
         """
         new_search_terms = []
         for search_term in post:
+            if not isinstance(search_term, SearchTerm):
+                search_term = SearchTerm(*search_term)
             if search_term.operator == 'like_with_tols':
                 target, rel_tol, abs_tol = search_term.value
                 lower = target - target * rel_tol - abs_tol
