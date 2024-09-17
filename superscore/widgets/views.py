@@ -1222,6 +1222,11 @@ class LivePVTableView(BaseDataTableView):
             self._model.client = self._client
             self._model.start_polling()
 
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        logger.debug("Stopping pv_model polling")
+        self._model.stop_polling(wait_time=5000)
+        super().closeEvent(a0)
+
 
 class NestableHeader(HeaderEnum):
     NAME = 0
