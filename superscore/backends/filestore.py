@@ -337,9 +337,9 @@ class FilestoreBackend(_Backend):
         elif op == "in":
             return data in target
         elif op == "like":
-            if isinstance(data, str):
-                return re.search(target, data)
-        return NotImplemented
+            return re.search(target, data)
+        else:
+            raise ValueError(f"SearchTerm does not support operator \"{op}\"")
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:

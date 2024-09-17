@@ -156,6 +156,20 @@ def test_tag_search(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+def test_search_error(backends: _Backend):
+    with pytest.raises(TypeError):
+        results = backends.search(
+            SearchTerm('data', 'like', 5)
+        )
+        list(results)
+    with pytest.raises(ValueError):
+        results = backends.search(
+            SearchTerm('data', 'near', 5)
+        )
+        list(results)
+
+
+@pytest.mark.parametrize('backends', [0], indirect=True)
 def test_update_entry(backends: _Backend):
     # grab an entry from the database and modify it.
     entry = list(backends.search(
