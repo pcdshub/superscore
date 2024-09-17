@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 from uuid import UUID
 
 from superscore.backends import get_backend
-from superscore.backends.core import SearchTerm, _Backend
+from superscore.backends.core import SearchTerm, SearchTermType, _Backend
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
@@ -147,7 +147,7 @@ class Client:
         # If found nothing
         raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
-    def search(self, *post) -> Generator[Entry, None, None]:
+    def search(self, *post: SearchTermType) -> Generator[Entry, None, None]:
         """
         Search backend for entries matching all SearchTerms in ``post``.  Can search by any
         field, plus some special keywords. Backends support operators listed in _Backend.search.

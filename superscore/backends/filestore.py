@@ -14,9 +14,10 @@ from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
 
-from superscore.backends.core import _Backend
+from superscore.backends.core import SearchTermType, SearchTermValue, _Backend
 from superscore.errors import BackendError
 from superscore.model import Entry, Root
+from superscore.type_hints import AnyEpicsType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -285,7 +286,7 @@ class FilestoreBackend(_Backend):
         with self._load_and_store_context() as db:
             db.pop(entry.uuid, None)
 
-    def search(self, *search_terms) -> Generator[Entry, None, None]:
+    def search(self, *search_terms: SearchTermType) -> Generator[Entry, None, None]:
         """
         Return entries that match all ``search_terms``.
         Keys are attributes on `Entry` subclasses, or special keywords.
@@ -309,7 +310,7 @@ class FilestoreBackend(_Backend):
                     yield entry
 
     @staticmethod
-    def compare(op: str, data, target) -> bool:
+    def compare(op: str, data: AnyEpicsType, target: SearchTermValue) -> bool:
         """
         Return whether data and target satisfy the op comparator, typically durihg application
         of a search filter. Possible values of op are detailed in _Backend.search

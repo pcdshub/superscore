@@ -1,13 +1,21 @@
 """
 Base superscore data storage backend interface
 """
-from collections import namedtuple
-from typing import Generator
+from collections.abc import Container, Generator
+from typing import NamedTuple, Union
 from uuid import UUID
 
 from superscore.model import Entry, Root
+from superscore.type_hints import AnyEpicsType
 
-SearchTerm = namedtuple('SearchTerm', ('attr', 'operator', 'value'))
+SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
+SearchTermType = tuple[str, str, SearchTermValue]
+
+
+class SearchTerm(NamedTuple):
+    attr: str
+    operator: str
+    value: SearchTermValue
 
 
 class _Backend:
@@ -44,7 +52,7 @@ class _Backend:
         """
         raise NotImplementedError
 
-    def search(self, *search_terms) -> Generator[Entry, None, None]:
+    def search(self, *search_terms: SearchTermType) -> Generator[Entry, None, None]:
         """
         Yield Entry objects matching all ``search_terms``. Each SearchTerm has the format
         (<attr>, <operator>, <value>).  Some operators take tuples as values.
