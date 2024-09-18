@@ -31,7 +31,7 @@ def collection_builder_page(qtbot: QtBot, sample_client: Client):
     qtbot.addWidget(page)
     yield page
     page.pv_model.stop_polling()
-    page.pv_model._poll_thread.wait(5000)
+    qtbot.waitUntil(lambda: page.pv_model._poll_thread.isFinished())
 
 
 @pytest.mark.parametrize(

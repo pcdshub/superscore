@@ -57,6 +57,7 @@ class CollectionBuilderPage(Display, DataWidget):
         self.open_page_slot = open_page_slot
         self.pv_model = None
         self.coll_model = None
+        self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
         # TODO: fill uuids here
@@ -138,34 +139,45 @@ class CollectionBuilderPage(Display, DataWidget):
         self.rbv_line_edit.setEnabled(not bool(state))
 
     def update_model_data(self):
-        # initialize tree
-        self.tree_model = RootTree(base_entry=self.data)
-        self.tree_view.setModel(self.tree_model)
+        """
+        Update the model data.  If no models exist, initialize new ones.
+        If models have already been initialized,
+        """
+        # tree model
+        if self.tree_model is None:
+            self.tree_model = RootTree(base_entry=self.data)
+            self.tree_view.setModel(self.tree_model)
+        else:
+            self.tree_model.refresh_tree()
+
         # initialize tables
         self.sub_colls = [child for child in self.data.children
                           if isinstance(child, Collection)]
         self.sub_pvs = [child for child in self.data.children
                         if not isinstance(child, Collection)]
-        if self.pv_model is not None:
-            logger.debug('stopping polling')
-            self.pv_model._poll_thread.data = {}
-            self.pv_model.stop_polling()
-            self.pv_model._poll_thread.wait(5000)
 
-        # add model to two table views
-        logger.debug(f"Creating new model with {len(self.sub_pvs)} parameters "
+        logger.debug(f"Updating view with {len(self.sub_pvs)} parameters "
                      f"and {len(self.sub_colls)} collections")
-        self.pv_model = LivePVTableModel(entries=self.sub_pvs, client=self.client)
-        self.coll_model = NestableTableModel(entries=self.sub_colls)
-        self.sub_pv_table_view.setModel(self.pv_model)
 
-        # TODO: un-hard code this once there is a better way of managing columns
-        # Potentially dealing with columns that have moved
-        for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
-                  LivePVHeader.STORED_STATUS]:
-            self.sub_pv_table_view.setColumnHidden(i, True)
+        # PVEntry model
+        if self.pv_model is None:
+            self.pv_model = LivePVTableModel(entries=self.sub_pvs, client=self.client)
+            self.sub_pv_table_view.setModel(self.pv_model)
 
-        self.sub_coll_table_view.setModel(self.coll_model)
+            # TODO: un-hard code this once there is a better way of managing columns
+            # Potentially dealing with columns that have moved
+            for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
+                      LivePVHeader.STORED_STATUS]:
+                self.sub_pv_table_view.setColumnHidden(i, True)
+        else:
+            self.pv_model.set_entries(self.sub_pvs)
+
+        # Nestable Model
+        if self.coll_model is None:
+            self.coll_model = NestableTableModel(entries=self.sub_colls)
+            self.sub_coll_table_view.setModel(self.coll_model)
+        else:
+            self.coll_model.set_entries(self.sub_colls)
 
     def save_collection(self):
         """Save current collection to database via Client"""
@@ -234,5 +246,5 @@ class CollectionBuilderPage(Display, DataWidget):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
-        self.pv_model.stop_polling()
+        self.pv_model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)
