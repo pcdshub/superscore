@@ -49,7 +49,7 @@ class Window(Display, QtWidgets.QMainWindow):
         # always use scroll area and never truncate file names
         tab_bar.setUsesScrollButtons(True)
         tab_bar.setElideMode(QtCore.Qt.ElideNone)
-        self.tab_widget.tabCloseRequested.connect(self.tab_widget.removeTab)
+        self.tab_widget.tabCloseRequested.connect(self.remove_tab)
 
         # setup tree view
         self.tree_model = RootTree(base_entry=self.client.backend.root,
@@ -60,6 +60,13 @@ class Window(Display, QtWidgets.QMainWindow):
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
+
+    def remove_tab(self, tab_index: int) -> None:
+        """Remove the requested tab and delete the widget"""
+        widget = self.tab_widget.widget(tab_index)
+        widget.close()
+        widget.deleteLater()
+        self.tab_widget.removeTab(tab_index)
 
     def _update_tab_title(self, tab_index: int) -> None:
         """Update a DataWidget tab title.  Assumes widget.title exists"""
