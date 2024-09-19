@@ -127,6 +127,11 @@ def test_fuzzy_search(backends: _Backend):
     )
     assert len(results) == 2
 
+    results = list(backends.search(
+        SearchTerm('uuid', 'like', '17cc6ebf'))
+    )
+    assert len(results) == 1
+
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
 def test_tag_search(backends: _Backend):

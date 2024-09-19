@@ -338,6 +338,8 @@ class FilestoreBackend(_Backend):
         elif op == "in":
             return data in target
         elif op == "like":
+            if isinstance(data, UUID):
+                data = str(data)
             return re.search(target, data)
         else:
             raise ValueError(f"SearchTerm does not support operator \"{op}\"")
