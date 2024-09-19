@@ -229,8 +229,8 @@ class CollectionBuilderPage(Display, DataWidget):
 
     def update_collection_choices(self):
         """update collection choices based on line edit"""
-        search_kwargs = {'entry_type': (Collection,)}
-        self._coll_options = [res for res in self.client.search(**search_kwargs)
+        search_term = ('entry_type', 'eq', Collection)
+        self._coll_options = [res for res in self.client.search(search_term)
                               if res not in (self.data.children, self)]
         logger.debug(f"Gathered {len(self._coll_options)} collections")
         self.coll_combo_box.clear()
