@@ -16,6 +16,7 @@ import numpy as np
 import qtawesome as qta
 from qtpy import QtCore, QtGui, QtWidgets
 
+from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
@@ -66,7 +67,7 @@ class EntryItem:
     def fill_uuids(self, client: Optional[Client] = None) -> None:
         """Fill this item's data if it is a uuid, using ``client``"""
         if isinstance(self._data, UUID) and client is not None:
-            self._data = list(client.search(uuid=self._data))[0]
+            self._data = list(client.search(SearchTerm('uuid', 'eq', self._data)))[0]
 
     def data(self, column: int) -> Any:
         """

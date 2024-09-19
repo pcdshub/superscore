@@ -6,6 +6,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import shutil
 from dataclasses import fields, replace
 from typing import Any, Dict, Generator, Optional, Union
@@ -13,9 +14,10 @@ from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
 
-from superscore.backends.core import _Backend
+from superscore.backends.core import SearchTermType, SearchTermValue, _Backend
 from superscore.errors import BackendError
 from superscore.model import Entry, Root
+from superscore.type_hints import AnyEpicsType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -284,43 +286,63 @@ class FilestoreBackend(_Backend):
         with self._load_and_store_context() as db:
             db.pop(entry.uuid, None)
 
-    def search(self, **search_kwargs) -> Generator[Entry, None, None]:
+    def search(self, *search_terms: SearchTermType) -> Generator[Entry, None, None]:
         """
-        Search for an entry that matches ``search_kwargs``.
-        Keys are attributes on `Entry` subclasses
-        Values can be either a single value to match or a tuple of valid values
-        Currently does not support partial matches.
+        Return entries that match all ``search_terms``.
+        Keys are attributes on `Entry` subclasses, or special keywords.
+        Values can be a single value or a tuple of values depending on operator.
         """
         with self._load_and_store_context() as db:
             for entry in db.values():
-                match_found = True
-                for key, value in search_kwargs.items():
-                    # specific type handling, assuming is tuple
-                    if key == "entry_type":
-                        if not isinstance(entry, search_kwargs["entry_type"]):
-                            match_found = False
-
-                    elif key == "start_time":
-                        if value > entry.creation_time:
-                            match_found = False
-                    elif key == "end_time":
-                        if entry.creation_time > value:
-                            match_found = False
-
+                conditions = []
+                for attr, op, target in search_terms:
                     # TODO: search for child pvs?
-
-                    # plain key-value match
+                    if attr == "entry_type":
+                        conditions.append(isinstance(entry, target))
                     else:
-                        entry_value = getattr(entry, key, None)
-                        if isinstance(value, tuple):
-                            matched = entry_value in value
-                        else:
-                            matched = entry_value == value
-
-                        match_found = match_found and matched
-
-                if match_found:
+                        try:
+                            # check entry attribute by name
+                            value = getattr(entry, attr)
+                            conditions.append(self.compare(op, value, target))
+                        except AttributeError:
+                            conditions.append(False)
+                if all(conditions):
                     yield entry
+
+    @staticmethod
+    def compare(op: str, data: AnyEpicsType, target: SearchTermValue) -> bool:
+        """
+        Return whether data and target satisfy the op comparator, typically durihg application
+        of a search filter. Possible values of op are detailed in _Backend.search
+
+        Parameters
+        ----------
+        op: str
+            one of the comparators that all backends must support, detailed in _Backend.search
+        data: AnyEpicsType | Tuple[AnyEpicsType]
+            data from an Entry that is being used to decide whether the Entry passes a filter
+        target: AnyEpicsType | Tuple[AnyEpicsType]
+            the filter value
+
+        Returns
+        -------
+        bool
+            whether data and target satisfy the op condition
+        """
+        if op == "eq":
+            return data == target
+        elif op == "lt":
+            return data <= target
+        elif op == "gt":
+            return data >= target
+        elif op == "in":
+            return data in target
+        elif op == "like":
+            if isinstance(data, UUID):
+                data = str(data)
+            return re.search(target, data)
+        else:
+            raise ValueError(f"SearchTerm does not support operator \"{op}\"")
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:

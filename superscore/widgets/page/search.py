@@ -7,6 +7,7 @@ import qtawesome as qta
 from dateutil import tz
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
 from superscore.widgets import ICON_MAP
@@ -95,7 +96,7 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.name_subfilter_line_edit.textChanged.connect(self.subfilter_results)
 
     def _gather_search_terms(self) -> Dict[str, Any]:
-        search_kwargs = {}
+        search_terms = []
 
         # type
         entry_type_list = [Snapshot, Collection, Setpoint, Readback]
@@ -106,39 +107,43 @@ class SearchPage(Display, QtWidgets.QWidget):
             if not checkbox.isChecked():
                 entry_type_list.remove(entry_type)
 
-        search_kwargs["entry_type"] = tuple(entry_type_list)
+        search_terms.append(SearchTerm('entry_type', 'eq', tuple(entry_type_list)))
 
         # name
         name = self.name_line_edit.text()
         if name:
-            search_kwargs['title'] = tuple(n.strip() for n in name.split(','))
+            search_terms.append(
+                SearchTerm('title', 'in', tuple(n.strip() for n in name.split(',')))
+            )
 
         # description
         desc = self.desc_line_edit.text()
         if desc:
-            search_kwargs['description'] = desc
+            search_terms.append(SearchTerm('description', 'like', desc))
 
         # TODO: sort out PVs
         pvs = self.pv_line_edit.text()
         if pvs:
-            search_kwargs['pvs'] = tuple(pv.strip() for pv in pvs.split(','))
+            search_terms.append(
+                SearchTerm('pvs', 'in', tuple(pv.strip() for pv in pvs.split(',')))
+            )
 
         # time
         start_dt = self.start_dt_edit.dateTime().toPyDateTime()
-        search_kwargs['start_time'] = start_dt.astimezone(tz.UTC)
+        search_terms.append(SearchTerm('creation_time', 'gt', start_dt.astimezone(tz.UTC)))
         end_dt = self.end_dt_edit.dateTime().toPyDateTime()
-        search_kwargs['end_time'] = end_dt.astimezone(tz.UTC)
+        search_terms.append(SearchTerm('creation_time', 'lt', end_dt.astimezone(tz.UTC)))
 
-        logger.debug(f'gathered search terms: {search_kwargs}')
-        return search_kwargs
+        logger.debug(f'gathered search terms: {search_terms}')
+        return search_terms
 
     def show_current_filter(self) -> None:
         """
         Gather filter options and update source model with valid entries
         """
         # gather filter details
-        search_kwargs = self._gather_search_terms()
-        entries = self.client.search(**search_kwargs)
+        search_terms = self._gather_search_terms()
+        entries = self.client.search(*search_terms)
 
         # update source table model
         self.model.modelAboutToBeReset.emit()
