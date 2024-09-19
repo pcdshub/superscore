@@ -4,7 +4,8 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.client import Client
-from superscore.model import Collection
+from superscore.model import Collection, Parameter
+from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import CollectionPage
 from superscore.widgets.page.search import SearchPage
 
@@ -24,7 +25,19 @@ def search_page(qtbot: QtBot, sample_client: Client):
     return page
 
 
-@pytest.mark.parametrize('page', ["collection_page", "search_page"])
+@pytest.fixture(scope="function")
+def collection_builder_page(qtbot: QtBot, sample_client: Client):
+    page = CollectionBuilderPage(client=sample_client)
+    qtbot.addWidget(page)
+    yield page
+    page.pv_model.stop_polling()
+    qtbot.waitUntil(lambda: page.pv_model._poll_thread.isFinished())
+
+
+@pytest.mark.parametrize(
+    'page',
+    ["collection_page", "search_page", "collection_builder_page"]
+)
 def test_page_smoke(page: str, request: pytest.FixtureRequest):
     """smoke test, just create each page and see if they fail"""
     print(type(request.getfixturevalue(page)))
@@ -55,3 +68,21 @@ def test_apply_filter(search_page: SearchPage):
     search_page.name_line_edit.setText('collection 1')
     search_page.apply_filter_button.clicked.emit()
     assert search_page.results_table_view.model().rowCount() == 1
+
+
+def test_coll_builder_add(collection_builder_page: CollectionBuilderPage):
+    page = collection_builder_page
+
+    page.pv_line_edit.setText("THIS:PV")
+    page.add_pvs_button.clicked.emit()
+
+    assert len(page.data.children) == 1
+    assert "THIS:PV" in page.data.children[0].pv_name
+    assert isinstance(page.data.children[0], Parameter)
+    assert page.pv_model.rowCount() == 1
+
+    page.coll_combo_box.setCurrentIndex(0)
+    added_collection = page._coll_options[0]
+    page.add_collection_button.clicked.emit()
+    assert added_collection is page.data.children[1]
+    assert page.coll_model.rowCount() == 1

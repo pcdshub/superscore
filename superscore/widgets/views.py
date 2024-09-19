@@ -260,6 +260,11 @@ class RootTree(QtCore.QAbstractItemModel):
         self.client = client
         self.headers = ['name', 'description']
 
+    def refresh_tree(self) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.root_item = build_tree(self.base_entry)
+        self.layoutChanged.emit()
+
     def headerData(
         self,
         section: int,
@@ -478,6 +483,20 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     def columnCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
         return len(self.headers)
 
+    def set_entries(self, entries: List[Entry]):
+        """
+        Set the entries for this table.  Subclasses will need to override
+        in order to encapsulate all logic between `layoutAboutToBeChanged` and
+        `layoutChanged` signals.  (super().set_entries should not be called)
+        """
+        self.layoutAboutToBeChanged.emit()
+        self.entries = entries
+        self.dataChanged.emit(
+            self.createIndex(0, 0),
+            self.createIndex(self.rowCount(), self.columnCount()),
+        )
+        self.layoutChanged.emit()
+
     def headerData(
         self,
         section: int,
@@ -541,6 +560,7 @@ class LivePVHeader(IntEnum):
     STORED_SEVERITY = auto()
     LIVE_SEVERITY = auto()
     OPEN = auto()
+    REMOVE = auto()
 
     def header_name(self) -> str:
         return self.name.title().replace('_', ' ')
@@ -592,18 +612,27 @@ class LivePVTableModel(BaseTableEntryModel):
             client=self.client,
             parent=self
         )
-
+        self._data_cache = self._poll_thread.data
         self._poll_thread.data_ready.connect(self._data_ready)
         self._poll_thread.finished.connect(self._poll_thread_finished)
 
         self._poll_thread.start()
 
-    def stop_polling(self) -> None:
-        """stop the polling thread, and mark it as stopped"""
-        if not self._poll_thread.isRunning():
+    def stop_polling(self, wait_time: float = 0.0) -> None:
+        """
+        stop the polling thread, and mark it as stopped.
+        wait time in ms
+        """
+        if self._poll_thread is None or not self._poll_thread.isRunning():
             return
 
+        logger.debug(f"stopping and de-referencing thread @ {id(self._poll_thread)}")
+        # does not remove reference to avoid premature python garbage collection
+        self._poll_thread.data = {}
         self._poll_thread.stop()
+
+        if wait_time > 0.0:
+            self._poll_thread.wait(wait_time)
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
@@ -640,6 +669,18 @@ class LivePVTableModel(BaseTableEntryModel):
                 self.createIndex(row, 0),
                 self.createIndex(row, self.columnCount()),
             )
+
+    def set_entries(self, entries: list[PVEntry]) -> None:
+        """Set the entries for this table, reset data cache"""
+        self.layoutAboutToBeChanged.emit()
+        self.entries = entries
+        self._data_cache = {e.pv_name: None for e in entries}
+        self._poll_thread.data = self._data_cache
+        self.dataChanged.emit(
+            self.createIndex(0, 0),
+            self.createIndex(self.rowCount(), self.columnCount()),
+        )
+        self.layoutChanged.emit()
 
     def index_from_item(
         self,
@@ -709,8 +750,9 @@ class LivePVTableModel(BaseTableEntryModel):
             return getattr(entry, 'data', '--')
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
-            is_close = self.is_close(live_value, getattr(entry, 'data', None))
-            if role == QtCore.Qt.BackgroundRole and not is_close:
+            stored_data = getattr(entry, 'data', None)
+            is_close = self.is_close(live_value, stored_data)
+            if stored_data and role == QtCore.Qt.BackgroundRole and not is_close:
                 return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
@@ -727,6 +769,8 @@ class LivePVTableModel(BaseTableEntryModel):
             return self._get_live_data_field(entry, 'severity')
         elif index.column() == LivePVHeader.OPEN:
             return "Open"
+        elif index.column() == LivePVHeader.REMOVE:
+            return "Remove"
 
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
@@ -873,7 +917,7 @@ class _PVPollThread(QtCore.QThread):
 class NestableTableModel(BaseTableEntryModel):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
-    headers: List[str] = ['Name', 'Description', 'Created', 'Open']
+    headers: List[str] = ['Name', 'Description', 'Created', 'Open', 'Remove']
 
     def __init__(
         self,
@@ -924,6 +968,8 @@ class NestableTableModel(BaseTableEntryModel):
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
         elif index.column() == 3:  # Open Delegate
             return "Open"
+        elif index.column() == 4:  # Remove Delegate
+            return "Remove"
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):
