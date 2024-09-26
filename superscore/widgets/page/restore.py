@@ -1,6 +1,7 @@
 """Page for comparing and restoring Snapshot values"""
 
 import logging
+from functools import partial
 from uuid import UUID
 
 from qtpy import QtCore, QtWidgets
@@ -9,7 +10,7 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Readback, Setpoint, Snapshot
 from superscore.widgets.core import Display
-from superscore.widgets.views import LivePVTableModel
+from superscore.widgets.views import LivePVHeader, LivePVTableModel
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class Restore(Display, QtWidgets.QWidget):
         logger.debug(f"RESTORE: Found {len(pv_list)} PVs in {self.snapshot.uuid}")
         self.model = Model(client=self.client, entries=pv_list)
         self.tableView.setModel(self.model)
+        self.set_live(False)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(header.Stretch)
 
@@ -67,6 +69,12 @@ class Restore(Display, QtWidgets.QWidget):
                 raise TypeError(f"Found {type(entry).__name__} {entry.uuid} in a Snapshot")
         return pvs
 
+    def set_live(self, is_live: bool):
+        for live_header in self.model.live_headers:
+            self.tableView.setColumnHidden(live_header, not is_live)
+        self.compareLiveButton.setText(["Compare to Live", "Turn off Live"][int(is_live)])
+        self.compareLiveButton.clicked.connect(partial(self.set_live, not is_live))
+
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
         self.model.stop_polling(wait_time=5000)
@@ -75,6 +83,8 @@ class Restore(Display, QtWidgets.QWidget):
 
 class Model(LivePVTableModel):
     """"""
+    live_headers = {LivePVHeader.LIVE_VALUE, LivePVHeader.LIVE_STATUS, LivePVHeader.LIVE_SEVERITY}
+
     def data(self, index: QtCore.QModelIndex, role: int):
         if role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
