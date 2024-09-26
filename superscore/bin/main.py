@@ -13,6 +13,9 @@ from inspect import iscoroutinefunction
 
 import superscore
 
+logger = logging.getLogger('superscore')
+
+
 DESCRIPTION = __doc__
 MODULES = ("help", "ui", "demo")
 
@@ -37,18 +40,13 @@ def _build_commands():
             DESCRIPTION += f'\n    $ superscore {module} --help'
 
     if unavailable:
-        DESCRIPTION += '\n\n'
-
         for module, ex in unavailable:
-            DESCRIPTION += (
-                f'\nWARNING: "superscore {module}" is unavailable due to:'
+            logger.warning(
+                f'WARNING: "{module}" subcommand is unavailable due to:'
                 f'\n\t{ex.__class__.__name__}: {ex}'
             )
 
     return result
-
-
-COMMANDS = _build_commands()
 
 
 def main():
@@ -73,6 +71,7 @@ def main():
     )
 
     subparsers = top_parser.add_subparsers(help='Possible subcommands')
+    COMMANDS = _build_commands()
     for command_name, (build_func, main) in COMMANDS.items():
         sub = subparsers.add_parser(command_name)
         build_func(sub)
@@ -82,10 +81,7 @@ def main():
     kwargs = vars(args)
     log_level = kwargs.pop('log_level')
 
-    logger = logging.getLogger('superscore')
     logger.setLevel(log_level)
-    logging.basicConfig()
-
     if hasattr(args, 'func'):
         func = kwargs.pop('func')
         logger.debug('%s(**%r)', func.__name__, kwargs)
