@@ -3,7 +3,7 @@
 import logging
 from uuid import UUID
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
@@ -74,4 +74,9 @@ class Restore(Display, QtWidgets.QWidget):
 
 
 class Model(LivePVTableModel):
-    pass
+    """"""
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignCenter
+        else:
+            return super().data(index, role)
