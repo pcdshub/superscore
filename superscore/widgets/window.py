@@ -58,6 +58,7 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
+        self.tree_view.doubleClicked.connect(self.open_index)
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
@@ -125,6 +126,10 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tab_widget.setCurrentIndex(idx)
 
         return page_widget
+
+    def open_index(self, index: QtCore.QModelIndex) -> None:
+        entry: Entry = index.internalPointer()._data
+        self.open_page(entry)
 
     def open_search_page(self) -> None:
         page = SearchPage(client=self.client, open_page_slot=self.open_page)
