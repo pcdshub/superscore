@@ -4,6 +4,7 @@ Top-level window widget that contains other widgets
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Optional
 
 import qtawesome as qta
@@ -139,18 +140,13 @@ class Window(Display, QtWidgets.QMainWindow):
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         self.menu = QtWidgets.QMenu(self)
         index: QtCore.QModelIndex = self.tree_view.indexAt(pos)
-        entry: Entry = index.internalPointer()._data
-
         if index is not None and index.data() is not None:
-            # WeakPartialMethodSlot may not be needed, menus are transient
-            def open(*_, **__):
-                self.open_page(entry)
-
+            entry: Entry = index.internalPointer()._data
             open_action = self.menu.addAction(
                 f'&Open Detailed {type(entry).__name__} page'
             )
-            open_action.triggered.connect(open)
-
+            # WeakPartialMethodSlot may not be needed, menus are transient
+            open_action.triggered.connect(partial(self.open_page, entry))
         self.menu.exec_(self.tree_view.mapToGlobal(pos))
 
     def closeEvent(self, a0: QCloseEvent) -> None:
