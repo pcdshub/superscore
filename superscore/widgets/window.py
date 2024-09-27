@@ -9,6 +9,7 @@ from typing import Optional
 import qtawesome as qta
 from pcdsutils.qt.callbacks import WeakPartialMethodSlot
 from qtpy import QtCore, QtWidgets
+from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
 from superscore.model import Entry
@@ -137,3 +138,8 @@ class Window(Display, QtWidgets.QMainWindow):
             open_action.triggered.connect(open)
 
         self.menu.exec_(self.tree_view.mapToGlobal(pos))
+
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        while self.tab_widget.count() > 0:
+            self.remove_tab(0)
+        super().closeEvent(a0)
