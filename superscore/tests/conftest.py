@@ -13,7 +13,7 @@ from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
-                              Snapshot)
+                              Severity, Snapshot, Status)
 from superscore.tests.ioc import IOCFactory
 
 
@@ -312,6 +312,8 @@ def linac_data():
         pv_name=lasr_gunb_pv1.pv_name,
         description=lasr_gunb_pv1.description,
         data="Off",
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     now = lasr_gunb_value1.creation_time
@@ -322,6 +324,8 @@ def linac_data():
         description=lasr_gunb_pv2.description,
         creation_time=now,
         data=5,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     lasr_gunb_snapshot = Snapshot(
@@ -341,6 +345,8 @@ def linac_data():
         description=mgnt_gunb_pv.description,
         creation_time=now,
         data=True,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     mgnt_gunb_snapshot = Snapshot(
@@ -359,6 +365,8 @@ def linac_data():
         description=vac_gunb_pv1.description,
         creation_time=now,
         data="Ion Pump",
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_gunb_value2 = Setpoint(
@@ -367,6 +375,8 @@ def linac_data():
         description=vac_gunb_pv2.description,
         creation_time=now,
         data=False,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_gunb_snapshot = Snapshot(
@@ -398,6 +408,8 @@ def linac_data():
         description=vac_l0b_pv.description,
         creation_time=now,
         data=-10,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_l0b_snapshot = Snapshot(
@@ -426,6 +438,8 @@ def linac_data():
         description=vac_bsy_pv.description,
         creation_time=now,
         data="",
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_bsy_snapshot = Snapshot(
@@ -466,6 +480,8 @@ def linac_data():
         description=vac_li10_pv.description,
         creation_time=now,
         data=.25,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_li10_snapshot = Snapshot(
@@ -494,6 +510,8 @@ def linac_data():
         description=lasr_in10_pv.description,
         creation_time=now,
         data=645.26,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     lasr_in10_snapshot = Snapshot(
@@ -533,6 +551,8 @@ def linac_data():
         description=lasr_in20_pv.description,
         creation_time=now,
         data=0,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     lasr_in20_snapshot = Snapshot(
@@ -561,6 +581,8 @@ def linac_data():
         description=vac_li21_pv.description,
         creation_time=now,
         data=0.0,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
     )
 
     vac_li21_setpoint = Setpoint(
@@ -569,6 +591,8 @@ def linac_data():
         description=vac_li21_pv.description,
         creation_time=now,
         data=5.0,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
         readback=vac_li21_readback,
     )
 
