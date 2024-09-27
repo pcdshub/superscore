@@ -9,9 +9,9 @@ from superscore.model import Collection, Entry, Parameter
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
-from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
-                                      LivePVHeader, LivePVTableModel,
-                                      NestableTableModel, RootTree)
+from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
+                                      LivePVTableView, NestableTableView,
+                                      RootTree)
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +25,14 @@ class CollectionBuilderPage(Display, DataWidget):
 
     tree_view: QtWidgets.QTreeView
 
-    sub_coll_table_view: QtWidgets.QTableView
-    sub_pv_table_view: QtWidgets.QTableView
+    sub_coll_table_view: NestableTableView
+    sub_pv_table_view: LivePVTableView
 
     tab_widget: QtWidgets.QTabWidget
     # PV tab
     pv_line_edit: QtWidgets.QLineEdit
     rbv_line_edit: QtWidgets.QLineEdit
-    # Colleciton tab
+    # Collection tab
     add_collection_button: QtWidgets.QPushButton
     coll_combo_box: FilterComboBox
     coll_combo_box_placeholder: QtWidgets.QComboBox
@@ -55,8 +55,6 @@ class CollectionBuilderPage(Display, DataWidget):
         super().__init__(*args, data=data, **kwargs)
         self.client = client
         self.open_page_slot = open_page_slot
-        self.pv_model = None
-        self.coll_model = None
         self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
@@ -78,30 +76,20 @@ class CollectionBuilderPage(Display, DataWidget):
         self.add_pvs_button.clicked.connect(self.add_pv)
         self.ro_checkbox.stateChanged.connect(self.set_rbv_enabled)
 
-        self.update_model_data()
+        # set up views
+        self.sub_pv_table_view.client = self.client
+        self.sub_pv_table_view.set_data(self.data)
+        for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
+                  LivePVHeader.STORED_STATUS]:
+            self.sub_pv_table_view.setColumnHidden(i, True)
 
-        # Configure button delegates
-        self.pv_open_delegate = ButtonDelegate(button_text='open details')
-        self.sub_pv_table_view.setItemDelegateForColumn(LivePVHeader.OPEN,
-                                                        self.pv_open_delegate)
-        self.pv_open_delegate.clicked.connect(self.open_sub_pv_row)
+        self.sub_coll_table_view.client = self.client
+        self.sub_coll_table_view.set_data(self.data)
 
-        self.pv_remove_delegate = ButtonDelegate(button_text='remove')
-        self.sub_pv_table_view.setItemDelegateForColumn(LivePVHeader.REMOVE,
-                                                        self.pv_remove_delegate)
-        self.pv_remove_delegate.clicked.connect(self.remove_sub_pv_row)
-
-        self.nest_open_delegate = ButtonDelegate(button_text='open details')
-        self.sub_coll_table_view.setItemDelegateForColumn(
-            3, self.nest_open_delegate
-        )
-        self.nest_open_delegate.clicked.connect(self.open_sub_coll_row)
-
-        self.nest_remove_delegate = ButtonDelegate(button_text='remove')
-        self.sub_coll_table_view.setItemDelegateForColumn(
-            4, self.nest_remove_delegate
-        )
-        self.nest_remove_delegate.clicked.connect(self.remove_sub_coll_row)
+        self.tree_model = RootTree(base_entry=self.data)
+        self.tree_view.setModel(self.tree_model)
+        self.sub_coll_table_view.data_updated.connect(self.tree_model.refresh_tree)
+        self.sub_pv_table_view.data_updated.connect(self.tree_model.refresh_tree)
 
     def _update_title(self):
         """Set title attribute for access by containing widgets"""
@@ -115,24 +103,6 @@ class CollectionBuilderPage(Display, DataWidget):
             entry = model.entries[index.row()]
             self.open_page_slot(entry)
 
-    def open_sub_pv_row(self, index: QtCore.QModelIndex) -> None:
-        self.open_row_details(self.pv_model, index)
-
-    def open_sub_coll_row(self, index: QtCore.QModelIndex) -> None:
-        self.open_row_details(self.coll_model, index)
-
-    def remove_entry(self, entry: Entry) -> None:
-        self.data.children.remove(entry)
-        self.update_model_data()
-
-    def remove_sub_pv_row(self, index: QtCore.QModelIndex) -> None:
-        entry = self.pv_model.entries[index.row()]
-        self.remove_entry(entry)
-
-    def remove_sub_coll_row(self, index: QtCore.QModelIndex) -> None:
-        entry = self.coll_model.entries[index.row()]
-        self.remove_entry(entry)
-
     def set_rbv_enabled(self, state: int):
         """Disable RBV line edit if read-only checkbox is enabled"""
         self.rbv_line_edit.clear()
@@ -140,44 +110,11 @@ class CollectionBuilderPage(Display, DataWidget):
 
     def update_model_data(self):
         """
-        Update the model data.  If no models exist, initialize new ones.
-        If models have already been initialized,
+        Update the model data.  Signal the models to re-read the data
         """
-        # tree model
-        if self.tree_model is None:
-            self.tree_model = RootTree(base_entry=self.data)
-            self.tree_view.setModel(self.tree_model)
-        else:
-            self.tree_model.refresh_tree()
-
-        # initialize tables
-        self.sub_colls = [child for child in self.data.children
-                          if isinstance(child, Collection)]
-        self.sub_pvs = [child for child in self.data.children
-                        if not isinstance(child, Collection)]
-
-        logger.debug(f"Updating view with {len(self.sub_pvs)} parameters "
-                     f"and {len(self.sub_colls)} collections")
-
-        # PVEntry model
-        if self.pv_model is None:
-            self.pv_model = LivePVTableModel(entries=self.sub_pvs, client=self.client)
-            self.sub_pv_table_view.setModel(self.pv_model)
-
-            # TODO: un-hard code this once there is a better way of managing columns
-            # Potentially dealing with columns that have moved
-            for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
-                      LivePVHeader.STORED_STATUS]:
-                self.sub_pv_table_view.setColumnHidden(i, True)
-        else:
-            self.pv_model.set_entries(self.sub_pvs)
-
-        # Nestable Model
-        if self.coll_model is None:
-            self.coll_model = NestableTableModel(entries=self.sub_colls)
-            self.sub_coll_table_view.setModel(self.coll_model)
-        else:
-            self.coll_model.set_entries(self.sub_colls)
+        self.tree_model.refresh_tree()
+        self.sub_pv_table_view.set_data(self.data)
+        self.sub_coll_table_view.set_data(self.data)
 
     def save_collection(self):
         """Save current collection to database via Client"""
@@ -246,5 +183,5 @@ class CollectionBuilderPage(Display, DataWidget):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
-        self.pv_model.stop_polling(wait_time=5000)
+        self.sub_pv_table_view._model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)

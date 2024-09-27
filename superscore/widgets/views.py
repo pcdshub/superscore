@@ -492,10 +492,6 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         """
         self.layoutAboutToBeChanged.emit()
         self.entries = entries
-        self.dataChanged.emit(
-            self.createIndex(0, 0),
-            self.createIndex(self.rowCount(), self.columnCount()),
-        )
         self.layoutChanged.emit()
 
     def headerData(
@@ -538,7 +534,21 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         if entry in self.entries or not isinstance(entry, Entry):
             return
 
+        self.layoutAboutToBeChanged.emit()
         self.entries.append[entry]
+        self.layoutChanged()
+
+    def remove_row(self, row_index: int) -> None:
+        self.remove_entry(self.entries[row_index])
+
+    def remove_entry(self, entry: Entry) -> None:
+        self.layoutAboutToBeChanged.emit()
+        try:
+            self.entries.remove(entry)
+        except ValueError:
+            logger.debug(f"Entry of type ({type(entry).__name__})"
+                         "not found in table, could not remove.")
+        self.layoutChanged()
 
     def icon(self, entry: Entry) -> Optional[QtGui.QIcon]:
         """return icon for this ``entry``"""
@@ -587,7 +597,6 @@ class LivePVTableModel(BaseTableEntryModel):
         *args,
         client: Client,
         entries: Optional[List[PVEntry]] = None,
-        open_page_slot: Optional[Callable] = None,
         poll_period: float = 1.0,
         **kwargs
     ) -> None:
@@ -595,7 +604,6 @@ class LivePVTableModel(BaseTableEntryModel):
 
         self.headers = [h.header_name() for h in LivePVHeader]
         self.client = client
-        self.open_page_slot = open_page_slot
         self.poll_period = poll_period
         self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread = None
@@ -683,6 +691,14 @@ class LivePVTableModel(BaseTableEntryModel):
         )
         self.layoutChanged.emit()
 
+    def remove_entry(self, entry: PVEntry) -> None:
+        """Remove ``entry`` from the table model"""
+        super().remove_entry(entry)
+        self.layoutAboutToBeChanged.emit()
+        self._data_cache = {e.pv_name: None for e in self.entries}
+        self._poll_thread.data = self._data_cache
+        self.layoutChanged.emit()
+
     def index_from_item(
         self,
         item: PVEntry,
@@ -730,11 +746,9 @@ class LivePVTableModel(BaseTableEntryModel):
             the requested data
         """
         entry: PVEntry = self.entries[index.row()]
-
-        # Special handling for open button delegate
-        if index.column() == (len(self.headers) - 1):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'click to open'
+        if isinstance(entry, UUID):
+            entry = self.client.backend.get_entry(self.entries[index.row()])
+            self.entries[index.row()] = entry
 
         if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
@@ -915,6 +929,161 @@ class _PVPollThread(QtCore.QThread):
             time.sleep(max((0, self.poll_period - elapsed)))
 
 
+class BaseDataTableView(QtWidgets.QTableView):
+    """
+    Base TableView for holding and manipulating an entry / list of entries
+    TODO: signature docs
+    """
+    # signal indicating the contained has been updated
+    data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
+    _model: Optional[Union[LivePVTableModel, NestableTableModel]] = None
+    _model_cls: Union[LivePVTableModel, NestableTableModel] = LivePVTableModel
+    open_column: int = 0
+    remove_column: int = 0
+
+    def __init__(
+        self,
+        *args,
+        client: Optional[Client] = None,
+        data: Optional[Union[Entry, List[Entry]]] = None,
+        open_page_slot: Optional[Callable] = None,
+        **kwargs,
+    ) -> None:
+        """need to set open_column, close_column in subclass"""
+        super().__init__(*args, **kwargs)
+        self.data = data
+        self._client = client
+        self.open_page_slot = open_page_slot
+        self.sub_entries = []
+
+        # only these for now, may need an update later
+        self.setup_ui()
+
+    def setup_ui(self):
+        """initialize ui elements for this table"""
+        # set delegates
+        self.open_delegate = ButtonDelegate(button_text='open details')
+        self.setItemDelegateForColumn(self.open_column, self.open_delegate)
+        self.open_delegate.clicked.connect(self.open_row_details)
+
+        self.remove_delegate = ButtonDelegate(button_text='remove')
+        self.setItemDelegateForColumn(self.remove_column, self.remove_delegate)
+        self.remove_delegate.clicked.connect(self.remove_row)
+
+    def open_row_details(self, index: QtCore.QModelIndex) -> None:
+        entry = self._model.entries[index.row()]
+        self.open_page_slot(entry)
+
+    def remove_row(self, index: QtCore.QModelIndex) -> None:
+        entry = self._model.entries[index.row()]
+        self._model.remove_row(index.row())
+
+        if isinstance(self.data, list):
+            self.data.remove(entry)
+        elif isinstance(self.data, Nestable):
+            self.data.children.remove(entry)
+        # edit data held by widget
+        self.data_updated.emit()
+
+    def set_data(self, data: Any):
+        """Set the data for this view, re-setup ui"""
+        if not isinstance(data, (list, Nestable)):
+            raise ValueError(
+                f"Attempted to set an incompatable data type ({type(data)})"
+            )
+        self.data = data
+        self.gather_sub_entries()
+
+        if self.client is None:
+            logger.debug("Client not yet set, cannot initialize model")
+            return
+
+        if self._model is None:
+            self._model = self._model_cls(
+                client=self.client,
+                entries=self.sub_entries
+            )
+            self.setModel(self._model)
+        else:
+            self._model.set_entries(self.sub_entries)
+
+        self.data_updated.emit()
+
+    def gather_sub_entries(self):
+        raise NotImplementedError
+
+    @property
+    def client(self):
+        return self._client
+
+    @client.setter
+    def client(self, client: Client):
+        self._set_client(client)
+
+    def _set_client(self, client: Client):
+        if client is self._client:
+            return
+
+        if not isinstance(client, Client):
+            raise ValueError("Provided client is not a superscore Client")
+
+        self._client = client
+
+
+class LivePVTableView(BaseDataTableView):
+    """
+    table widget for LivePVTableModel.  Meant to provide a standard, easy-to-use
+    interface for this table model, with common configuration options exposed
+
+    compatible with list of entries or full entry
+        - updates entry when changes made
+        - maintains order for rebuilding of parent collections
+    Configures delegates, ignoring open page slot if provided
+    Column manipulation
+        - show/hide
+        - re-order
+    flattening of base data
+        - handling of readbacks associated with base entries?
+        - handling of nested nestables
+    ediable stored fields if desired, updating entry
+    """
+    # TODO: add config args / methods: {show/hide}, poll period, column order?
+    _model: Optional[LivePVTableModel]
+
+    def __init__(self, *args, **kwargs):
+        self._model_cls = LivePVTableModel
+        self.open_column = LivePVHeader.OPEN
+        self.remove_column = LivePVHeader.REMOVE
+        super().__init__(*args, **kwargs)
+
+    def gather_sub_entries(self):
+        if isinstance(self.data, UUID):
+            self.data = self.client.backend.get_entry(self.data)
+
+        # TODO: gather and fill entries where necessary
+        if isinstance(self.data, Nestable):
+            # gather sub_nestables
+            self.sub_entries = [child for child in self.data.children
+                                if not isinstance(child, Nestable)]
+
+            for i, sub_nest in enumerate(self.sub_entries):
+                if isinstance(sub_nest, UUID):
+                    new_entry = self._client.backend.get_entry(sub_nest)
+                    self.sub_entries[i] = new_entry
+
+        if isinstance(self.data, (Parameter, Setpoint, Readback)):
+            self.sub_entries = [self.data]
+
+    @BaseDataTableView.client.setter
+    def client(self, client: Optional[Client]):
+        super()._set_client(client)
+        # reset model poll thread
+        if self._model is not None:
+            self._model.stop_polling()
+            self._model.client = self._client
+            self._model.start_polling()
+
+
 class NestableTableModel(BaseTableEntryModel):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
@@ -923,6 +1092,7 @@ class NestableTableModel(BaseTableEntryModel):
     def __init__(
         self,
         *args,
+        client: Optional[Client] = None,
         entries: Optional[List[Union[Snapshot, Collection]]] = None,
         open_page_slot: Optional[Callable] = None,
         **kwargs
@@ -949,11 +1119,6 @@ class NestableTableModel(BaseTableEntryModel):
         """
         entry: Entry = self.entries[index.row()]
 
-        # Special handling for open button delegate
-        if index.column() == (len(self.headers) - 1):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'click to open'
-
         if role != QtCore.Qt.DisplayRole:
             # table is read only
             return QtCore.QVariant()
@@ -971,6 +1136,28 @@ class NestableTableModel(BaseTableEntryModel):
             return "Open"
         elif index.column() == 4:  # Remove Delegate
             return "Remove"
+
+
+class NestableTableView(BaseDataTableView):
+    def __init__(self, *args, **kwargs):
+        self._model_cls = NestableTableModel
+        self.open_column = 3
+        self.remove_column = 4
+        super().__init__(*args, **kwargs)
+
+    def gather_sub_entries(self):
+        if isinstance(self.data, UUID):
+            self.data = self.client.backend.get_entry(self.data)
+        # TODO: gather and fill entries where necessary
+        if isinstance(self.data, Nestable):
+            # gather sub_nestables
+            self.sub_entries = [child for child in self.data.children
+                                if isinstance(child, Nestable)]
+
+            for i, sub_nest in enumerate(self.sub_entries):
+                if isinstance(sub_nest, UUID):
+                    new_entry = self._client.backend.get_entry(sub_nest)
+                    self.sub_entries[i] = new_entry
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):
