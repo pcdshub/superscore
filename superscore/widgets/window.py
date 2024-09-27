@@ -4,6 +4,7 @@ Top-level window widget that contains other widgets
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Optional
 
 import qtawesome as qta
@@ -12,11 +13,12 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Entry
+from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
 from superscore.widgets.views import RootTree
 
@@ -107,8 +109,11 @@ class Window(Display, QtWidgets.QMainWindow):
         try:
             page = PAGE_MAP[type(entry)]
         except KeyError:
-            logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
-            return
+            if isinstance(entry, Snapshot):
+                page = partial(RestorePage, client=self.client)
+            else:
+                logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
+                return
 
         page_widget = page(data=entry)
         icon = qta.icon(ICON_MAP[type(entry)])
