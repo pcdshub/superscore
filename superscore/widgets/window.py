@@ -24,6 +24,9 @@ from superscore.widgets.views import RootTree
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WIDTH = 1400
+DEFAULT_HEIGHT = 800
+
 
 class Window(Display, QtWidgets.QMainWindow):
     """Main superscore window"""
@@ -44,6 +47,7 @@ class Window(Display, QtWidgets.QMainWindow):
 
         self._partial_slots = []
 
+        self.resize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
         self.setup_ui()
         self.open_search_page()
 
