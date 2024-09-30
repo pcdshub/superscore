@@ -812,8 +812,9 @@ class LivePVTableModel(BaseTableEntryModel):
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
             stored_data = getattr(entry, 'data', None)
-            is_close = self.is_close(live_value, stored_data)
-            if stored_data and role == QtCore.Qt.BackgroundRole and not is_close:
+            is_close = self.is_close(entry, stored_data)
+            if ((stored_data is not None) and role == QtCore.Qt.BackgroundRole
+                    and not is_close):
                 return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
@@ -845,7 +846,6 @@ class LivePVTableModel(BaseTableEntryModel):
         entry = self.entries[index.row()]
         header_col = LivePVHeader(index.column())
         try:
-            print("setData", index, value, role)
             setattr(entry, self._header_to_field[header_col], value)
             return True
         except Exception as exc:
@@ -882,15 +882,24 @@ class LivePVTableModel(BaseTableEntryModel):
         else:
             return data_field
 
-    def is_close(self, l_data, r_data) -> bool:
+    def is_close(self, entry: PVEntry, data: Any) -> bool:
         """
-        Returns True if ``l_data`` is close to ``r_data``, False otherwise.
-        Intended for use with numeric values.
+        Determines if ``data`` is close to the value in the controls system at
+        ``entry``.  Returns True if the values are close, False otherwise.
         """
+        e_data = self.get_cache_data(entry.pv_name)
+        if hasattr(e_data, "enums") and isinstance(data, int):
+            # Unify enum representation
+            r_data = e_data.enums[data]
+            l_data = e_data.enums[e_data.data]
+        else:
+            r_data = data
+            l_data = e_data.data
+
         try:
             return np.isclose(l_data, r_data)
         except TypeError:
-            return False
+            return l_data == r_data
 
     def get_cache_data(self, pv_name: str) -> EpicsData:
         """
