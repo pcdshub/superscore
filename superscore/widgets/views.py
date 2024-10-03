@@ -453,6 +453,18 @@ class RootTree(QtCore.QAbstractItemModel):
         return None
 
 
+class HeaderEnum(IntEnum):
+    """
+    Enum for more readable header names.  Underscores will be replaced with spaces
+    """
+    def header_name(self) -> str:
+        return self.name.title().replace('_', ' ')
+
+    @classmethod
+    def from_header_name(cls, name: str) -> HeaderEnum:
+        return cls[name.upper().replace(' ', '_')]
+
+
 class BaseTableEntryModel(QtCore.QAbstractTableModel):
     """
     Common methods for table model that holds onto entries.
@@ -472,7 +484,9 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     """
     entries: List[Entry]
     headers: List[str]
+    header_enum: HeaderEnum
     _editable_cols: Dict[int, bool] = {}
+    _header_to_field: Dict[HeaderEnum: str]
 
     def __init__(
         self,
@@ -517,7 +531,25 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
 
     def set_editable(self, col_index: int, editable: bool) -> None:
         """If a column is allowed to be editable, set it as editable"""
+        if col_index not in self._editable_cols:
+            return
         self._editable_cols[col_index] = editable
+
+    def setData(self, index: QtCore.QModelIndex, value: Any, role: int) -> bool:
+        """Set data"""
+        entry = self.entries[index.row()]
+        header_col = self.header_enum(index.column())
+        self.layoutAboutToBeChanged.emit()
+        try:
+            setattr(entry, self._header_to_field[header_col], value)
+            success = True
+        except Exception as exc:
+            logger.error(f"Failed to set data ({value}) ->"
+                         f"({index.row()}, {index.column()}): {exc}")
+            success = False
+
+        self.layoutChanged.emit()
+        return success
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
         """
@@ -575,10 +607,7 @@ class DisplayType(Enum):
     EPICS_DATA = auto()
 
 
-class LivePVHeader(IntEnum):
-    """
-    Enum for more readable header names.  Underscores will be replaced with spaces
-    """
+class LivePVHeader(HeaderEnum):
     PV_NAME = 0
     STORED_VALUE = auto()
     LIVE_VALUE = auto()
@@ -589,13 +618,6 @@ class LivePVHeader(IntEnum):
     LIVE_SEVERITY = auto()
     OPEN = auto()
     REMOVE = auto()
-
-    def header_name(self) -> str:
-        return self.name.title().replace('_', ' ')
-
-    @classmethod
-    def from_header_name(cls, name: str) -> LivePVHeader:
-        return LivePVHeader[name.upper().replace(' ', '_')]
 
 
 class LivePVTableModel(BaseTableEntryModel):
@@ -621,7 +643,8 @@ class LivePVTableModel(BaseTableEntryModel):
         **kwargs
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
-        self.headers = [h.header_name() for h in LivePVHeader]
+        self.header_enum = LivePVHeader
+        self.headers = [h.header_name() for h in self.header_enum]
 
         self._editable_cols = {h.value: False for h in LivePVHeader}
         self._editable_cols[LivePVHeader.OPEN] = True
@@ -838,18 +861,6 @@ class LivePVTableModel(BaseTableEntryModel):
 
         # if nothing is found, return invalid QVariant
         return QtCore.QVariant()
-
-    def setData(self, index: QtCore.QModelIndex, value: Any, role: int) -> bool:
-        """Set data"""
-        entry = self.entries[index.row()]
-        header_col = LivePVHeader(index.column())
-        try:
-            setattr(entry, self._header_to_field[header_col], value)
-            return True
-        except Exception as exc:
-            logger.error(f"Failed to set data ({value}) ->"
-                         f"({index.row()}, {index.column()}): {exc}")
-            return False
 
     def _get_live_data_field(self, entry: PVEntry, field: str) -> Any:
         """
@@ -1178,23 +1189,34 @@ class LivePVTableView(BaseDataTableView):
             self._model.start_polling()
 
 
+class NestableHeader(HeaderEnum):
+    NAME = 0
+    DESCRIPTION = auto()
+    CREATED = auto()
+    OPEN = auto()
+    REMOVE = auto()
+
+
 class NestableTableModel(BaseTableEntryModel):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
-    headers: List[str] = ['Name', 'Description', 'Created', 'Open', 'Remove']
+    headers: List[str]
+    _header_to_field: Dict[NestableHeader, str] = {
+        NestableHeader.NAME: 'title',
+        NestableHeader.DESCRIPTION: 'description',
+    }
 
     def __init__(
         self,
         *args,
         client: Optional[Client] = None,
         entries: Optional[List[Union[Snapshot, Collection]]] = None,
-        open_page_slot: Optional[Callable] = None,
         **kwargs
     ) -> None:
-        self.open_page_slot = open_page_slot
-        self._editable_cols = {ind: False for ind
-                               in range(len(self.headers))}
         super().__init__(*args, entries=entries, **kwargs)
+        self.header_enum = NestableHeader
+        self.headers = [h.header_name() for h in NestableHeader]
+        self._editable_cols = {h.value: False for h in NestableHeader}
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
@@ -1215,8 +1237,7 @@ class NestableTableModel(BaseTableEntryModel):
         """
         entry: Entry = self.entries[index.row()]
 
-        if role != QtCore.Qt.DisplayRole:
-            # table is read only
+        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
             return QtCore.QVariant()
 
         if index.column() == 0:  # name column
