@@ -772,7 +772,7 @@ def sample_client(
     filestore_backend: FilestoreBackend,
     dummy_cl: ControlLayer
 ) -> Client:
-    """Return a client with actula data, but no communication capabilities"""
+    """Return a client with actual data, but no communication capabilities"""
     client = Client(backend=filestore_backend)
     client.cl = dummy_cl
 
