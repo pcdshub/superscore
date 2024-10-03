@@ -1008,7 +1008,6 @@ class _PVPollThread(QtCore.QThread):
 class BaseDataTableView(QtWidgets.QTableView):
     """
     Base TableView for holding and manipulating an entry / list of entries
-    TODO: signature docs
     """
     # signal indicating the contained has been updated
     data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
@@ -1031,12 +1030,13 @@ class BaseDataTableView(QtWidgets.QTableView):
         self._client = client
         self.open_page_slot = open_page_slot
         self.sub_entries = []
+        self.model_kwargs = {}
 
         # only these for now, may need an update later
         self.setup_ui()
 
     def setup_ui(self):
-        """initialize ui elements for this table"""
+        """initialize basic ui elements for this table"""
         # set delegates
         self.open_delegate = ButtonDelegate(button_text='open details')
         self.setItemDelegateForColumn(self.open_column, self.open_delegate)
@@ -1047,8 +1047,10 @@ class BaseDataTableView(QtWidgets.QTableView):
         self.remove_delegate.clicked.connect(self.remove_row)
 
     def open_row_details(self, index: QtCore.QModelIndex) -> None:
-        entry = self._model.entries[index.row()]
-        self.open_page_slot(entry)
+        """slot for opening row details page"""
+        if self.open_page_slot:
+            entry = self._model.entries[index.row()]
+            self.open_page_slot(entry)
 
     def remove_row(self, index: QtCore.QModelIndex) -> None:
         entry = self._model.entries[index.row()]
@@ -1077,7 +1079,8 @@ class BaseDataTableView(QtWidgets.QTableView):
         if self._model is None:
             self._model = self._model_cls(
                 client=self.client,
-                entries=self.sub_entries
+                entries=self.sub_entries,
+                **self.model_kwargs
             )
             self.setModel(self._model)
         else:
@@ -1086,6 +1089,10 @@ class BaseDataTableView(QtWidgets.QTableView):
         self.data_updated.emit()
 
     def gather_sub_entries(self):
+        """
+        Gather entries relevant to the contained model
+        and assign to self.sub_entries.  This must be implemented in a subclass.
+        """
         raise NotImplementedError
 
     @property
@@ -1104,6 +1111,11 @@ class BaseDataTableView(QtWidgets.QTableView):
             raise ValueError("Provided client is not a superscore Client")
 
         self._client = client
+
+    def set_editable(self, column: int, is_editable: bool) -> None:
+        if not self._model:
+            return
+        self._model.set_editable(column, is_editable)
 
 
 class LivePVTableView(BaseDataTableView):
@@ -1124,14 +1136,15 @@ class LivePVTableView(BaseDataTableView):
         - handling of nested nestables
     ediable stored fields if desired, updating entry
     """
-    # TODO: add config args / methods: {show/hide}, poll period, column order?
     _model: Optional[LivePVTableModel]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, poll_period: float = 1.0, **kwargs):
         self._model_cls = LivePVTableModel
         self.open_column = LivePVHeader.OPEN
         self.remove_column = LivePVHeader.REMOVE
         super().__init__(*args, **kwargs)
+
+        self.model_kwargs['poll_period'] = poll_period
 
         self.value_delegate = ValueDelegate()
         for col in [LivePVHeader.PV_NAME, LivePVHeader.STORED_VALUE,
@@ -1142,7 +1155,6 @@ class LivePVTableView(BaseDataTableView):
         if isinstance(self.data, UUID):
             self.data = self.client.backend.get_entry(self.data)
 
-        # TODO: gather and fill entries where necessary
         if isinstance(self.data, Nestable):
             # gather sub_nestables
             self.sub_entries = [child for child in self.data.children
@@ -1153,7 +1165,7 @@ class LivePVTableView(BaseDataTableView):
                     new_entry = self._client.backend.get_entry(sub_nest)
                     self.sub_entries[i] = new_entry
 
-        if isinstance(self.data, (Parameter, Setpoint, Readback)):
+        elif isinstance(self.data, (Parameter, Setpoint, Readback)):
             self.sub_entries = [self.data]
 
     @BaseDataTableView.client.setter
