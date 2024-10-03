@@ -602,9 +602,6 @@ class LivePVTableModel(BaseTableEntryModel):
     # Takes PV-entries
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
-    # TO-DO:
-    # open details delegate
-    # methods for hide un-needed rows (user interaction?)
     headers: List[str]
     _data_cache: Dict[str, EpicsData]
     _poll_thread: Optional[_PVPollThread]
@@ -783,7 +780,7 @@ class LivePVTableModel(BaseTableEntryModel):
         if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
-            elif role == QtCore.Qt.DisplayRole:
+            elif role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
                 name_text = getattr(entry, 'pv_name')
                 return name_text
             elif role == CustRoles.DisplayTypeRole:
@@ -796,15 +793,16 @@ class LivePVTableModel(BaseTableEntryModel):
             return QtCore.QVariant()
 
         if index.column() == LivePVHeader.STORED_VALUE:
-            cache_data = self.get_cache_data(entry.pv_name)
             if role == CustRoles.DisplayTypeRole:
                 return DisplayType.EPICS_DATA
-            elif role == CustRoles.EpicsDataRole:
+            cache_data = self.get_cache_data(entry.pv_name)
+            if role == CustRoles.EpicsDataRole:
                 return cache_data
+
             stored_data = getattr(entry, 'data', None)
             if stored_data is None:
                 return '--'
-            # do some data handling (currently only for enums)
+            # do some enum data handling
             if isinstance(cache_data, EpicsData):
                 if cache_data.enums and isinstance(stored_data, int):
                     return cache_data.enums[stored_data]
@@ -888,6 +886,10 @@ class LivePVTableModel(BaseTableEntryModel):
         ``entry``.  Returns True if the values are close, False otherwise.
         """
         e_data = self.get_cache_data(entry.pv_name)
+        if not isinstance(e_data, EpicsData):
+            # data still fetching, don't compare
+            return
+
         if hasattr(e_data, "enums") and isinstance(data, int):
             # Unify enum representation
             r_data = e_data.enums[data]
@@ -901,7 +903,7 @@ class LivePVTableModel(BaseTableEntryModel):
         except TypeError:
             return l_data == r_data
 
-    def get_cache_data(self, pv_name: str) -> EpicsData:
+    def get_cache_data(self, pv_name: str) -> Union[EpicsData, str]:
         """
         Get data from cache if possible.  If missing from cache, add pv_name for
         the polling thread to update.
@@ -1113,8 +1115,9 @@ class LivePVTableView(BaseDataTableView):
         - updates entry when changes made
         - maintains order for rebuilding of parent collections
     Configures delegates, ignoring open page slot if provided
+
+    TO-DO:
     Column manipulation
-        - show/hide
         - re-order
     flattening of base data
         - handling of readbacks associated with base entries?
@@ -1296,6 +1299,9 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
             data_val: EpicsData = index.model().data(
                 index, role=CustRoles.EpicsDataRole
             )
+            if isinstance(data_val, str):
+                # not yet initialized, no-op
+                return
             if isinstance(data_val.data, str):
                 widget = QtWidgets.QLineEdit(data_val.data, parent)
             elif data_val.enums:  # Catch enums before numerics, enums are ints
