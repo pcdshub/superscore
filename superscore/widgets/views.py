@@ -567,7 +567,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
             the ItemFlag corresponding to the cell
         """
         if index.column() not in self._editable_cols:
-            return
+            return QtCore.Qt.ItemIsEnabled
 
         if self._editable_cols[index.column()]:
             return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable
