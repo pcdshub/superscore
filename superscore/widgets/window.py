@@ -110,7 +110,7 @@ class Window(Display, QtWidgets.QMainWindow):
             logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
             return
 
-        page_widget = page(data=entry)
+        page_widget = page(data=entry, client=self.client)
         icon = qta.icon(ICON_MAP[type(entry)])
         tab_name = getattr(
             entry, 'title', getattr(entry, 'pv_name', f'<{type(entry).__name__}>')
