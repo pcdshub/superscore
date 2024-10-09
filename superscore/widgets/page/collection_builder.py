@@ -86,7 +86,7 @@ class CollectionBuilderPage(Display, DataWidget):
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
 
-        self.tree_model = RootTree(base_entry=self.data)
+        self.tree_model = RootTree(base_entry=self.data, client=self.client)
         self.tree_view.setModel(self.tree_model)
         self.sub_coll_table_view.data_updated.connect(self.tree_model.refresh_tree)
         self.sub_pv_table_view.data_updated.connect(self.tree_model.refresh_tree)
