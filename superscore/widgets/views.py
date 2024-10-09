@@ -19,6 +19,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
+from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
@@ -486,7 +487,8 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     headers: List[str]
     header_enum: HeaderEnum
     _editable_cols: Dict[int, bool] = {}
-    _header_to_field: Dict[HeaderEnum: str]
+    _button_cols: List[HeaderEnum]
+    _header_to_field: Dict[HeaderEnum, str]
 
     def __init__(
         self,
@@ -540,6 +542,10 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         entry = self.entries[index.row()]
         header_col = self.header_enum(index.column())
         self.layoutAboutToBeChanged.emit()
+        if header_col in self._button_cols:
+            # button columns do not actually set data, no-op
+            return True
+
         try:
             setattr(entry, self._header_to_field[header_col], value)
             success = True
@@ -630,6 +636,7 @@ class LivePVTableModel(BaseTableEntryModel):
     headers: List[str]
     _data_cache: Dict[str, EpicsData]
     _poll_thread: Optional[_PVPollThread]
+    _button_cols: List[LivePVHeader] = [LivePVHeader.OPEN, LivePVHeader.REMOVE]
     _header_to_field: Dict[LivePVHeader, str] = {
         LivePVHeader.PV_NAME: 'pv_name',
         LivePVHeader.STORED_VALUE: 'data',
@@ -647,7 +654,7 @@ class LivePVTableModel(BaseTableEntryModel):
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
         self.header_enum = LivePVHeader
-        self.headers = [h.header_name() for h in self.header_enum]
+        self.headers = [h.header_name() for h in LivePVHeader]
 
         self._editable_cols = {h.value: False for h in LivePVHeader}
         self._editable_cols[LivePVHeader.OPEN] = True
@@ -1171,13 +1178,19 @@ class LivePVTableView(BaseDataTableView):
 
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            self.sub_entries = [child for child in self.data.children
-                                if not isinstance(child, Nestable)]
+            self.sub_entries = []
+            for child in self.data.children:
+                if isinstance(child, UUID):
+                    filled_child = self._client.backend.get_entry(child)
+                else:
+                    filled_child = child
 
-            for i, sub_nest in enumerate(self.sub_entries):
-                if isinstance(sub_nest, UUID):
-                    new_entry = self._client.backend.get_entry(sub_nest)
-                    self.sub_entries[i] = new_entry
+                if filled_child is None:
+                    raise EntryNotFoundError(f"{child} not found in backend, "
+                                             "cannot fill with real data")
+
+                if not isinstance(child, Nestable) and isinstance(child, Entry):
+                    self.sub_entries.append(child)
 
         elif isinstance(self.data, (Parameter, Setpoint, Readback)):
             self.sub_entries = [self.data]
@@ -1204,6 +1217,7 @@ class NestableTableModel(BaseTableEntryModel):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
     headers: List[str]
+    _button_cols: List[NestableHeader] = [NestableHeader.OPEN, NestableHeader.REMOVE]
     _header_to_field: Dict[NestableHeader, str] = {
         NestableHeader.NAME: 'title',
         NestableHeader.DESCRIPTION: 'description',
@@ -1271,13 +1285,18 @@ class NestableTableView(BaseDataTableView):
         # TODO: gather and fill entries where necessary
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            self.sub_entries = [child for child in self.data.children
-                                if isinstance(child, Nestable)]
+            for child in self.data.children:
+                if isinstance(child, UUID):
+                    filled_child = self._client.backend.get_entry(child)
+                else:
+                    filled_child = child
 
-            for i, sub_nest in enumerate(self.sub_entries):
-                if isinstance(sub_nest, UUID):
-                    new_entry = self._client.backend.get_entry(sub_nest)
-                    self.sub_entries[i] = new_entry
+                if filled_child is None:
+                    raise EntryNotFoundError(f"{child} not found in backend, "
+                                             "cannot fill with real data")
+
+                if isinstance(child, Nestable) and isinstance(child, Entry):
+                    self.sub_entries.append(child)
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):
