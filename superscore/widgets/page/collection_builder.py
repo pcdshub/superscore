@@ -118,8 +118,8 @@ class CollectionBuilderPage(Display, DataWidget):
 
     def save_collection(self):
         """Save current collection to database via Client"""
-        self.data.title = self.meta_widget.name_edit.text(),
-        self.data.description = self.meta_widget.desc_edit.toPlainText(),
+        self.data.title = self.meta_widget.name_edit.text()
+        self.data.description = self.meta_widget.desc_edit.toPlainText()
         # children should have been updated along the way
         self.client.save(self.data)
         logger.info(f"Collection saved ({self.data.uuid})")
