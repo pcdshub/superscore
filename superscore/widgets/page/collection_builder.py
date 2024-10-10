@@ -82,6 +82,7 @@ class CollectionBuilderPage(Display, DataWidget):
         for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
                   LivePVHeader.STORED_STATUS]:
             self.sub_pv_table_view.setColumnHidden(i, True)
+        self.sub_pv_table_view.set_editable(LivePVHeader.PV_NAME, True)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
