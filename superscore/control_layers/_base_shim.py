@@ -30,3 +30,10 @@ class EpicsData:
     status: Severity = Status.UDF
     severity: Status = Severity.INVALID
     timestamp: datetime = field(default_factory=utcnow)
+
+    # Extra metadata
+    units: Optional[str] = None
+    precision: Optional[int] = None
+    upper_ctrl_limit: Optional[float] = None
+    lower_ctrl_limit: Optional[float] = None
+    enums: Optional[list[str]] = None

@@ -1,6 +1,7 @@
 """Search page"""
 
 import logging
+from enum import auto
 from typing import Any, Callable, Dict, List, Optional
 
 import qtawesome as qta
@@ -12,7 +13,8 @@ from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
-from superscore.widgets.views import BaseTableEntryModel, ButtonDelegate
+from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
+                                      HeaderEnum)
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +91,8 @@ class SearchPage(Display, QtWidgets.QWidget):
         horiz_header.setSectionResizeMode(horiz_header.Interactive)
 
         self.open_delegate = ButtonDelegate(button_text='open me')
-        del_col = len(ResultModel.headers) - 1
-        self.results_table_view.setItemDelegateForColumn(del_col, self.open_delegate)
+        self.results_table_view.setItemDelegateForColumn(ResultsHeader.OPEN,
+                                                         self.open_delegate)
         self.open_delegate.clicked.connect(self.proxy_model.open_row)
 
         self.name_subfilter_line_edit.textChanged.connect(self.subfilter_results)
@@ -156,12 +158,25 @@ class SearchPage(Display, QtWidgets.QWidget):
         self.proxy_model.invalidateFilter()
 
 
+class ResultsHeader(HeaderEnum):
+    NAME = 0
+    TYPE = auto()
+    DESCRIPTION = auto()
+    CREATED = auto()
+    OPEN = auto()
+
+
 class ResultModel(BaseTableEntryModel):
-    headers: List[str] = ['Name', 'Type', 'Description', 'Created', 'Open']
+    headers: List[str]
+    _button_cols: List[ResultsHeader] = [ResultsHeader.OPEN]
+    _editable_cols: Dict[int, bool] = {4: True}
 
     def __init__(self, *args, entries: List[Entry] = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.header_enum = ResultsHeader
+        self.headers = [h.header_name() for h in ResultsHeader]
         self.entries: List[Entry] = entries or []
+        self.set_editable(ResultsHeader.OPEN, True)
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
