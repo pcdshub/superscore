@@ -541,13 +541,18 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         """Set data"""
         entry = self.entries[index.row()]
         header_col = self.header_enum(index.column())
-        self.layoutAboutToBeChanged.emit()
         if header_col in self._button_cols:
             # button columns do not actually set data, no-op
             return True
 
+        header_field = self._header_to_field[header_col]
+        if not hasattr(entry, header_field):
+            # only set values on entries with the field
+            return True
+
+        self.layoutAboutToBeChanged.emit()
         try:
-            setattr(entry, self._header_to_field[header_col], value)
+            setattr(entry, header_field, value)
             success = True
         except Exception as exc:
             logger.error(f"Failed to set data ({value}) ->"
@@ -1343,7 +1348,7 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
         data_val = index.model().data(index, role=QtCore.Qt.DisplayRole)
         if dtype == DisplayType.PV_NAME:
             widget = QtWidgets.QLineEdit(data_val, parent)
-        elif dtype == DisplayType.STATUS:
+        elif dtype == DisplayType.SEVERITY:
             widget = QtWidgets.QComboBox(parent)
             widget.addItems([sev.name for sev in Severity])
         elif dtype == DisplayType.STATUS:
@@ -1400,6 +1405,15 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
             val = editor.text()
         elif isinstance(editor, QtWidgets.QComboBox):
             val = editor.currentIndex()
+
+            dtype: DisplayType = model.data(
+                index, role=CustRoles.DisplayTypeRole
+            )
+
+            if dtype == DisplayType.STATUS:
+                val = Status(val)
+            elif dtype == DisplayType.SEVERITY:
+                val = Severity(val)
         else:
             return
         model.setData(index, val, QtCore.Qt.EditRole)
