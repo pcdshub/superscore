@@ -911,7 +911,7 @@ class LivePVTableModel(BaseTableEntryModel):
             # data still fetching, don't compare
             return
 
-        if hasattr(e_data, "enums") and isinstance(data, int):
+        if hasattr(e_data, "enums") and e_data.enums and isinstance(data, int):
             # Unify enum representation
             r_data = e_data.enums[data]
             l_data = e_data.enums[e_data.data]
@@ -1365,15 +1365,23 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
                 widget.setCurrentIndex(data_val.data)
             elif isinstance(data_val.data, int):
                 widget = QtWidgets.QSpinBox(parent)
+                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
+                    widget.setMaximum(2147483647)
+                    widget.setMinimum(-2147483647)
+                else:
+                    widget.setMaximum(data_val.upper_ctrl_limit)
+                    widget.setMinimum(data_val.lower_ctrl_limit)
                 widget.setValue(data_val.data)
-                widget.setMaximum(data_val.upper_ctrl_limit)
-                widget.setMinimum(data_val.lower_ctrl_limit)
             elif isinstance(data_val.data, float):
                 widget = QtWidgets.QDoubleSpinBox(parent)
-                widget.setValue(data_val.data)
-                widget.setMaximum(data_val.upper_ctrl_limit)
-                widget.setMinimum(data_val.lower_ctrl_limit)
+                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
+                    widget.setMaximum(2147483647)
+                    widget.setMinimum(-2147483647)
+                else:
+                    widget.setMaximum(data_val.upper_ctrl_limit)
+                    widget.setMinimum(data_val.lower_ctrl_limit)
                 widget.setDecimals(data_val.precision)
+                widget.setValue(data_val.data)
         else:
             logger.debug(f"datatype ({dtype}) incompatible with supported edit "
                          f"widgets: ({data_val})")
