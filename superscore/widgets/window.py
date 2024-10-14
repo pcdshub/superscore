@@ -58,6 +58,7 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
+        self.tree_view.setExpandsOnDoubleClick(False)
         self.tree_view.doubleClicked.connect(self.open_index)
 
         # setup actions
