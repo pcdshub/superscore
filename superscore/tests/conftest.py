@@ -707,6 +707,15 @@ def setpoint_with_readback() -> Setpoint:
     return setpoint
 
 
+@pytest.fixture(scope="function")
+def simple_snapshot() -> Collection:
+    snap = Snapshot(description='various types', title='types collection')
+    snap.children.append(Setpoint(pv_name="MY:FLOAT"))
+    snap.children.append(Setpoint(pv_name="MY:INT"))
+    snap.children.append(Setpoint(pv_name="MY:ENUM"))
+    return snap
+
+
 @pytest.fixture(scope='function')
 def filestore_backend(tmp_path: Path) -> FilestoreBackend:
     fp = Path(__file__).parent / 'db' / 'filestore.json'
