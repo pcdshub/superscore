@@ -38,7 +38,6 @@ class FilestoreBackend(_Backend):
     def __init__(
         self,
         path: str,
-        initialize: bool = False,
         cfg_path: Optional[str] = None
     ) -> None:
         self._entry_cache = {}
@@ -49,9 +48,6 @@ class FilestoreBackend(_Backend):
             self.path = build_abs_path(cfg_dir, path)
         else:
             self.path = path
-
-        if initialize:
-            self.initialize()
 
     def _load_or_initialize(self) -> Dict[str, Any]:
         """
@@ -134,8 +130,8 @@ class FilestoreBackend(_Backend):
         if os.path.exists(self.path) and os.stat(self.path).st_size > 0:
             raise PermissionError("File {} already exists. Can not initialize "
                                   "a new database.".format(self.path))
-        # Dump an empty dictionary
-        self.store({})
+        self._root = Root()
+        self.store()
 
     def reconstruct_root(self) -> Root:
         """
@@ -193,7 +189,7 @@ class FilestoreBackend(_Backend):
 
         return entry
 
-    def store(self, root_node: Optional[Root] = None) -> None:
+    def store(self) -> None:
         """
         Stash the database in the JSON file.
         This is a two-step process:
@@ -208,10 +204,7 @@ class FilestoreBackend(_Backend):
         """
         temp_path = self._temp_path()
         self._root = self.reconstruct_root()
-        if root_node is None:
-            serialized = serialize(Root, self._root)
-        else:
-            serialized = serialize(Root, Root())
+        serialized = serialize(Root, self._root)
 
         try:
             with open(temp_path, 'w') as fd:
