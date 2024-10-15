@@ -128,7 +128,6 @@ def test_pv_view_common_delegate_types(
     col: int,
     widget_cls: QtWidgets.QWidget,
     pv_table_view: LivePVTableView,
-    qtbot: QtBot,
 ):
     model = pv_table_view.model()
     assert isinstance(model, LivePVTableModel)
@@ -162,6 +161,10 @@ def test_set_data(
 
     # round-trip ensures types translate properly
     new_ser = apischema.serialize(type(pv_table_view.data), pv_table_view.data)
+    new_data = apischema.deserialize(type(pv_table_view.data), new_ser)
+    assert pv_table_view.data == new_data
+
+    # data should not be the same as at beginning of test
     assert orig_data != pv_table_view.data
     assert orig_ser != new_ser
 
