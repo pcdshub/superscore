@@ -1096,11 +1096,21 @@ class BaseDataTableView(QtWidgets.QTableView):
                 f"Attempted to set an incompatable data type ({type(data)})"
             )
         self.data = data
-        self.gather_sub_entries()
+        self.maybe_setup_model()
 
+    def maybe_setup_model(self):
+        """
+        Set up the model if data and client are set
+        """
         if self.client is None:
-            logger.debug("Client not yet set, cannot initialize model")
+            logger.debug("Client not set, cannot initialize model")
             return
+
+        if self.data is None:
+            logger.debug("data not set, cannot initialize model")
+            return
+
+        self.gather_sub_entries()
 
         if self._model is None:
             self._model = self._model_cls(
@@ -1137,6 +1147,7 @@ class BaseDataTableView(QtWidgets.QTableView):
             raise ValueError("Provided client is not a superscore Client")
 
         self._client = client
+        self.maybe_setup_model()
 
     def set_editable(self, column: int, is_editable: bool) -> None:
         if not self._model:
@@ -1359,7 +1370,7 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
             data_val: EpicsData = index.model().data(
                 index, role=CustRoles.EpicsDataRole
             )
-            if isinstance(data_val, str):
+            if not isinstance(data_val, EpicsData):
                 # not yet initialized, no-op
                 return
             if isinstance(data_val.data, str):
