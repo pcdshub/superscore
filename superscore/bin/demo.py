@@ -11,7 +11,7 @@ import os
 import superscore.tests.conftest
 from superscore.bin.ui import main as ui_main
 from superscore.client import Client
-from superscore.model import Readback, Setpoint, Snapshot
+from superscore.model import Entry, Readback, Setpoint, Snapshot
 from superscore.tests.ioc import IOCFactory
 
 logger = logging.getLogger(__name__)
@@ -27,15 +27,20 @@ def build_arg_parser(argparser=None):
 
 def main(*args, **kwargs):
     client = Client.from_config(DEMO_CONFIG)
+    # start with clean demo database
     try:
         os.remove(client.backend.path)
     except FileNotFoundError:
         pass
     parser = configparser.ConfigParser()
     parser.read(DEMO_CONFIG)
-    filled = []
-    for fixture in parser.get("demo", "fixtures").split():
-        for entry in getattr(superscore.tests.conftest, fixture)():
+    filled = []  # IOCFactory needs the Entries with data
+    for fixture_name in parser.get("demo", "fixtures").split():
+        fixture = getattr(superscore.tests.conftest, fixture_name)
+        data = fixture()
+        # fixtures can return single Entries or iterables of Entries
+        entries = (data,) if isinstance(data, Entry) else data
+        for entry in entries:
             client.save(entry)
             if isinstance(entry, (Snapshot, Setpoint, Readback)):
                 filled.append(entry)
