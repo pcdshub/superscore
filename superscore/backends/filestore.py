@@ -256,9 +256,11 @@ class FilestoreBackend(_Backend):
         with self._load_and_store_context():
             return self._root
 
-    def get_entry(self, uuid: UUID) -> Entry:
+    def get_entry(self, uuid: Union[UUID, str]) -> Entry:
         """Return the entry with ``uuid``"""
         with self._load_and_store_context() as db:
+            if isinstance(uuid, str):
+                uuid = UUID(uuid)
             return db.get(uuid)
 
     def save_entry(self, entry: Entry) -> None:

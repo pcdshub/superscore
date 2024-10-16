@@ -23,7 +23,7 @@ class _Backend:
     Base class for data storage backend.
     """
 
-    def get_entry(self, meta_id: UUID) -> Entry:
+    def get_entry(self, meta_id: Union[UUID, str]) -> Entry:
         """
         Get entry with ``meta_id``
         Throws EntryNotFoundError
