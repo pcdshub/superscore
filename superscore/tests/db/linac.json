@@ -1,0 +1,712 @@
+{
+  "meta_id": "a28cd77d-cc92-46cc-90cb-758f0f36f041",
+  "entries": [
+    {
+      "Collection": {
+        "uuid": "441ff79f-4948-480e-9646-55a1462a5a70",
+        "description": "All three facilities in the SLAC LINAC: LCLS-NC, FACET, and LCLS-SC",
+        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+        "title": "Accelerator Directorate",
+        "children": [
+          {
+            "uuid": "973ce16b-61ff-469b-a5f2-cd64783dcec5",
+            "description": "The normal-conducting LINAC",
+            "creation_time": "2024-09-24T17:59:54.860111+00:00",
+            "title": "LCLS-NC",
+            "children": [
+              {
+                "uuid": "4cd08663-ee26-41ed-87d2-5ff0777e0e35",
+                "description": "Injector sector for LCLS-NC",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "IN20",
+                "children": [
+                  {
+                    "uuid": "2290a098-0475-403d-a902-a26481068f25",
+                    "description": "Laser devices in IN20",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "LASR",
+                    "children": [
+                      {
+                        "uuid": "a13ef8a5-b8df-4caa-80f5-395b16eaa5f1",
+                        "description": "Only laser pv in IN20",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:LASR:IN20:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              },
+              {
+                "uuid": "8b434f17-fc67-430c-aa33-d1afb64dbad2",
+                "description": "First transport sector for LCLS-NC",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "LI21",
+                "children": [
+                  {
+                    "uuid": "be3d4655-7813-4974-bb10-19e4787f8a8e",
+                    "description": "VAC devices within LI21",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "8dba63d5-98e8-4647-ae44-ff0a38a4805d",
+                        "description": "Only VAC pv in LI21",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:LI21:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              },
+              {
+                "uuid": "2506d87a-5980-4470-b29a-63eea183f53d",
+                "description": "Sector in which beam is directed towards an endpoint",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "BSY",
+                "children": [
+                  {
+                    "uuid": "22c2d597-2139-4c02-ac86-27f474728fad",
+                    "description": "Vacuum devices in the BSY",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "030786df-153b-4d29-bc1f-66deeb116724",
+                        "description": "Only VAC pv in BSY",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:BSY:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              }
+            ],
+            "tags": []
+          },
+          {
+            "uuid": "fe9485e0-bc36-45a4-89ec-31a4fc92ef7b",
+            "description": "The FACET LINAC",
+            "creation_time": "2024-09-24T17:59:54.860111+00:00",
+            "title": "FACET",
+            "children": [
+              {
+                "uuid": "8395ad87-b9e9-4064-8996-316ccce9dc27",
+                "description": "Injector sector for FACET",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "IN10",
+                "children": [
+                  {
+                    "uuid": "213b8629-8b6d-4b2a-a7a4-0201a568e8cd",
+                    "description": "Laser devices in IN10",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "LASR",
+                    "children": [
+                      {
+                        "uuid": "f802dee1-569b-4c6b-a32f-c213af10ecec",
+                        "description": "Only laser pv in IN10",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:LASR:IN10:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              },
+              {
+                "uuid": "596c4935-92eb-4bfd-a96e-b38f55f6c0a4",
+                "description": "First transport sector for FACET",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "LI10",
+                "children": [
+                  {
+                    "uuid": "214ec7c5-29d5-4827-b9dc-8da00664b462",
+                    "description": "Vacuum devices in LI10",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "2c83a9be-bec6-4436-8233-79df300af670",
+                        "description": "Only VAC pv in LI10",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:LI10:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              }
+            ],
+            "tags": []
+          },
+          {
+            "uuid": "4732fed6-c321-4a5c-b45b-c2bf704b7fe3",
+            "description": "The superconducting LINAC",
+            "creation_time": "2024-09-24T17:59:54.860111+00:00",
+            "title": "LCLS-SC",
+            "children": [
+              {
+                "uuid": "6f09255f-3424-4fc2-bbd7-ae677c8a06b9",
+                "description": "Injector sector for LCLS-SC",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "GUNB",
+                "children": [
+                  {
+                    "uuid": "e09cf046-fbf6-4d37-9ee1-c3c2dd977798",
+                    "description": "VAC devices within GUNB",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "8f3ac401-68f8-4def-b65a-3c8116c80ba7",
+                        "description": "First VAC pv in GUNB",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:GUNB:TEST1",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      },
+                      {
+                        "uuid": "06448272-cd38-4bb4-9b8d-292673a497e9",
+                        "description": "Second VAC pv in GUNB",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:GUNB:TEST2",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  },
+                  {
+                    "uuid": "981d52d1-4d3c-4f85-89d7-8c04a0d588d0",
+                    "description": "MGNT devices within GUNB",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "MGNT",
+                    "children": [
+                      {
+                        "uuid": "930b137f-5ae2-470e-8b82-c4b4eb7e639e",
+                        "description": "Only MGNT pv in GUNB",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:MGNT:GUNB:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  },
+                  {
+                    "uuid": "d5bade05-d992-4e44-87d8-0db2937209bf",
+                    "description": "LASR devices within GUNB",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "LASR",
+                    "children": [
+                      {
+                        "uuid": "5544c58f-88b6-40aa-9076-f180a44908f5",
+                        "description": "First LASR pv in GUNB",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:LASR:GUNB:TEST1",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      },
+                      {
+                        "uuid": "7cb3760c-793c-4974-a8ae-778e5d491e4a",
+                        "description": "Second LASR pv in GUNB",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:LASR:GUNB:TEST2",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              },
+              {
+                "uuid": "5e84544b-4cfa-471c-b827-80063801d27b",
+                "description": "First transport sector for LCLS-SC",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "L0B",
+                "children": [
+                  {
+                    "uuid": "aa11f29a-3e7e-4647-bfc9-133257647fb7",
+                    "description": "First transport sector for LCLS-SC",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "5ec33c74-7f4c-4905-a106-44fbfe138140",
+                        "description": "Only VAC pv in L0B",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:L0B:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              },
+              {
+                "uuid": "2506d87a-5980-4470-b29a-63eea183f53d",
+                "description": "Sector in which beam is directed towards an endpoint",
+                "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                "title": "BSY",
+                "children": [
+                  {
+                    "uuid": "22c2d597-2139-4c02-ac86-27f474728fad",
+                    "description": "Vacuum devices in the BSY",
+                    "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                    "title": "VAC",
+                    "children": [
+                      {
+                        "uuid": "030786df-153b-4d29-bc1f-66deeb116724",
+                        "description": "Only VAC pv in BSY",
+                        "creation_time": "2024-09-24T17:59:54.860111+00:00",
+                        "pv_name": "SCORETEST:VAC:BSY:TEST0",
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "readback": null,
+                        "read_only": false
+                      }
+                    ],
+                    "tags": []
+                  }
+                ],
+                "tags": []
+              }
+            ],
+            "tags": []
+          }
+        ],
+        "tags": []
+      }
+    },
+    {
+      "Snapshot": {
+        "uuid": "06282731-33ea-4270-ba14-098872e627dc",
+        "description": "All three facilities in the SLAC LINAC: LCLS-NC, FACET, and LCLS-SC",
+        "creation_time": "2024-09-24T21:18:35.250224+00:00",
+        "title": "Accelerator Directorate",
+        "origin_collection": null,
+        "children": [
+          {
+            "uuid": "7f86856a-8963-4cf2-9830-f3cce6c1b4b2",
+            "description": "The normal-conducting LINAC",
+            "creation_time": "2024-09-24T21:18:35.250136+00:00",
+            "title": "LCLS-NC",
+            "origin_collection": null,
+            "children": [
+              {
+                "uuid": "f9965c8f-55eb-4e5c-8d52-cc939eed76db",
+                "description": "Injector sector for LCLS-NC",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "IN20",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "278875de-7adf-4c52-bc88-5b188eb26d4f",
+                    "description": "Laser devices in IN20",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "LASR",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "4d2f7bf2-af71-492b-8528-ba9b6e3ab964",
+                        "description": "Only laser pv in IN20",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:LASR:IN20:TEST0",
+                        "data": 0,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              },
+              {
+                "uuid": "63a4fab8-17f9-4066-92c7-311e2eb6a44f",
+                "description": "First transport sector for LCLS-NC",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "LI21",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "97833e7b-e49d-4898-a602-bb39c493b0ee",
+                    "description": "VAC devices within LI21",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "4bffe9a5-f198-41d8-90ab-870d1b5a325b",
+                        "description": "Only VAC pv in LI21",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:LI21:TEST0",
+                        "data": 5.0,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": {
+                          "uuid": "de66d08e-09c3-4c45-8978-900e51d00248",
+                          "description": "Only VAC pv in LI21",
+                          "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                          "pv_name": "SCORETEST:VAC:LI21:TEST0",
+                          "data": 0.0,
+                          "status": 17,
+                          "severity": 3,
+                          "abs_tolerance": null,
+                          "rel_tolerance": null,
+                          "timeout": null
+                        }
+                      },
+                      {
+                        "uuid": "de66d08e-09c3-4c45-8978-900e51d00248",
+                        "description": "Only VAC pv in LI21",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:LI21:TEST0",
+                        "data": 0.0,
+                        "status": 17,
+                        "severity": 3,
+                        "abs_tolerance": null,
+                        "rel_tolerance": null,
+                        "timeout": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              },
+              {
+                "uuid": "a62f1386-39de-4d19-9ea4-82f0212169a7",
+                "description": "Sector in which beam is directed towards an endpoint",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "BSY",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "aca9400b-d37c-4b86-ada7-4801cdc6aa72",
+                    "description": "Vacuum devices in the BSY",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "6bebcb59-884f-4e68-927d-f3053effd698",
+                        "description": "Only VAC pv in BSY",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:BSY:TEST0",
+                        "data": "",
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              }
+            ],
+            "tags": [],
+            "meta_pvs": []
+          },
+          {
+            "uuid": "c48a332a-9c79-4b6f-850a-844237b83737",
+            "description": "The FACET LINAC",
+            "creation_time": "2024-09-24T21:18:35.250136+00:00",
+            "title": "FACET",
+            "origin_collection": null,
+            "children": [
+              {
+                "uuid": "5d1763cc-41a2-4c6e-bffb-4197a3994b2d",
+                "description": "Injector sector for FACET",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "IN10",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "b815aed4-82b4-4dc2-9eeb-0e54bcbeb5c5",
+                    "description": "Laser devices in IN10",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "LASR",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "fb809d22-76fb-493e-b7f2-b522319e5e2f",
+                        "description": "Only laser pv in IN10",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:LASR:IN10:TEST0",
+                        "data": 645.26,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              },
+              {
+                "uuid": "c407e473-9287-4462-b3d3-9036008ea7f1",
+                "description": "First transport sector for FACET",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "LI10",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "fb3a429c-1d2b-4505-8265-3d8988df2db1",
+                    "description": "Vacuum devices in LI10",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "ee56d60b-b8b9-447d-b857-6117e22f1462",
+                        "description": "Only VAC pv in LI10",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:LI10:TEST0",
+                        "data": 0.25,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              }
+            ],
+            "tags": [],
+            "meta_pvs": []
+          },
+          {
+            "uuid": "f01dd01b-bf48-49b2-bbb0-68dcc0b737f8",
+            "description": "The superconducting LINAC",
+            "creation_time": "2024-09-24T21:18:35.250136+00:00",
+            "title": "LCLS-SC",
+            "origin_collection": null,
+            "children": [
+              {
+                "uuid": "7d8655e1-c086-45a1-b89d-d5261e8375d0",
+                "description": "Injector sector for LCLS-SC",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "GUNB",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "8463a578-d327-4b92-8867-58e01c80f3c2",
+                    "description": "VAC devices within GUNB",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "cc187dbf-fa41-49d7-8c7b-49c8989c6a2f",
+                        "description": "First VAC pv in GUNB",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:GUNB:TEST1",
+                        "data": "Ion Pump",
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      },
+                      {
+                        "uuid": "7c87960d-8b58-4b29-8d5e-e1f3223e356a",
+                        "description": "Second VAC pv in GUNB",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:GUNB:TEST2",
+                        "data": false,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  },
+                  {
+                    "uuid": "4e25ec00-3d8e-4e87-b19f-8541cb25e83b",
+                    "description": "MGNT devices within GUNB",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "MGNT",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "502d9fc3-455a-47ea-8c48-e1a26d4d3350",
+                        "description": "Only MGNT pv in GUNB",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:MGNT:GUNB:TEST0",
+                        "data": true,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  },
+                  {
+                    "uuid": "2f709b4b-79da-4a8b-8693-eed2c389cb3a",
+                    "description": "LASR devices within GUNB",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "LASR",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4",
+                        "description": "First LASR pv in GUNB",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:LASR:GUNB:TEST1",
+                        "data": "Off",
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      },
+                      {
+                        "uuid": "a221f6fa-6bc1-40ad-90fb-2041c29a5f67",
+                        "description": "Second LASR pv in GUNB",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:LASR:GUNB:TEST2",
+                        "data": 5,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              },
+              {
+                "uuid": "cb2a6de0-84b4-4f9c-b7b7-ec67ccfd622f",
+                "description": "First transport sector for LCLS-SC",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "L0B",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "ed223bb4-ce6f-4b58-b53e-c2c538b1a2c7",
+                    "description": "First transport sector for LCLS-SC",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "2ef43192-40c9-4e79-96e7-2d7f6df58cd9",
+                        "description": "Only VAC pv in L0B",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:L0B:TEST0",
+                        "data": -10,
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              },
+              {
+                "uuid": "a62f1386-39de-4d19-9ea4-82f0212169a7",
+                "description": "Sector in which beam is directed towards an endpoint",
+                "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                "title": "BSY",
+                "origin_collection": null,
+                "children": [
+                  {
+                    "uuid": "aca9400b-d37c-4b86-ada7-4801cdc6aa72",
+                    "description": "Vacuum devices in the BSY",
+                    "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                    "title": "VAC",
+                    "origin_collection": null,
+                    "children": [
+                      {
+                        "uuid": "6bebcb59-884f-4e68-927d-f3053effd698",
+                        "description": "Only VAC pv in BSY",
+                        "creation_time": "2024-09-24T21:18:35.250136+00:00",
+                        "pv_name": "SCORETEST:VAC:BSY:TEST0",
+                        "data": "",
+                        "status": 17,
+                        "severity": 3,
+                        "readback": null
+                      }
+                    ],
+                    "tags": [],
+                    "meta_pvs": []
+                  }
+                ],
+                "tags": [],
+                "meta_pvs": []
+              }
+            ],
+            "tags": [],
+            "meta_pvs": []
+          }
+        ],
+        "tags": [],
+        "meta_pvs": []
+      }
+    }
+  ]
+}
