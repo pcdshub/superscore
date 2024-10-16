@@ -73,7 +73,9 @@ class SearchPage(Display, QtWidgets.QWidget):
     def setup_ui(self) -> None:
         # set up filter option widgets
         self.start_dt_edit.setDate(QtCore.QDate.currentDate().addDays(-365))
+        self.start_dt_edit.setDisplayFormat("yyyy/MM/dd")
         self.end_dt_edit.setDate(QtCore.QDate.currentDate())
+        self.end_dt_edit.setDisplayFormat("yyyy/MM/dd")
         self.apply_filter_button.clicked.connect(self.show_current_filter)
 
         self.collection_checkbox.setIcon(qta.icon(ICON_MAP[Collection]))
@@ -133,7 +135,7 @@ class SearchPage(Display, QtWidgets.QWidget):
         # time
         start_dt = self.start_dt_edit.dateTime().toPyDateTime()
         search_terms.append(SearchTerm('creation_time', 'gt', start_dt.astimezone(tz.UTC)))
-        end_dt = self.end_dt_edit.dateTime().toPyDateTime()
+        end_dt = self.end_dt_edit.date().endOfDay().toPyDateTime()
         search_terms.append(SearchTerm('creation_time', 'lt', end_dt.astimezone(tz.UTC)))
 
         logger.debug(f'gathered search terms: {search_terms}')
