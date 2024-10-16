@@ -52,8 +52,8 @@ def pv_table_view(
     # Build side effect function:
     ret_vals = {
         "MY:FLOAT": EpicsData(data=0.5, precision=3,
-                              upper_ctrl_limit=2, lower_ctrl_limit=-2),
-        "MY:INT": EpicsData(data=1, upper_ctrl_limit=10, lower_ctrl_limit=-10),
+                              lower_ctrl_limit=-2, upper_ctrl_limit=2),
+        "MY:INT": EpicsData(data=1, lower_ctrl_limit=-10, upper_ctrl_limit=10),
         "MY:ENUM": EpicsData(data=0, enums=["OUT", "IN", "UNKNOWN"])
     }
 
