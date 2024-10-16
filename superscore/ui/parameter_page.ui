@@ -6,31 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>974</width>
-    <height>457</height>
+    <width>452</width>
+    <height>199</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
-    <widget class="QWidget" name="meta_placeholder" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
@@ -69,6 +52,18 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="value_stored_label">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>(Stored)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QWidget" name="value_widget" native="true"/>
        </item>
        <item>
@@ -88,103 +83,191 @@
      <item>
       <layout class="QHBoxLayout" name="options_hlayout">
        <item>
-        <layout class="QFormLayout" name="tol_form_layout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="tolerance_label">
-           <property name="text">
-            <string>Tolerance:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="tol_calc_label">
-           <property name="text">
-            <string>[-,-]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="abs_tol_label">
-           <property name="text">
-            <string>Absolute Tolerance:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QDoubleSpinBox" name="abs_tol_spinbox"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="rel_tol_label">
-           <property name="text">
-            <string>Relative Tolerance:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QDoubleSpinBox" name="rel_tol_spinbox"/>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="timeoutLabel">
-           <property name="text">
-            <string>Timeout:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QDoubleSpinBox" name="timeout_spinbox"/>
-         </item>
-        </layout>
+        <widget class="QWidget" name="tol_widget" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <layout class="QFormLayout" name="tol_form_layout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="tolerance_label">
+              <property name="text">
+               <string>Tolerance:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="tol_calc_label">
+              <property name="text">
+               <string>[-,-]</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="abs_tol_label">
+              <property name="text">
+               <string>Absolute Tolerance:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QDoubleSpinBox" name="abs_tol_spinbox"/>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="rel_tol_label">
+              <property name="text">
+               <string>Relative Tolerance:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QDoubleSpinBox" name="rel_tol_spinbox"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
        </item>
        <item>
-        <layout class="QFormLayout" name="ss_form_layout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="status_label">
-           <property name="text">
-            <string>Status:</string>
-           </property>
+        <layout class="QVBoxLayout" name="form_vlayout">
+         <item>
+          <widget class="QWidget" name="ss_widget" native="true">
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <layout class="QFormLayout" name="ss_form_layout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="status_label">
+                <property name="text">
+                 <string>Status:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QComboBox" name="status_combobox"/>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="severity_label">
+                <property name="text">
+                 <string>Severity:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="severity_combobox"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QComboBox" name="status_combobox"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="severity_label">
-           <property name="text">
-            <string>Severity:</string>
-           </property>
+         <item>
+          <widget class="QWidget" name="timeout_widget" native="true">
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <layout class="QFormLayout" name="timeout_form_layout">
+              <item row="1" column="0">
+               <widget class="QLabel" name="timeout_label">
+                <property name="text">
+                 <string>timeout</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QDoubleSpinBox" name="timeout_spinbox"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QComboBox" name="severity_combobox"/>
          </item>
         </layout>
        </item>
       </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="rbv_hlayout">
-       <item>
-        <widget class="QLabel" name="readback_label">
-         <property name="text">
-          <string>Readback</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="rbv_pv_label">
-         <property name="text">
-          <string>&lt;RBV PV Name&gt;</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="open_rbv_button">
-         <property name="text">
-          <string>Open Readback Page</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      <widget class="QWidget" name="rbv_widget" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="readback_label">
+          <property name="text">
+           <string>Readback</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="rbv_pv_label">
+          <property name="text">
+           <string>&lt;RBV PV Name&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="open_rbv_button">
+          <property name="text">
+           <string>Open Readback Page</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </item>
     </layout>
    </item>

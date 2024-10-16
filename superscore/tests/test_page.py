@@ -12,9 +12,9 @@ from superscore.widgets.page.search import SearchPage
 
 
 @pytest.fixture(scope='function')
-def collection_page(qtbot: QtBot):
+def collection_page(qtbot: QtBot, sample_client: Client):
     data = Collection()
-    page = CollectionPage(data=data)
+    page = CollectionPage(data=data, client=sample_client)
     qtbot.addWidget(page)
     return page
 
