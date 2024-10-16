@@ -847,11 +847,11 @@ class LivePVTableModel(BaseTableEntryModel):
             return stored_data
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
-            stored_data = getattr(entry, 'data', None)
-            is_close = self.is_close(entry, stored_data)
-            if ((stored_data is not None) and role == QtCore.Qt.BackgroundRole
-                    and not is_close):
-                return QtGui.QColor('red')
+            if role == QtCore.Qt.BackgroundRole:
+                stored_data = getattr(entry, 'data', None)
+                is_close = self.is_close(entry, stored_data)
+                if stored_data is not None and not is_close:
+                    return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
