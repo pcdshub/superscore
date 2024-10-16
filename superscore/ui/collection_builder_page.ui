@@ -60,8 +60,8 @@
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
-      <widget class="QTableView" name="sub_pv_table_view"/>
-      <widget class="QTableView" name="sub_coll_table_view"/>
+      <widget class="LivePVTableView" name="sub_pv_table_view"/>
+      <widget class="NestableTableView" name="sub_coll_table_view"/>
       <widget class="QTabWidget" name="add_tab_widget">
        <property name="currentIndex">
         <number>0</number>
@@ -202,6 +202,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LivePVTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+  <customwidget>
+   <class>NestableTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

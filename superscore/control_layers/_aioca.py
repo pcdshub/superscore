@@ -37,12 +37,13 @@ class AiocaShim(_BaseShim):
             If the caget operation fails for any reason.
         """
         try:
-            value = await caget(address, format=dbr.FORMAT_TIME)
+            value_time = await caget(address, format=dbr.FORMAT_TIME)
+            value_ctrl = await caget(address, format=dbr.FORMAT_CTRL)
         except CANothing as ex:
             logger.debug(f"CA get failed {ex.__repr__()}")
             raise CommunicationError(f'CA get failed for {ex}')
 
-        return self.value_to_epics_data(value)
+        return self.value_to_epics_data(value_time, value_ctrl)
 
     async def put(self, address: str, value: Any) -> None:
         """
@@ -80,30 +81,45 @@ class AiocaShim(_BaseShim):
         camonitor(address, callback)
 
     @staticmethod
-    def value_to_epics_data(value: AugmentedValue) -> EpicsData:
+    def value_to_epics_data(
+        value_time: AugmentedValue, value_ctrl: AugmentedValue
+    ) -> EpicsData:
         """
         Creates an EpicsData instance from an aioca provided AugmentedValue
-        Assumes the augmented value was collected with FORMAT_TIME qualifier.
-        AugmentedValue subclasses primitive datatypes, so they can be used as
-        data directly.
+        Assumes the AugmentedValue's are collected with FORMAT_TIME and
+        FORMAT_CTRL qualifier.  AugmentedValue subclasses primitive datatypes,
+        so they can be used as data directly.
 
         Parameters
         ----------
-        value : AugmentedValue
-            The value to repackage
+        value_time : AugmentedValue
+            A value collected with dbr.FORMAT_TIME
+        value_ctrl : AugmentedValue
+            A value collected with dbr.FORMAT_CTRL
 
         Returns
         -------
         EpicsData
             The filled EpicsData instance
         """
-        severity = Severity(value.severity)
-        status = Status(value.status)
-        timestamp = value.timestamp
+        severity = Severity(value_time.severity)
+        status = Status(value_time.status)
+        timestamp = value_time.timestamp
+
+        units = getattr(value_ctrl, "units", None)
+        precision = getattr(value_ctrl, "precision", None)
+        upper_ctrl_limit = getattr(value_ctrl, "upper_ctrl_limit", None)
+        lower_ctrl_limit = getattr(value_ctrl, "lower_ctrl_limit", None)
+        enums = getattr(value_ctrl, "enums", None)
 
         return EpicsData(
-            data=value,
+            data=value_time,
             status=status,
             severity=severity,
-            timestamp=timestamp
+            timestamp=timestamp,
+            units=units,
+            precision=precision,
+            upper_ctrl_limit=upper_ctrl_limit,
+            lower_ctrl_limit=lower_ctrl_limit,
+            enums=enums
         )

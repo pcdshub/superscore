@@ -19,8 +19,9 @@ from qtpy import QtCore, QtGui, QtWidgets
 from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
+from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
-                              Root, Setpoint, Snapshot)
+                              Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP
 
@@ -28,6 +29,11 @@ logger = logging.getLogger(__name__)
 
 
 PVEntry = Union[Parameter, Setpoint, Readback]
+
+
+class CustRoles(IntEnum):
+    DisplayTypeRole = QtCore.Qt.UserRole
+    EpicsDataRole = auto()
 
 
 class EntryItem:
@@ -343,7 +349,6 @@ class RootTree(QtCore.QAbstractItemModel):
 
     def parent(self, index: QtCore.QModelIndex) -> QtCore.QModelIndex:
         """
-        Returns the parent of the given model item.
 
         Parameters
         ----------
@@ -440,13 +445,25 @@ class RootTree(QtCore.QAbstractItemModel):
         if role == QtCore.Qt.DisplayRole:
             return item.data(index.column())
 
-        if role == QtCore.Qt.UserRole:
+        if role == CustRoles.DisplayTypeRole:
             return item
 
         if role == QtCore.Qt.DecorationRole and index.column() == 0:
             return item.icon()
 
         return None
+
+
+class HeaderEnum(IntEnum):
+    """
+    Enum for more readable header names.  Underscores will be replaced with spaces
+    """
+    def header_name(self) -> str:
+        return self.name.title().replace('_', ' ')
+
+    @classmethod
+    def from_header_name(cls, name: str) -> HeaderEnum:
+        return cls[name.upper().replace(' ', '_')]
 
 
 class BaseTableEntryModel(QtCore.QAbstractTableModel):
@@ -468,6 +485,10 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     """
     entries: List[Entry]
     headers: List[str]
+    header_enum: HeaderEnum
+    _editable_cols: Dict[int, bool] = {}
+    _button_cols: List[HeaderEnum]
+    _header_to_field: Dict[HeaderEnum, str]
 
     def __init__(
         self,
@@ -492,10 +513,6 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         """
         self.layoutAboutToBeChanged.emit()
         self.entries = entries
-        self.dataChanged.emit(
-            self.createIndex(0, 0),
-            self.createIndex(self.rowCount(), self.columnCount()),
-        )
         self.layoutChanged.emit()
 
     def headerData(
@@ -514,6 +531,37 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal:
             return self.headers[section]
 
+    def set_editable(self, col_index: int, editable: bool) -> None:
+        """If a column is allowed to be editable, set it as editable"""
+        if col_index not in self._editable_cols:
+            return
+        self._editable_cols[col_index] = editable
+
+    def setData(self, index: QtCore.QModelIndex, value: Any, role: int) -> bool:
+        """Set data"""
+        entry = self.entries[index.row()]
+        header_col = self.header_enum(index.column())
+        if header_col in self._button_cols:
+            # button columns do not actually set data, no-op
+            return True
+
+        header_field = self._header_to_field[header_col]
+        if not hasattr(entry, header_field):
+            # only set values on entries with the field
+            return True
+
+        self.layoutAboutToBeChanged.emit()
+        try:
+            setattr(entry, header_field, value)
+            success = True
+        except Exception as exc:
+            logger.error(f"Failed to set data ({value}) ->"
+                         f"({index.row()}, {index.column()}): {exc}")
+            success = False
+
+        self.layoutChanged.emit()
+        return success
+
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
         """
         Returns the item flags for the given ``index``.  The returned
@@ -529,8 +577,11 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         QtCore.Qt.ItemFlag
             the ItemFlag corresponding to the cell
         """
-        if (index.column() == len(self.headers) - 1):
-            return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
+        if index.column() not in self._editable_cols:
+            return QtCore.Qt.ItemIsEnabled
+
+        if self._editable_cols[index.column()]:
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable
         else:
             return QtCore.Qt.ItemIsEnabled
 
@@ -538,7 +589,21 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         if entry in self.entries or not isinstance(entry, Entry):
             return
 
+        self.layoutAboutToBeChanged.emit()
         self.entries.append[entry]
+        self.layoutChanged.emit()
+
+    def remove_row(self, row_index: int) -> None:
+        self.remove_entry(self.entries[row_index])
+
+    def remove_entry(self, entry: Entry) -> None:
+        self.layoutAboutToBeChanged.emit()
+        try:
+            self.entries.remove(entry)
+        except ValueError:
+            logger.debug(f"Entry of type ({type(entry).__name__})"
+                         "not found in table, could not remove.")
+        self.layoutChanged.emit()
 
     def icon(self, entry: Entry) -> Optional[QtGui.QIcon]:
         """return icon for this ``entry``"""
@@ -548,10 +613,15 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         return qta.icon(icon_id)
 
 
-class LivePVHeader(IntEnum):
-    """
-    Enum for more readable header names.  Underscores will be replaced with spaces
-    """
+class DisplayType(Enum):
+    """type of data displayed in tables"""
+    PV_NAME = auto()
+    STATUS = auto()
+    SEVERITY = auto()
+    EPICS_DATA = auto()
+
+
+class LivePVHeader(HeaderEnum):
     PV_NAME = 0
     STORED_VALUE = auto()
     LIVE_VALUE = auto()
@@ -563,39 +633,39 @@ class LivePVHeader(IntEnum):
     OPEN = auto()
     REMOVE = auto()
 
-    def header_name(self) -> str:
-        return self.name.title().replace('_', ' ')
-
-    @classmethod
-    def from_header_name(cls, name: str) -> LivePVHeader:
-        return LivePVHeader[name.upper().replace(' ', '_')]
-
 
 class LivePVTableModel(BaseTableEntryModel):
     # Takes PV-entries
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
-    # TO-DO:
-    # open details delegate
-    # methods for hide un-needed rows (user interaction?)
     headers: List[str]
     _data_cache: Dict[str, EpicsData]
     _poll_thread: Optional[_PVPollThread]
+    _button_cols: List[LivePVHeader] = [LivePVHeader.OPEN, LivePVHeader.REMOVE]
+    _header_to_field: Dict[LivePVHeader, str] = {
+        LivePVHeader.PV_NAME: 'pv_name',
+        LivePVHeader.STORED_VALUE: 'data',
+        LivePVHeader.STORED_STATUS: 'status',
+        LivePVHeader.STORED_SEVERITY: 'severity',
+    }
 
     def __init__(
         self,
         *args,
         client: Client,
         entries: Optional[List[PVEntry]] = None,
-        open_page_slot: Optional[Callable] = None,
         poll_period: float = 1.0,
         **kwargs
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
-
+        self.header_enum = LivePVHeader
         self.headers = [h.header_name() for h in LivePVHeader]
+
+        self._editable_cols = {h.value: False for h in LivePVHeader}
+        self._editable_cols[LivePVHeader.OPEN] = True
+        self._editable_cols[LivePVHeader.REMOVE] = True
+
         self.client = client
-        self.open_page_slot = open_page_slot
         self.poll_period = poll_period
         self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread = None
@@ -683,6 +753,14 @@ class LivePVTableModel(BaseTableEntryModel):
         )
         self.layoutChanged.emit()
 
+    def remove_entry(self, entry: PVEntry) -> None:
+        """Remove ``entry`` from the table model"""
+        super().remove_entry(entry)
+        self.layoutAboutToBeChanged.emit()
+        self._data_cache = {e.pv_name: None for e in self.entries}
+        self._poll_thread.data = self._data_cache
+        self.layoutChanged.emit()
+
     def index_from_item(
         self,
         item: PVEntry,
@@ -717,6 +795,9 @@ class LivePVTableModel(BaseTableEntryModel):
         Returns the data stored under the given role for the item
         referred to by the index.
 
+        UserRole provides data necessary to generate an edit delegate for the
+        cell based on the data-type
+
         Parameters
         ----------
         index : QtCore.QModelIndex
@@ -730,40 +811,60 @@ class LivePVTableModel(BaseTableEntryModel):
             the requested data
         """
         entry: PVEntry = self.entries[index.row()]
-
-        # Special handling for open button delegate
-        if index.column() == (len(self.headers) - 1):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'click to open'
+        if isinstance(entry, UUID):
+            entry = self.client.backend.get_entry(self.entries[index.row()])
+            self.entries[index.row()] = entry
 
         if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
-            elif role == QtCore.Qt.DisplayRole:
+            elif role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
                 name_text = getattr(entry, 'pv_name')
                 return name_text
+            elif role == CustRoles.DisplayTypeRole:
+                return DisplayType.PV_NAME
 
-        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundRole):
+        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole,
+                        QtCore.Qt.BackgroundRole, CustRoles.DisplayTypeRole,
+                        CustRoles.EpicsDataRole):
             # Other parts of the table are read only
             return QtCore.QVariant()
 
         if index.column() == LivePVHeader.STORED_VALUE:
-            return getattr(entry, 'data', '--')
+            if role == CustRoles.DisplayTypeRole:
+                return DisplayType.EPICS_DATA
+            cache_data = self.get_cache_data(entry.pv_name)
+            if role == CustRoles.EpicsDataRole:
+                return cache_data
+
+            stored_data = getattr(entry, 'data', None)
+            if stored_data is None:
+                return '--'
+            # do some enum data handling
+            if isinstance(cache_data, EpicsData):
+                if cache_data.enums and isinstance(stored_data, int):
+                    return cache_data.enums[stored_data]
+            return stored_data
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
             stored_data = getattr(entry, 'data', None)
-            is_close = self.is_close(live_value, stored_data)
-            if stored_data and role == QtCore.Qt.BackgroundRole and not is_close:
+            is_close = self.is_close(entry, stored_data)
+            if ((stored_data is not None) and role == QtCore.Qt.BackgroundRole
+                    and not is_close):
                 return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
         elif index.column() == LivePVHeader.STORED_STATUS:
+            if role == CustRoles.DisplayTypeRole:
+                return DisplayType.STATUS
             status = getattr(entry, 'status', '--')
             return getattr(status, 'name', status)
         elif index.column() == LivePVHeader.LIVE_STATUS:
             return self._get_live_data_field(entry, 'status')
         elif index.column() == LivePVHeader.STORED_SEVERITY:
+            if role == CustRoles.DisplayTypeRole:
+                return DisplayType.SEVERITY
             severity = getattr(entry, 'severity', '--')
             return getattr(severity, 'name', severity)
         elif index.column() == LivePVHeader.LIVE_SEVERITY:
@@ -800,20 +901,35 @@ class LivePVTableModel(BaseTableEntryModel):
         data_field = getattr(live_data, field)
         if isinstance(data_field, Enum):
             return str(getattr(data_field, 'name', data_field))
+        elif live_data.enums and field == 'data':
+            return live_data.enums[live_data.data]
         else:
             return data_field
 
-    def is_close(self, l_data, r_data) -> bool:
+    def is_close(self, entry: PVEntry, data: Any) -> bool:
         """
-        Returns True if ``l_data`` is close to ``r_data``, False otherwise.
-        Intended for use with numeric values.
+        Determines if ``data`` is close to the value in the controls system at
+        ``entry``.  Returns True if the values are close, False otherwise.
         """
+        e_data = self.get_cache_data(entry.pv_name)
+        if not isinstance(e_data, EpicsData):
+            # data still fetching, don't compare
+            return
+
+        if hasattr(e_data, "enums") and e_data.enums and isinstance(data, int):
+            # Unify enum representation
+            r_data = e_data.enums[data]
+            l_data = e_data.enums[e_data.data]
+        else:
+            r_data = data
+            l_data = e_data.data
+
         try:
             return np.isclose(l_data, r_data)
         except TypeError:
-            return False
+            return l_data == r_data
 
-    def get_cache_data(self, pv_name: str) -> EpicsData:
+    def get_cache_data(self, pv_name: str) -> Union[EpicsData, str]:
         """
         Get data from cache if possible.  If missing from cache, add pv_name for
         the polling thread to update.
@@ -915,20 +1031,225 @@ class _PVPollThread(QtCore.QThread):
             time.sleep(max((0, self.poll_period - elapsed)))
 
 
-class NestableTableModel(BaseTableEntryModel):
-    # Shows simplified details (created time, description, # pvs, # child colls)
-    # Open details delegate
-    headers: List[str] = ['Name', 'Description', 'Created', 'Open', 'Remove']
+class BaseDataTableView(QtWidgets.QTableView):
+    """
+    Base TableView for holding and manipulating an entry / list of entries
+    """
+    # signal indicating the contained has been updated
+    data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
+    _model: Optional[Union[LivePVTableModel, NestableTableModel]] = None
+    _model_cls: Union[LivePVTableModel, NestableTableModel] = LivePVTableModel
+    open_column: int = 0
+    remove_column: int = 0
 
     def __init__(
         self,
         *args,
-        entries: Optional[List[Union[Snapshot, Collection]]] = None,
+        client: Optional[Client] = None,
+        data: Optional[Union[Entry, List[Entry]]] = None,
         open_page_slot: Optional[Callable] = None,
+        **kwargs,
+    ) -> None:
+        """need to set open_column, close_column in subclass"""
+        super().__init__(*args, **kwargs)
+        self.data = data
+        self._client = client
+        self.open_page_slot = open_page_slot
+        self.sub_entries = []
+        self.model_kwargs = {}
+
+        # only these for now, may need an update later
+        self.setup_ui()
+
+    def setup_ui(self):
+        """initialize basic ui elements for this table"""
+        # set delegates
+        self.open_delegate = ButtonDelegate(button_text='open details')
+        self.setItemDelegateForColumn(self.open_column, self.open_delegate)
+        self.open_delegate.clicked.connect(self.open_row_details)
+
+        self.remove_delegate = ButtonDelegate(button_text='remove')
+        self.setItemDelegateForColumn(self.remove_column, self.remove_delegate)
+        self.remove_delegate.clicked.connect(self.remove_row)
+
+    def open_row_details(self, index: QtCore.QModelIndex) -> None:
+        """slot for opening row details page"""
+        if self.open_page_slot:
+            entry = self._model.entries[index.row()]
+            self.open_page_slot(entry)
+
+    def remove_row(self, index: QtCore.QModelIndex) -> None:
+        entry = self._model.entries[index.row()]
+        self._model.remove_row(index.row())
+
+        if isinstance(self.data, list):
+            self.data.remove(entry)
+        elif isinstance(self.data, Nestable):
+            self.data.children.remove(entry)
+        # edit data held by widget
+        self.data_updated.emit()
+
+    def set_data(self, data: Any):
+        """Set the data for this view, re-setup ui"""
+        if not isinstance(data, (list, Nestable)):
+            raise ValueError(
+                f"Attempted to set an incompatable data type ({type(data)})"
+            )
+        self.data = data
+        self.maybe_setup_model()
+
+    def maybe_setup_model(self):
+        """
+        Set up the model if data and client are set
+        """
+        if self.client is None:
+            logger.debug("Client not set, cannot initialize model")
+            return
+
+        if self.data is None:
+            logger.debug("data not set, cannot initialize model")
+            return
+
+        self.gather_sub_entries()
+
+        if self._model is None:
+            self._model = self._model_cls(
+                client=self.client,
+                entries=self.sub_entries,
+                **self.model_kwargs
+            )
+            self.setModel(self._model)
+        else:
+            self._model.set_entries(self.sub_entries)
+
+        self.data_updated.emit()
+
+    def gather_sub_entries(self):
+        """
+        Gather entries relevant to the contained model
+        and assign to self.sub_entries.  This must be implemented in a subclass.
+        """
+        raise NotImplementedError
+
+    @property
+    def client(self):
+        return self._client
+
+    @client.setter
+    def client(self, client: Client):
+        self._set_client(client)
+
+    def _set_client(self, client: Client):
+        if client is self._client:
+            return
+
+        if not isinstance(client, Client):
+            raise ValueError("Provided client is not a superscore Client")
+
+        self._client = client
+        self.maybe_setup_model()
+
+    def set_editable(self, column: int, is_editable: bool) -> None:
+        if not self._model:
+            return
+        self._model.set_editable(column, is_editable)
+
+
+class LivePVTableView(BaseDataTableView):
+    """
+    table widget for LivePVTableModel.  Meant to provide a standard, easy-to-use
+    interface for this table model, with common configuration options exposed
+
+    compatible with list of entries or full entry
+        - updates entry when changes made
+        - maintains order for rebuilding of parent collections
+    Configures delegates, ignoring open page slot if provided
+
+    TO-DO:
+    Column manipulation
+        - re-order
+    flattening of base data
+        - handling of readbacks associated with base entries?
+        - handling of nested nestables
+    ediable stored fields if desired, updating entry
+    """
+    _model: Optional[LivePVTableModel]
+
+    def __init__(self, *args, poll_period: float = 1.0, **kwargs):
+        self._model_cls = LivePVTableModel
+        self.open_column = LivePVHeader.OPEN
+        self.remove_column = LivePVHeader.REMOVE
+        super().__init__(*args, **kwargs)
+
+        self.model_kwargs['poll_period'] = poll_period
+
+        self.value_delegate = ValueDelegate()
+        for col in [LivePVHeader.PV_NAME, LivePVHeader.STORED_VALUE,
+                    LivePVHeader.STORED_STATUS, LivePVHeader.STORED_SEVERITY]:
+            self.setItemDelegateForColumn(col, self.value_delegate)
+
+    def gather_sub_entries(self):
+        if isinstance(self.data, UUID):
+            self.data = self.client.backend.get_entry(self.data)
+
+        if isinstance(self.data, Nestable):
+            # gather sub_nestables
+            self.sub_entries = []
+            for child in self.data.children:
+                if isinstance(child, UUID):
+                    filled_child = self._client.backend.get_entry(child)
+                else:
+                    filled_child = child
+
+                if filled_child is None:
+                    raise EntryNotFoundError(f"{child} not found in backend, "
+                                             "cannot fill with real data")
+
+                if not isinstance(child, Nestable) and isinstance(child, Entry):
+                    self.sub_entries.append(child)
+
+        elif isinstance(self.data, (Parameter, Setpoint, Readback)):
+            self.sub_entries = [self.data]
+
+    @BaseDataTableView.client.setter
+    def client(self, client: Optional[Client]):
+        super()._set_client(client)
+        # reset model poll thread
+        if self._model is not None:
+            self._model.stop_polling()
+            self._model.client = self._client
+            self._model.start_polling()
+
+
+class NestableHeader(HeaderEnum):
+    NAME = 0
+    DESCRIPTION = auto()
+    CREATED = auto()
+    OPEN = auto()
+    REMOVE = auto()
+
+
+class NestableTableModel(BaseTableEntryModel):
+    # Shows simplified details (created time, description, # pvs, # child colls)
+    # Open details delegate
+    headers: List[str]
+    _button_cols: List[NestableHeader] = [NestableHeader.OPEN, NestableHeader.REMOVE]
+    _header_to_field: Dict[NestableHeader, str] = {
+        NestableHeader.NAME: 'title',
+        NestableHeader.DESCRIPTION: 'description',
+    }
+
+    def __init__(
+        self,
+        *args,
+        client: Optional[Client] = None,
+        entries: Optional[List[Union[Snapshot, Collection]]] = None,
         **kwargs
     ) -> None:
-        self.open_page_slot = open_page_slot
         super().__init__(*args, entries=entries, **kwargs)
+        self.header_enum = NestableHeader
+        self.headers = [h.header_name() for h in NestableHeader]
+        self._editable_cols = {h.value: False for h in NestableHeader}
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         """
@@ -949,13 +1270,7 @@ class NestableTableModel(BaseTableEntryModel):
         """
         entry: Entry = self.entries[index.row()]
 
-        # Special handling for open button delegate
-        if index.column() == (len(self.headers) - 1):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                return 'click to open'
-
-        if role != QtCore.Qt.DisplayRole:
-            # table is read only
+        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
             return QtCore.QVariant()
 
         if index.column() == 0:  # name column
@@ -971,6 +1286,33 @@ class NestableTableModel(BaseTableEntryModel):
             return "Open"
         elif index.column() == 4:  # Remove Delegate
             return "Remove"
+
+
+class NestableTableView(BaseDataTableView):
+    def __init__(self, *args, **kwargs):
+        self._model_cls = NestableTableModel
+        self.open_column = 3
+        self.remove_column = 4
+        super().__init__(*args, **kwargs)
+
+    def gather_sub_entries(self):
+        if isinstance(self.data, UUID):
+            self.data = self.client.backend.get_entry(self.data)
+        # TODO: gather and fill entries where necessary
+        if isinstance(self.data, Nestable):
+            # gather sub_nestables
+            for child in self.data.children:
+                if isinstance(child, UUID):
+                    filled_child = self._client.backend.get_entry(child)
+                else:
+                    filled_child = child
+
+                if filled_child is None:
+                    raise EntryNotFoundError(f"{child} not found in backend, "
+                                             "cannot fill with real data")
+
+                if isinstance(child, Nestable) and isinstance(child, Entry):
+                    self.sub_entries.append(child)
 
 
 class ButtonDelegate(QtWidgets.QStyledItemDelegate):
@@ -991,6 +1333,101 @@ class ButtonDelegate(QtWidgets.QStyledItemDelegate):
             lambda _, index=index: self.clicked.emit(index)
         )
         return button
+
+    def updateEditorGeometry(
+        self,
+        editor: QtWidgets.QWidget,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex
+    ) -> None:
+        return editor.setGeometry(option.rect)
+
+
+class ValueDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def createEditor(
+        self,
+        parent: QtWidgets.QWidget,
+        option,
+        index: QtCore.QModelIndex
+    ) -> QtWidgets.QWidget:
+        dtype: DisplayType = index.model().data(
+            index, role=CustRoles.DisplayTypeRole
+        )
+        data_val = index.model().data(index, role=QtCore.Qt.DisplayRole)
+        if dtype == DisplayType.PV_NAME:
+            widget = QtWidgets.QLineEdit(data_val, parent)
+        elif dtype == DisplayType.SEVERITY:
+            widget = QtWidgets.QComboBox(parent)
+            widget.addItems([sev.name for sev in Severity])
+        elif dtype == DisplayType.STATUS:
+            widget = QtWidgets.QComboBox(parent)
+            widget.addItems([sta.name for sta in Status])
+        elif dtype == DisplayType.EPICS_DATA:
+            # need to fetch data for this PV, not stored data
+            data_val: EpicsData = index.model().data(
+                index, role=CustRoles.EpicsDataRole
+            )
+            if not isinstance(data_val, EpicsData):
+                # not yet initialized, no-op
+                return
+            if isinstance(data_val.data, str):
+                widget = QtWidgets.QLineEdit(data_val.data, parent)
+            elif data_val.enums:  # Catch enums before numerics, enums are ints
+                widget = QtWidgets.QComboBox(parent)
+                widget.addItems(data_val.enums)
+                widget.setCurrentIndex(data_val.data)
+            elif isinstance(data_val.data, int):
+                widget = QtWidgets.QSpinBox(parent)
+                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
+                    widget.setMaximum(2147483647)
+                    widget.setMinimum(-2147483647)
+                else:
+                    widget.setMaximum(data_val.upper_ctrl_limit)
+                    widget.setMinimum(data_val.lower_ctrl_limit)
+                widget.setValue(data_val.data)
+            elif isinstance(data_val.data, float):
+                widget = QtWidgets.QDoubleSpinBox(parent)
+                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
+                    widget.setMaximum(2147483647)
+                    widget.setMinimum(-2147483647)
+                else:
+                    widget.setMaximum(data_val.upper_ctrl_limit)
+                    widget.setMinimum(data_val.lower_ctrl_limit)
+                widget.setDecimals(data_val.precision)
+                widget.setValue(data_val.data)
+        else:
+            logger.debug(f"datatype ({dtype}) incompatible with supported edit "
+                         f"widgets: ({data_val})")
+            return
+        return widget
+
+    def setModelData(
+        self,
+        editor: QtWidgets.QWidget,
+        model: QtCore.QAbstractItemModel,
+        index: QtCore.QModelIndex
+    ) -> None:
+        if isinstance(editor, QtWidgets.QAbstractSpinBox):
+            val = editor.value()
+        elif isinstance(editor, QtWidgets.QLineEdit):
+            val = editor.text()
+        elif isinstance(editor, QtWidgets.QComboBox):
+            val = editor.currentIndex()
+
+            dtype: DisplayType = model.data(
+                index, role=CustRoles.DisplayTypeRole
+            )
+
+            if dtype == DisplayType.STATUS:
+                val = Status(val)
+            elif dtype == DisplayType.SEVERITY:
+                val = Severity(val)
+        else:
+            return
+        model.setData(index, val, QtCore.Qt.EditRole)
 
     def updateEditorGeometry(
         self,

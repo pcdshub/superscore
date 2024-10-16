@@ -707,6 +707,15 @@ def setpoint_with_readback() -> Setpoint:
     return setpoint
 
 
+@pytest.fixture(scope="function")
+def simple_snapshot() -> Collection:
+    snap = Snapshot(description='various types', title='types collection')
+    snap.children.append(Setpoint(pv_name="MY:FLOAT"))
+    snap.children.append(Setpoint(pv_name="MY:INT"))
+    snap.children.append(Setpoint(pv_name="MY:ENUM"))
+    return snap
+
+
 @pytest.fixture(scope='function')
 def filestore_backend(tmp_path: Path) -> FilestoreBackend:
     fp = Path(__file__).parent / 'db' / 'filestore.json'
@@ -772,7 +781,7 @@ def sample_client(
     filestore_backend: FilestoreBackend,
     dummy_cl: ControlLayer
 ) -> Client:
-    """Return a client with actula data, but no communication capabilities"""
+    """Return a client with actual data, but no communication capabilities"""
     client = Client(backend=filestore_backend)
     client.cl = dummy_cl
 
