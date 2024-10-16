@@ -1,17 +1,22 @@
 """
-
+`superscore demo` launches the UI along with a backend and an IOC
+exposing PVs from a selected fixture. Select options in demo.cfg
 """
 
 import argparse
+import configparser
 import logging
 import os
 
+import superscore.tests.conftest
 from superscore.bin.ui import main as ui_main
 from superscore.client import Client
-from superscore.tests.conftest import linac_data
+from superscore.model import Readback, Setpoint, Snapshot
 from superscore.tests.ioc import IOCFactory
 
 logger = logging.getLogger(__name__)
+
+DEMO_CONFIG = "tests/demo.cfg"
 
 
 def build_arg_parser(argparser=None):
@@ -20,15 +25,19 @@ def build_arg_parser(argparser=None):
     return argparser
 
 
-def main(*args, config_name: str = "tests/demo_config.cfg", **kwargs):
-    coll, snap = linac_data()
-    client = Client.from_config(config_name)
+def main(*args, **kwargs):
+    client = Client.from_config(DEMO_CONFIG)
     try:
         os.remove(client.backend.path)
     except FileNotFoundError:
         pass
-    client.save(coll)
-    client.save(snap)
-    # TODO: add Snapshot with varius severities and statuses
-    with IOCFactory.from_entries(snap.children)(prefix=''):
+    parser = configparser.ConfigParser()
+    parser.read(DEMO_CONFIG)
+    filled = []
+    for fixture in parser.get("demo", "fixtures").split():
+        for entry in getattr(superscore.tests.conftest, fixture)():
+            client.save(entry)
+            if isinstance(entry, (Snapshot, Setpoint, Readback)):
+                filled.append(entry)
+    with IOCFactory.from_entries(filled)(prefix=''):
         ui_main(*args, client=client, **kwargs)
