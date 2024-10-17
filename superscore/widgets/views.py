@@ -1375,31 +1375,7 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
             if not isinstance(data_val, EpicsData):
                 # not yet initialized, no-op
                 return
-            if isinstance(data_val.data, str):
-                widget = QtWidgets.QLineEdit(data_val.data, parent)
-            elif data_val.enums:  # Catch enums before numerics, enums are ints
-                widget = QtWidgets.QComboBox(parent)
-                widget.addItems(data_val.enums)
-                widget.setCurrentIndex(data_val.data)
-            elif isinstance(data_val.data, int):
-                widget = QtWidgets.QSpinBox(parent)
-                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
-                    widget.setMaximum(2147483647)
-                    widget.setMinimum(-2147483647)
-                else:
-                    widget.setMaximum(data_val.upper_ctrl_limit)
-                    widget.setMinimum(data_val.lower_ctrl_limit)
-                widget.setValue(data_val.data)
-            elif isinstance(data_val.data, float):
-                widget = QtWidgets.QDoubleSpinBox(parent)
-                if data_val.lower_ctrl_limit == 0 and data_val.upper_ctrl_limit == 0:
-                    widget.setMaximum(2147483647)
-                    widget.setMinimum(-2147483647)
-                else:
-                    widget.setMaximum(data_val.upper_ctrl_limit)
-                    widget.setMinimum(data_val.lower_ctrl_limit)
-                widget.setDecimals(data_val.precision)
-                widget.setValue(data_val.data)
+            widget = edit_widget_from_epics_data(data_val, parent)
         else:
             logger.debug(f"datatype ({dtype}) incompatible with supported edit "
                          f"widgets: ({data_val})")
@@ -1438,3 +1414,60 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
         index: QtCore.QModelIndex
     ) -> None:
         return editor.setGeometry(option.rect)
+
+
+def edit_widget_from_epics_data(
+    edata: EpicsData,
+    parent_widget: Optional[QtWidgets.QWidget] = None
+) -> QtWidgets.QWidget:
+    """
+    Returns the appropriate edit widget given an EpicsData instance. Supported
+    data types include:
+    - string -> QLineEdit
+    - integer -> QSpinBox
+    - float -> QDoubleSpinBox
+    - enum -> QComboBox
+
+    When applicable, limits and enum options will be applied
+
+    Parameters
+    ----------
+    edata : EpicsData
+        Data to return an appropriate edit widget for
+    parent_widget : QtWidgets.QWidget
+        parent widget to assign to the edit widget
+
+    Returns
+    -------
+    QtWidgets.QWidget
+        The edit widget
+    """
+    if isinstance(edata.data, str):
+        widget = QtWidgets.QLineEdit(edata.data, parent_widget)
+    elif edata.enums:  # Catch enums before numerics, enums are ints
+        widget = QtWidgets.QComboBox(parent_widget)
+        widget.addItems(edata.enums)
+        widget.setCurrentIndex(edata.data)
+    elif isinstance(edata.data, int):
+        widget = QtWidgets.QSpinBox(parent_widget)
+        if edata.lower_ctrl_limit == 0 and edata.upper_ctrl_limit == 0:
+            widget.setMaximum(2147483647)
+            widget.setMinimum(-2147483647)
+        else:
+            widget.setMaximum(edata.upper_ctrl_limit)
+            widget.setMinimum(edata.lower_ctrl_limit)
+        widget.setValue(edata.data)
+    elif isinstance(edata.data, float):
+        widget = QtWidgets.QDoubleSpinBox(parent_widget)
+        if edata.lower_ctrl_limit == 0 and edata.upper_ctrl_limit == 0:
+            widget.setMaximum(2147483647)
+            widget.setMinimum(-2147483647)
+        else:
+            widget.setMaximum(edata.upper_ctrl_limit)
+            widget.setMinimum(edata.lower_ctrl_limit)
+        widget.setDecimals(edata.precision)
+        widget.setValue(edata.data)
+    else:
+        raise ValueError(f"data type ({edata}) not supported ")
+
+    return widget
