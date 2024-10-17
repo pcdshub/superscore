@@ -4,6 +4,7 @@ Widgets for visualizing and editing core model dataclasses
 import logging
 from typing import Callable, Optional, Union
 
+import qtawesome as qta
 from qtpy import QtWidgets
 from qtpy.QtGui import QCloseEvent
 
@@ -15,7 +16,7 @@ from superscore.type_hints import AnyEpicsType
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (LivePVTableView, NestableTableView,
-                                      RootTree)
+                                      RootTree, edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,9 @@ class BaseParameterPage(Display, DataWidget):
     # dynamic display/edit widgets
     pv_edit: QtWidgets.QLineEdit
     value_live_label: QtWidgets.QLabel
-    value_stored_label: QtWidgets.QLabel
+    value_stored_widget: QtWidgets.QWidget
+    value_stored_placeholder: QtWidgets.QWidget
+    refresh_button: QtWidgets.QToolButton
 
     tol_calc_label: QtWidgets.QLabel
     abs_tol_spinbox: QtWidgets.QDoubleSpinBox
@@ -119,23 +122,27 @@ class BaseParameterPage(Display, DataWidget):
         self.client = client
         self.editable = editable
         self.open_page_slot = open_page_slot
+        self.value_stored_widget = None
         self.setup_ui()
 
     def setup_ui(self):
         # initialize values
         self.pv_edit.setText(self.data.pv_name)
         self.pv_edit.textChanged.connect(self.update_pv_name)
-        e_data: EpicsData = self.client.cl.get(self.data.pv_name)
 
         # update button?
-        self.value_live_label.setText(f"({str(e_data.data)})")
+        self.refresh_button.setToolTip('refresh edit details')
+        self.refresh_button.setIcon(qta.icon('ei.refresh'))
+        self.refresh_button.clicked.connect(self.update_live_value)
+        self.update_live_value()
+
         try:
             self.bridge.data.data
         except AttributeError:
-            self.value_stored_label.hide()
+            self.value_stored_placeholder.hide()
         else:
-            # TODO: Set up edit widgets
-            self.value_stored_label.setText(str(self.bridge.data.data))
+            self.refresh_button.clicked.connect(self.update_stored_edit_widget)
+            self.update_stored_edit_widget()
 
         try:
             self.bridge.status
@@ -176,6 +183,19 @@ class BaseParameterPage(Display, DataWidget):
         else:
             self.rbv_pv_label.setText(self.data.readback.pv_name)
             self.open_rbv_button.clicked.connect(self.open_rbv_page)
+
+    def update_stored_edit_widget(self):
+        e_data: EpicsData = self.client.cl.get(self.data.pv_name)
+        new_widget = edit_widget_from_epics_data(e_data)
+
+        if self.value_stored_widget:
+            insert_widget(new_widget, self.value_stored_widget)
+        else:
+            insert_widget(new_widget, self.value_stored_placeholder)
+
+    def update_live_value(self):
+        e_data: EpicsData = self.client.cl.get(self.data.pv_name)
+        self.value_live_label.setText(f"({str(e_data.data)})")
 
     def update_tol_calc(self):
         if not (hasattr(self.data, "data") and hasattr(self.data, "abs_tolerance")):
