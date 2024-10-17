@@ -1,7 +1,7 @@
 """
 Backend that manipulates Entries in-memory for testing purposes.
 """
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 
 from superscore.backends.core import _Backend
@@ -25,7 +25,9 @@ class TestBackend(_Backend):
         except EntryNotFoundError:
             self.data.append(entry)
 
-    def get_entry(self, uuid: UUID) -> Entry:
+    def get_entry(self, uuid: Union[UUID, str]) -> Entry:
+        if isinstance(uuid, str):
+            uuid = UUID(uuid)
         stack = self.data.copy()
         while len(stack) > 0:
             entry = stack.pop()

@@ -3,9 +3,11 @@
 """
 import argparse
 import sys
+from typing import Optional
 
 from qtpy.QtWidgets import QApplication
 
+from superscore.client import Client
 from superscore.widgets.window import Window
 
 
@@ -16,9 +18,9 @@ def build_arg_parser(argparser=None):
     return argparser
 
 
-def main(*args, **kwargs):
+def main(*args, client: Optional[Client] = None, **kwargs):
     app = QApplication(sys.argv)
-    main_window = Window()
+    main_window = Window(client=client)
 
     main_window.show()
     app.exec()

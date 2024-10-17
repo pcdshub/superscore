@@ -14,9 +14,7 @@ from inspect import iscoroutinefunction
 import superscore
 
 DESCRIPTION = __doc__
-
-
-MODULES = ("help", "ui")
+MODULES = ("help", "ui", "demo")
 
 
 def _try_import(module):
