@@ -7,6 +7,7 @@ import argparse
 import configparser
 import logging
 import os
+from pathlib import Path
 
 import superscore.tests.conftest
 from superscore.bin.ui import main as ui_main
@@ -16,7 +17,7 @@ from superscore.tests.ioc import IOCFactory
 
 logger = logging.getLogger(__name__)
 
-DEMO_CONFIG = "tests/demo.cfg"
+DEMO_CONFIG = Path(__file__).parent.parent / "tests" / "demo.cfg"
 
 
 def build_arg_parser(argparser=None):
