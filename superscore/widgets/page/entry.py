@@ -2,7 +2,7 @@
 Widgets for visualizing and editing core model dataclasses
 """
 import logging
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 import qtawesome as qta
 from qtpy import QtWidgets
@@ -12,7 +12,7 @@ from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, OpenPageSlot
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
@@ -40,7 +40,7 @@ class NestablePage(Display, DataWidget):
         data: Nestable,
         client: Client,
         editable: bool = False,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         super().__init__(*args, data=data, **kwargs)
@@ -118,7 +118,7 @@ class BaseParameterPage(Display, DataWidget):
         *args,
         client: Client,
         editable: bool = False,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -188,12 +188,11 @@ class BaseParameterPage(Display, DataWidget):
             self.timeout_spinbox.valueChanged.connect(self.update_timeout)
 
         try:
-            self.bridge.readback.pv_name
+            self.bridge.readback
         except AttributeError:
             self.rbv_widget.hide()
         else:
-            self.rbv_pv_label.setText(self.data.readback.pv_name)
-            self.open_rbv_button.clicked.connect(self.open_rbv_page)
+            self.setup_rbv_widget()
 
     def get_edata(self) -> None:
         if self._edata_thread and self._edata_thread.isRunning():
@@ -268,9 +267,24 @@ class BaseParameterPage(Display, DataWidget):
         if hasattr(self.data, "timeout"):
             self.bridge.timeout.put(self.timeout_spinbox.value())
 
-    def open_rbv_page(self):
+    def open_rbv_page(self) -> DataWidget:
         if self.open_page_slot:
-            self.open_page_slot(self.data.readback)
+            widget = self.open_page_slot(self.data.readback)
+            widget.bridge.pv_name.changed_value.connect(self.rbv_pv_label.setText)
+
+    def create_rbv(self):
+        new_rbv = Readback(pv_name='<MY:PV>')
+        self.bridge.readback.put(new_rbv)
+        self.open_rbv_page()
+
+    def setup_rbv_widget(self):
+        if self.data.readback is None:
+            # Setup create-new button
+            self.rbv_pv_label.setText("[None]")
+            self.open_rbv_button.clicked.connect(self.create_rbv)
+        else:
+            self.rbv_pv_label.setText(self.data.readback.pv_name)
+            self.open_rbv_button.clicked.connect(self.open_rbv_page)
 
 
 class ParameterPage(BaseParameterPage):
