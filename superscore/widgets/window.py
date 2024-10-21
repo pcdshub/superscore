@@ -14,7 +14,7 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Entry
 from superscore.widgets import ICON_MAP
-from superscore.widgets.core import Display
+from superscore.widgets.core import DataWidget, Display
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.search import SearchPage
@@ -87,7 +87,7 @@ class Window(Display, QtWidgets.QMainWindow):
         )
         self._partial_slots.append(update_slot)
 
-    def open_page(self, entry: Entry) -> None:
+    def open_page(self, entry: Entry) -> DataWidget:
         """
         Open a page for ``entry`` in a new tab.
 
@@ -95,6 +95,11 @@ class Window(Display, QtWidgets.QMainWindow):
         ----------
         entry : Entry
             Entry subclass to open a new page for
+
+        Returns
+        -------
+        DataWidget
+            Created widget, for cross references
         """
         logger.debug(f'attempting to open {entry}')
         if not isinstance(entry, Entry):
@@ -118,6 +123,8 @@ class Window(Display, QtWidgets.QMainWindow):
         )
         idx = self.tab_widget.addTab(page_widget, icon, tab_name)
         self.tab_widget.setCurrentIndex(idx)
+
+        return page_widget
 
     def open_search_page(self) -> None:
         page = SearchPage(client=self.client, open_page_slot=self.open_page)

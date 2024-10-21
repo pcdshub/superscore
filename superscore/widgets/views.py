@@ -7,8 +7,7 @@ from __future__ import annotations
 import logging
 import time
 from enum import Enum, IntEnum, auto
-from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
-                    Union)
+from typing import Any, ClassVar, Dict, Generator, List, Optional, Union
 from uuid import UUID
 from weakref import WeakValueDictionary
 
@@ -23,6 +22,7 @@ from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
+from superscore.type_hints import OpenPageSlot
 from superscore.widgets import ICON_MAP
 
 logger = logging.getLogger(__name__)
@@ -1047,7 +1047,7 @@ class BaseDataTableView(QtWidgets.QTableView):
         *args,
         client: Optional[Client] = None,
         data: Optional[Union[Entry, List[Entry]]] = None,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs,
     ) -> None:
         """need to set open_column, close_column in subclass"""
