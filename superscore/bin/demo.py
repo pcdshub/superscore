@@ -15,6 +15,7 @@ from superscore.bin.ui import main as ui_main
 from superscore.client import Client
 from superscore.model import Entry, Readback, Root, Setpoint, Snapshot
 from superscore.tests.ioc import IOCFactory
+from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
 
@@ -24,18 +25,28 @@ DEMO_CONFIG = Path(__file__).parent.parent / "tests" / "demo.cfg"
 def build_arg_parser(argparser=None):
     if argparser is None:
         argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "--db-path",
+        type=str,
+        help="An alternate file or directory to store the demo database. This "
+             "file will be overwritten each run.")
     return argparser
 
 
-def main(*args, **kwargs):
-    client = Client.from_config(DEMO_CONFIG)
+def main(*args, db_path=None, **kwargs):
+    parser = configparser.ConfigParser()
+    parser.read(DEMO_CONFIG)
+    if db_path is not None:
+        db_path = Path(db_path)
+        if db_path.is_dir():
+            db_path /= 'superscore_demo.json'
+        parser.set('backend', 'path', build_abs_path(Path.cwd(), db_path))
+    client = Client.from_parsed_config(parser)
     # start with clean demo database
     try:
         os.remove(client.backend.path)
     except FileNotFoundError:
         pass
-    parser = configparser.ConfigParser()
-    parser.read(DEMO_CONFIG)
     filled = []  # IOCFactory needs the Entries with data
     for fixture_name in parser.get("demo", "fixtures").split():
         fixture = getattr(superscore.tests.conftest, fixture_name)
