@@ -14,7 +14,9 @@ from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
 from superscore.type_hints import AnyEpicsType
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
-from superscore.widgets.manip_helpers import insert_widget
+from superscore.widgets.manip_helpers import (insert_widget,
+                                              match_line_edit_text_width)
+from superscore.widgets.thread_helpers import BusyCursorThread
 from superscore.widgets.views import (LivePVTableView, NestableTableView,
                                       RootTree, edit_widget_from_epics_data)
 
@@ -108,6 +110,7 @@ class BaseParameterPage(Display, DataWidget):
     open_rbv_button: QtWidgets.QPushButton
     rbv_pv_label: QtWidgets.QLabel
 
+    _edata_thread: Optional[BusyCursorThread]
     data: Union[Parameter, Setpoint, Readback]
 
     def __init__(
@@ -123,18 +126,26 @@ class BaseParameterPage(Display, DataWidget):
         self.editable = editable
         self.open_page_slot = open_page_slot
         self.value_stored_widget = None
+        self.edata = None
+        self._edata_thread: Optional[BusyCursorThread] = None
         self.setup_ui()
 
     def setup_ui(self):
         # initialize values
         self.pv_edit.setText(self.data.pv_name)
         self.pv_edit.textChanged.connect(self.update_pv_name)
+        self.update_pv_name(self.data.pv_name)
 
-        # update button?
+        # setup data thread
+        self._edata_thread = BusyCursorThread(func=self._get_edata)
+
+        self._edata_thread.finished.connect(self.update_stored_edit_widget)
+        self._edata_thread.finished.connect(self.update_live_value)
+
         self.refresh_button.setToolTip('refresh edit details')
         self.refresh_button.setIcon(qta.icon('ei.refresh'))
-        self.refresh_button.clicked.connect(self.update_live_value)
-        self.update_live_value()
+        self.refresh_button.clicked.connect(self.get_edata)
+        self.get_edata()
 
         try:
             self.bridge.data.data
@@ -184,9 +195,26 @@ class BaseParameterPage(Display, DataWidget):
             self.rbv_pv_label.setText(self.data.readback.pv_name)
             self.open_rbv_button.clicked.connect(self.open_rbv_page)
 
+    def get_edata(self) -> None:
+        if self._edata_thread and self._edata_thread.isRunning():
+            return
+
+        self._edata_thread.start()
+
+    def _get_edata(self):
+        self.edata = self.client.cl.get(self.data.pv_name)
+
     def update_stored_edit_widget(self):
-        e_data: EpicsData = self.client.cl.get(self.data.pv_name)
-        new_widget = edit_widget_from_epics_data(e_data)
+        data = self.edata
+        if not isinstance(data, EpicsData):
+            new_widget = QtWidgets.QToolButton()
+            new_widget.setIcon(qta.icon("msc.debug-disconnect"))
+            new_widget.setEnabled(False)
+            new_widget.setSizePolicy(
+                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+            )
+        else:
+            new_widget = edit_widget_from_epics_data(data)
 
         if self.value_stored_widget:
             insert_widget(new_widget, self.value_stored_widget)
@@ -194,8 +222,11 @@ class BaseParameterPage(Display, DataWidget):
             insert_widget(new_widget, self.value_stored_placeholder)
 
     def update_live_value(self):
-        e_data: EpicsData = self.client.cl.get(self.data.pv_name)
-        self.value_live_label.setText(f"({str(e_data.data)})")
+        data = self.edata
+        if not isinstance(data, EpicsData):
+            self.value_live_label.setText("(-)")
+        else:
+            self.value_live_label.setText(f"({str(data.data)})")
 
     def update_tol_calc(self):
         if not (hasattr(self.data, "data") and hasattr(self.data, "abs_tolerance")):
@@ -217,9 +248,11 @@ class BaseParameterPage(Display, DataWidget):
             f"[{edata - total_tol}, {edata + total_tol}]"
         )
 
-    def update_pv_name(self):
+    def update_pv_name(self, text: str):
         if hasattr(self.data, "pv_name"):
-            self.bridge.pv_name.put(self.pv_edit.text())
+            self.bridge.pv_name.put(text)
+
+        match_line_edit_text_width(self.pv_edit, text=text)
 
     def update_abs_tol(self, *args, **kwargs):
         if hasattr(self.data, "abs_tolerance"):
@@ -244,9 +277,9 @@ class ParameterPage(BaseParameterPage):
     data: Parameter
 
 
-class SetpointPage(ParameterPage):
+class SetpointPage(BaseParameterPage):
     data: Setpoint
 
 
-class ReadbackPage(ParameterPage):
+class ReadbackPage(BaseParameterPage):
     data: Readback
