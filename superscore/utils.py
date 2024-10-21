@@ -23,6 +23,7 @@ def build_abs_path(basedir: str, path: str) -> str:
         The path to convert to absolute.
     """
     path = os.path.expanduser(path)
+    path = os.path.expandvars(path)
     if not os.path.isabs(path):
         return os.path.abspath(os.path.join(basedir, path))
     return path
