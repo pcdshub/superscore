@@ -2,7 +2,7 @@
 
 import logging
 from enum import auto
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import qtawesome as qta
 from dateutil import tz
@@ -11,6 +11,7 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
+from superscore.type_hints import OpenPageSlot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display
 from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
@@ -56,7 +57,7 @@ class SearchPage(Display, QtWidgets.QWidget):
         self,
         *args,
         client: Client,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -234,7 +235,7 @@ class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(
         self,
         *args,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
