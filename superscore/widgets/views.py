@@ -700,11 +700,10 @@ class LivePVTableModel(BaseTableEntryModel):
 
         logger.debug(f"stopping and de-referencing thread @ {id(self._poll_thread)}")
         # does not remove reference to avoid premature python garbage collection
-        self._poll_thread.data = {}
         self._poll_thread.stop()
-
         if wait_time > 0.0:
             self._poll_thread.wait(wait_time)
+        self._poll_thread.data = {}
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
