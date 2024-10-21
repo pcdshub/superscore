@@ -66,6 +66,6 @@ class IOCFactory:
         for entry in pvs:
             value = entry.data if isinstance(entry, (Setpoint, Readback)) else None
             pv = pvproperty(name=entry.pv_name, doc=entry.description, value=value, dtype=dbr.DBR_STRING if isinstance(entry.data, str) else None)
-            attr = "".join([c.lower() for c in entry.pv_name if c != ':'])
+            attr = "".join([c.lower() for c in entry.pv_name if c.isalnum()])
             attrs[attr] = pv
         return attrs
