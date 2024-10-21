@@ -34,7 +34,7 @@
         <widget class="QLineEdit" name="pv_edit">
          <property name="font">
           <font>
-           <pointsize>16</pointsize>
+           <pointsize>11</pointsize>
           </font>
          </property>
         </widget>
