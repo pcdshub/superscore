@@ -78,9 +78,17 @@ class Client:
             raise RuntimeError(f"Superscore configuration file not found: {cfg}")
 
         cfg_parser = configparser.ConfigParser()
-        cfg_file = cfg_parser.read(cfg)
-        logger.debug(f"Loading configuration file at ({cfg_file})")
+        cfg_parser.read(cfg)
+        logger.debug(f"Loading configuration file at ({cfg})")
+        return cls.from_parsed_config(cfg_parser, cfg)
 
+    @classmethod
+    def from_parsed_config(cls, cfg_parser: configparser.ConfigParser, cfg_path=""):
+        """
+        Initializes Client using a ConfigParser that has already read in a config.
+        This method enables the caller to edit a config after parsing but before
+        Client initialization.
+        """
         # Gather Backend
         if 'backend' in cfg_parser.sections():
             backend_type = cfg_parser.get("backend", "type")
@@ -89,7 +97,7 @@ class Client:
                       if key != "type"}
             backend_class = get_backend(backend_type)
             if 'path' in kwargs:
-                kwargs['path'] = build_abs_path(Path(cfg).parent, kwargs['path'])
+                kwargs['path'] = build_abs_path(Path(cfg_path).parent, kwargs['path'])
             backend = backend_class(**kwargs)
         else:
             logger.warning('No backend specified, loading an empty test backend')

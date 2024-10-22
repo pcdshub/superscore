@@ -65,6 +65,11 @@ class Entry:
     description: str = ""
     creation_time: datetime = field(default_factory=utcnow)
 
+    def __post_init__(self) -> None:
+        if isinstance(self.uuid, str):
+            self.uuid = UUID(self.uuid)
+        return
+
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
         """
         Swap to UUID references where relevant.
