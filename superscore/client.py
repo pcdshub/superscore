@@ -3,7 +3,7 @@ import configparser
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 from uuid import UUID
 
 from superscore.backends import get_backend
@@ -285,9 +285,37 @@ class Client:
         tuple[List[str], Optional[List[Any]]]
             the filled pv_list and data_list
         """
+        entries = self._gather_leaves(entry)
         pv_list = []
         data_list = []
+        for entry in entries:
+            if isinstance(entry, Readback) and writable_only:
+                pass
+            else:  # entry is Parameter, Setpoint, or Readback
+                pv_list.append(entry.pv_name)
+                if hasattr(entry, "data"):
+                    data_list.append(entry.data)
+        return pv_list, data_list
 
+    def _gather_leaves(
+        self,
+        entry: Union[Entry, UUID],
+    ) -> Iterable[Entry]:
+        """
+        Gather all PVs reachable from Entry, including Parameters, Setpoints,
+        and Readbacks. Fills UUIDs with full Entries.
+
+        Parameters
+        ----------
+        entry : Union[Entry, UUID]
+            Entry to gather data from
+
+        Returns
+        -------
+        Iterable[Entry]
+            an ordered list of all PV Entries reachable from entry
+        """
+        entries = []
         seen = set()
         q = [entry]
         while len(q) > 0:
@@ -301,15 +329,11 @@ class Client:
 
             if isinstance(entry, Nestable):
                 q.extend(reversed(entry.children))  # preserve execution order
-            elif isinstance(entry, Readback) and writable_only:
-                pass
             else:  # entry is Parameter, Setpoint, or Readback
-                pv_list.append(entry.pv_name)
-                if hasattr(entry, "data"):
-                    data_list.append(entry.data)
+                entries.append(entry)
                 if getattr(entry, "readback", None) is not None:
                     q.append(entry.readback)
-        return pv_list, data_list
+        return entries
 
     def _build_snapshot(
         self,
