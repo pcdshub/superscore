@@ -1195,9 +1195,10 @@ class LivePVTableView(BaseDataTableView):
         if isinstance(self.data, Nestable):
             # gather sub_nestables
             self.sub_entries = []
-            for child in self.data.children:
+            for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
                     child = self._client.backend.get_entry(child)
+                    self.data.children[i] = child
                 else:
                     child = child
 
@@ -1301,9 +1302,10 @@ class NestableTableView(BaseDataTableView):
 
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            for child in self.data.children:
+            for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
                     child = self._client.backend.get_entry(child)
+                    self.data.children[i] = child
                 else:
                     child = child
 
