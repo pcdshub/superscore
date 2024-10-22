@@ -1,17 +1,20 @@
 import copy
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import apischema
 import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import Collection, Parameter, Severity, Status
 from superscore.widgets.views import (CustRoles, LivePVHeader,
-                                      LivePVTableModel, LivePVTableView)
+                                      LivePVTableModel, LivePVTableView,
+                                      NestableTableView)
 
 
 @pytest.fixture(scope='function')
@@ -190,3 +193,41 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
     assert stat_delegate.count() == len(Status)
     for stat in Status:
         assert stat_delegate.itemText(stat.value).lower() == stat.name.lower()
+
+
+def test_fill_uuids_pvs(
+    mock_client: Client,
+    simple_snapshot: Collection,
+    qtbot: QtBot,
+):
+    """Verify UUID data gets filled, and dataclass gets modified"""
+    simple_snapshot.swap_to_uuids()
+    assert all(isinstance(c, UUID) for c in simple_snapshot.children)
+    view = LivePVTableView()
+    # mock client does not ever return None, as if entries are always found
+    # in the backend
+    view.client = mock_client
+    view.set_data(simple_snapshot)
+
+    assert all(not isinstance(c, UUID) for c in simple_snapshot.children)
+    print(view.model()._poll_thread)
+    view.model().stop_polling()
+    print(view.model()._poll_thread)
+    qtbot.wait_until(lambda: not view.model()._poll_thread.isRunning())
+
+
+def test_fill_uuids_nestable(
+    mock_client: Client,
+    linac_backend: TestBackend,
+):
+    """Verify UUID data gets filled, and dataclass gets modified"""
+    nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+    nested_coll.swap_to_uuids()
+    assert all(isinstance(c, UUID) for c in nested_coll.children)
+    view = NestableTableView()
+    # mock client does not ever return None, as if entries are always found
+    # in the backend
+    view.client = mock_client
+    view.set_data(nested_coll)
+
+    assert all(not isinstance(c, UUID) for c in nested_coll.children)
