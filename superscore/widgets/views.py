@@ -1155,6 +1155,19 @@ class BaseDataTableView(QtWidgets.QTableView):
             return
         self._model.set_editable(column, is_editable)
 
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MiddleButton:
+            index = self.indexAt(event.position().toPoint())
+            text = self._model.data(index, QtCore.Qt.DisplayRole)
+            clipboard = QtWidgets.QApplication.clipboard()
+            if clipboard.supportsSelection():
+                mode = clipboard.Selection
+            else:
+                mode = clipboard.Clipboard
+            clipboard.setText(text, mode=mode)
+            clipboard.setText(text)
+        super().mousePressEvent(event)
+
 
 class LivePVTableView(BaseDataTableView):
     """
