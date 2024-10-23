@@ -560,6 +560,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
             success = False
 
         self.layoutChanged.emit()
+        self.dataChanged.emit(index, index)
         return success
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
@@ -1119,6 +1120,7 @@ class BaseDataTableView(QtWidgets.QTableView):
                 **self.model_kwargs
             )
             self.setModel(self._model)
+            self._model.dataChanged.connect(self.data_updated)
         else:
             self._model.set_entries(self.sub_entries)
 

@@ -2,6 +2,7 @@
 Widgets for visualizing and editing core model dataclasses
 """
 import logging
+from copy import deepcopy
 from typing import Optional, Union
 
 import qtawesome as qta
@@ -32,6 +33,8 @@ class NestablePage(Display, DataWidget):
     sub_coll_table_view: NestableTableView
     sub_pv_table_view: LivePVTableView
 
+    save_button: QtWidgets.QPushButton
+
     data: Nestable
 
     def __init__(
@@ -47,6 +50,7 @@ class NestablePage(Display, DataWidget):
         self.client = client
         self.editable = editable
         self.open_page_slot = open_page_slot
+        self._last_data = deepcopy(self.data)
         self.setup_ui()
 
     def setup_ui(self):
@@ -59,9 +63,25 @@ class NestablePage(Display, DataWidget):
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
+        self.sub_pv_table_view.data_updated.connect(self.track_changes)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
+        self.sub_coll_table_view.data_updated.connect(self.track_changes)
+
+        self.save_button.clicked.connect(self.save)
+
+    def save(self):
+        self.client.save(self.data)
+        self._last_data = deepcopy(self.data)
+
+    def track_changes(self):
+        if not self.data == self._last_data:
+            self.save_button.setText("Save *")
+            self.save_button.setEnabled(True)
+        else:
+            self.save_button.setText("Save")
+            self.save_button.setEnabled(False)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug(f"Stopping polling threads for {type(self.data)}")
@@ -110,6 +130,8 @@ class BaseParameterPage(Display, DataWidget):
     open_rbv_button: QtWidgets.QPushButton
     rbv_pv_label: QtWidgets.QLabel
 
+    save_button: QtWidgets.QPushButton
+
     _edata_thread: Optional[BusyCursorThread]
     data: Union[Parameter, Setpoint, Readback]
 
@@ -128,6 +150,7 @@ class BaseParameterPage(Display, DataWidget):
         self.value_stored_widget = None
         self.edata = None
         self._edata_thread: Optional[BusyCursorThread] = None
+        self._last_data = deepcopy(self.data)
         self.setup_ui()
 
     def setup_ui(self):
@@ -146,6 +169,8 @@ class BaseParameterPage(Display, DataWidget):
         self.refresh_button.setIcon(qta.icon('ei.refresh'))
         self.refresh_button.clicked.connect(self.get_edata)
         self.get_edata()
+
+        self.save_button.clicked.connect(self.save)
 
         try:
             self.bridge.data.data
@@ -193,6 +218,8 @@ class BaseParameterPage(Display, DataWidget):
             self.rbv_widget.hide()
         else:
             self.setup_rbv_widget()
+
+        self.track_changes()
 
     def get_edata(self) -> None:
         if self._edata_thread and self._edata_thread.isRunning():
@@ -285,6 +312,18 @@ class BaseParameterPage(Display, DataWidget):
         else:
             self.rbv_pv_label.setText(self.data.readback.pv_name)
             self.open_rbv_button.clicked.connect(self.open_rbv_page)
+
+    def save(self):
+        self.client.save(self.data)
+        self._last_data = deepcopy(self.data)
+
+    def track_changes(self):
+        if not self.data == self._last_data:
+            self.save_button.setText("Save *")
+            self.save_button.setEnabled(True)
+        else:
+            self.save_button.setText("Save")
+            self.save_button.setEnabled(False)
 
 
 class ParameterPage(BaseParameterPage):
