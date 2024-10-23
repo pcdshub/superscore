@@ -71,6 +71,22 @@ class NestablePage(Display, DataWidget):
 
         self.save_button.clicked.connect(self.save)
 
+        self.set_editable(self.editable)
+
+    def set_editable(self, editable: bool) -> None:
+        for col in self.sub_pv_table_view._model.header_enum:
+            self.sub_pv_table_view.set_editable(col, editable)
+
+        for col in self.sub_coll_table_view._model.header_enum:
+            self.sub_coll_table_view.set_editable(col, editable)
+
+        if editable:
+            self.save_button.show()
+        else:
+            self.save_button.hide()
+
+        self.editable = editable
+
     def save(self):
         self.client.save(self.data)
         self._last_data = deepcopy(self.data)
@@ -104,11 +120,14 @@ class BaseParameterPage(Display, DataWidget):
     meta_widget: NameDescTagsWidget
 
     # Container widgets
-    pv_value_hlayout: QtWidgets.QHBoxLayout
+    pv_value_widget: QtWidgets.QWidget
     options_hlayout: QtWidgets.QHBoxLayout
     tol_widget: QtWidgets.QWidget
+    tol_form_layout: QtWidgets.QFormLayout
     ss_widget: QtWidgets.QWidget
+    ss_form_layout: QtWidgets.QFormLayout
     timeout_widget: QtWidgets.QWidget
+    timeout_form_layout: QtWidgets.QFormLayout
     rbv_widget: QtWidgets.QWidget
 
     # dynamic display/edit widgets
@@ -220,6 +239,7 @@ class BaseParameterPage(Display, DataWidget):
             self.setup_rbv_widget()
 
         self.track_changes()
+        self.set_editable(self.editable)
 
     def get_edata(self) -> None:
         if self._edata_thread and self._edata_thread.isRunning():
@@ -229,6 +249,29 @@ class BaseParameterPage(Display, DataWidget):
 
     def _get_edata(self):
         self.edata = self.client.cl.get(self.data.pv_name)
+
+    def set_editable(self, editable: bool) -> None:
+        self.pv_edit.setReadOnly(not editable)
+        if self.value_stored_widget is not None:
+            self.value_stored_widget.setEnabled(editable)
+
+        for form_layout in (self.ss_form_layout, self.tol_form_layout,
+                            self.timeout_form_layout):
+            for i in range(form_layout.rowCount()):
+                item = form_layout.itemAt(i, QtWidgets.QFormLayout.FieldRole)
+
+                # designer can sometimes sneak blank rows or start at i=1
+                if item is not None:
+                    item.widget().setEnabled(editable)
+
+        self.open_rbv_button.setEnabled(editable)
+
+        if editable:
+            self.save_button.show()
+        else:
+            self.save_button.hide()
+
+        self.editable = editable
 
     def update_stored_edit_widget(self):
         data = self.edata
@@ -242,10 +285,11 @@ class BaseParameterPage(Display, DataWidget):
         else:
             new_widget = edit_widget_from_epics_data(data)
 
-        if self.value_stored_widget:
-            insert_widget(new_widget, self.value_stored_widget)
-        else:
-            insert_widget(new_widget, self.value_stored_placeholder)
+        insert_widget(new_widget, self.value_stored_placeholder)
+        self.value_stored_widget = new_widget
+
+        # update edit status in case new widgets created
+        self.set_editable(self.editable)
 
     def update_live_value(self):
         data = self.edata
