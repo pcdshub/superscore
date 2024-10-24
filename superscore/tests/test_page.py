@@ -14,6 +14,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            ParameterPage, ReadbackPage,
                                            SetpointPage, SnapshotPage)
+from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
 
 
@@ -81,6 +82,14 @@ def collection_builder_page(qtbot: QtBot, sample_client: Client):
     qtbot.waitUntil(lambda: page.sub_pv_table_view._model._poll_thread.isFinished())
 
 
+@pytest.fixture
+def restore_page(qtbot: QtBot, sample_client: Client, simple_snapshot: Snapshot):
+    page = RestorePage(data=simple_snapshot, client=sample_client)
+    qtbot.addWidget(page)
+    yield page
+    page.close()
+
+
 @pytest.mark.parametrize(
     'page',
     [
@@ -91,6 +100,7 @@ def collection_builder_page(qtbot: QtBot, sample_client: Client):
         "snapshot_page",
         "search_page",
         "collection_builder_page",
+        "restore_page",
     ]
 )
 def test_page_smoke(page: str, request: pytest.FixtureRequest):
@@ -218,3 +228,16 @@ def test_stored_widget_swap(
         qtbot.waitUntil(
             lambda: isinstance(page.value_stored_widget, expected_widget),
         )
+
+
+def test_restore_page_toggle_live(restore_page):
+    tableView = restore_page.tableView
+    live_columns = tableView.live_headers
+    toggle_live_button = restore_page.compareLiveButton
+
+    toggle_live_button.click()
+    assert tableView._model._poll_thread.running
+    assert all((not tableView.isColumnHidden(column) for column in live_columns))
+
+    toggle_live_button.click()
+    assert all((tableView.isColumnHidden(column) for column in live_columns))
