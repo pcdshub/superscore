@@ -1,20 +1,66 @@
 """Largely smoke tests for various pages"""
 
+from unittest.mock import MagicMock
+
 import pytest
 from pytestqt.qtbot import QtBot
-from qtpy import QtCore
+from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
-from superscore.model import Collection, Parameter
+from superscore.control_layers._base_shim import EpicsData
+from superscore.model import (Collection, Parameter, Readback, Setpoint,
+                              Snapshot)
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
-from superscore.widgets.page.entry import CollectionPage
+from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
+                                           ParameterPage, ReadbackPage,
+                                           SetpointPage, SnapshotPage)
 from superscore.widgets.page.search import SearchPage
 
 
 @pytest.fixture(scope='function')
-def collection_page(qtbot: QtBot):
+def collection_page(qtbot: QtBot, sample_client: Client):
     data = Collection()
-    page = CollectionPage(data=data)
+    page = CollectionPage(data=data, client=sample_client)
+    qtbot.addWidget(page)
+    yield page
+
+    view = page.sub_pv_table_view
+    view._model.stop_polling()
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
+
+
+@pytest.fixture(scope="function")
+def snapshot_page(qtbot: QtBot, sample_client: Client):
+    data = Snapshot()
+    page = SnapshotPage(data=data, client=sample_client)
+    qtbot.addWidget(page)
+    yield page
+
+    view = page.sub_pv_table_view
+    view._model.stop_polling()
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
+
+
+@pytest.fixture(scope="function")
+def parameter_page(qtbot: QtBot, sample_client: Client):
+    data = Parameter()
+    page = ParameterPage(data=data, client=sample_client)
+    qtbot.addWidget(page)
+    return page
+
+
+@pytest.fixture(scope="function")
+def setpoint_page(qtbot: QtBot, sample_client: Client):
+    data = Setpoint()
+    page = SetpointPage(data=data, client=sample_client)
+    qtbot.addWidget(page)
+    return page
+
+
+@pytest.fixture(scope="function")
+def readback_page(qtbot: QtBot, sample_client: Client):
+    data = Readback()
+    page = ReadbackPage(data=data, client=sample_client)
     qtbot.addWidget(page)
     return page
 
@@ -37,7 +83,15 @@ def collection_builder_page(qtbot: QtBot, sample_client: Client):
 
 @pytest.mark.parametrize(
     'page',
-    ["collection_page", "search_page", "collection_builder_page"]
+    [
+        "parameter_page",
+        "setpoint_page",
+        "readback_page",
+        "collection_page",
+        "snapshot_page",
+        "search_page",
+        "collection_builder_page",
+    ]
 )
 def test_page_smoke(page: str, request: pytest.FixtureRequest):
     """smoke test, just create each page and see if they fail"""
@@ -114,3 +168,53 @@ def test_coll_builder_edit(
 
     coll_model.setData(first_index, 'anothername', role=QtCore.Qt.EditRole)
     qtbot.waitUntil(lambda: "anothername" in page.data.children[1].title)
+
+
+@pytest.mark.parametrize("page_fixture,", ["parameter_page", "setpoint_page"])
+def test_open_page_slot(
+    page_fixture: str,
+    request: pytest.FixtureRequest,
+):
+    page: BaseParameterPage = request.getfixturevalue(page_fixture)
+    page.open_page_slot = MagicMock()
+    page.open_rbv_button.clicked.emit()
+    assert page.open_page_slot.called
+
+
+@pytest.mark.parametrize(
+    "page_fixture,",
+    ["parameter_page", "setpoint_page", "readback_page"]
+)
+def test_stored_widget_swap(
+    page_fixture: str,
+    request: pytest.FixtureRequest,
+    qtbot: QtBot,
+):
+    ret_vals = {
+        "MY:FLOAT": EpicsData(data=0.5, precision=3,
+                              lower_ctrl_limit=-2, upper_ctrl_limit=2),
+        "MY:INT": EpicsData(data=1, lower_ctrl_limit=-10, upper_ctrl_limit=10),
+        "MY:ENUM": EpicsData(data=0, enums=["OUT", "IN", "UNKNOWN"])
+    }
+
+    def simple_coll_return_vals(pv_name: str):
+        return ret_vals[pv_name]
+
+    page: BaseParameterPage = request.getfixturevalue(page_fixture)
+    page.set_editable(True)
+    page.client.cl.get = MagicMock(side_effect=simple_coll_return_vals)
+    qtbot.waitUntil(lambda: not page._edata_thread.isRunning())
+    page.get_edata()
+    qtbot.waitUntil(lambda: not page._edata_thread.isRunning())
+
+    for pv, expected_widget in zip(
+        ret_vals,
+        (QtWidgets.QDoubleSpinBox, QtWidgets.QSpinBox, QtWidgets.QComboBox)
+    ):
+        page.pv_edit.setText(pv)
+        qtbot.waitUntil(lambda: page.data.pv_name == pv)
+        page.refresh_button.clicked.emit()
+
+        qtbot.waitUntil(
+            lambda: isinstance(page.value_stored_widget, expected_widget),
+        )
