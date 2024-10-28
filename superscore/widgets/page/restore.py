@@ -3,7 +3,7 @@
 import logging
 from functools import partial
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
@@ -18,8 +18,41 @@ class SnapshotTableView(LivePVTableView):
     """Table view specific to showing and comparing PVs in Snapshots"""
     live_headers = {LivePVHeader.LIVE_VALUE, LivePVHeader.LIVE_STATUS, LivePVHeader.LIVE_SEVERITY}
 
+    turnOnLive = QtCore.Signal()
+    turnOffLive = QtCore.Signal()
+
+    def __init__(self, *args, start_live: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._is_live = start_live
+
     def gather_sub_entries(self) -> None:
         self.sub_entries = self.client._gather_leaves(self.data)
+
+    @QtCore.Slot()
+    def set_live(self, state: bool):
+        self._is_live = state
+        for live_header in self.live_headers:
+            self.setColumnHidden(live_header, not self._is_live)
+        if self._is_live:
+            self.turnOnLive.emit()
+        else:
+            self.turnOffLive.emit()
+
+    @QtCore.Slot()
+    def toggle_live(self):
+        self.set_live(not self._is_live)
+
+
+class LiveButton(QtWidgets.QPushButton):
+    """A button for toggling the status of live data on a SnapshotTableModel"""
+    labels = ["Compare to Live", "Turn off Live"]
+
+    def setChecked(self, state: bool):
+        """Set button's check status. Check status is semantically connected to
+        whether the button turns a SnapshotTableView's live data on or off"""
+        super().setChecked(state)
+        new_label = self.labels[int(state)]
+        self.setText(new_label)
 
 
 class RestorePage(Display, QtWidgets.QWidget):
@@ -51,7 +84,12 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.tableView.client = self.client
         self.tableView.set_data(data)
         self.tableView.hideColumn(LivePVHeader.REMOVE)
-        self.set_live(False)
+
+        self.compareLiveButton.clicked.connect(self.tableView.toggle_live)
+        self.tableView.turnOnLive.connect(partial(self.set_live, True))
+        self.tableView.turnOffLive.connect(partial(self.set_live, False))
+        self.tableView.set_live(False)
+
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(header.Stretch)
 
@@ -62,15 +100,10 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotTitle.hide()
 
     def set_live(self, is_live: bool):
-        for live_header in self.tableView.live_headers:
-            self.tableView.setColumnHidden(live_header, not is_live)
-
-        self.compareLiveButton.setText(["Compare to Live", "Turn off Live"][int(is_live)])
-        self.compareLiveButton.clicked.connect(partial(self.set_live, not is_live))
-
         self.secondarySnapshotLabel.setVisible(is_live)
         self.secondarySnapshotTitle.setText("Live Data")
         self.secondarySnapshotTitle.setVisible(is_live)
+        self.compareLiveButton.setChecked(is_live)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logging.debug("Closing SnapshotTableView")

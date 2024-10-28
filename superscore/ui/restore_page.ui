@@ -37,7 +37,7 @@
        </spacer>
       </item>
       <item row="0" column="5">
-       <widget class="QPushButton" name="compareLiveButton">
+       <widget class="LiveButton" name="compareLiveButton">
         <property name="text">
          <string>Compare to Live</string>
         </property>
@@ -94,6 +94,11 @@
   <customwidget>
    <class>SnapshotTableView</class>
    <extends>QTableView</extends>
+   <header>superscore.widgets.page.restore</header>
+  </customwidget>
+  <customwidget>
+   <class>LiveButton</class>
+   <extends>QPushButton</extends>
    <header location="global">superscore.widgets.page.restore</header>
   </customwidget>
  </customwidgets>
