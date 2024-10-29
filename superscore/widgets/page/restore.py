@@ -9,9 +9,19 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Snapshot
 from superscore.widgets.core import Display
-from superscore.widgets.views import LivePVHeader, LivePVTableView
+from superscore.widgets.views import (LivePVHeader, LivePVTableModel,
+                                      LivePVTableView)
 
 logger = logging.getLogger(__name__)
+
+
+class SnapshotTableModel(LivePVTableModel):
+    """Model specific to showing and comparing PVs in Snapshots"""
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignCenter
+        else:
+            return super().data(index, role)
 
 
 class SnapshotTableView(LivePVTableView):
@@ -23,6 +33,7 @@ class SnapshotTableView(LivePVTableView):
 
     def __init__(self, *args, start_live: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
+        self._model_cls = SnapshotTableModel
         self._is_live = start_live
 
     def gather_sub_entries(self) -> None:
