@@ -1195,13 +1195,14 @@ class LivePVTableView(BaseDataTableView):
         if isinstance(self.data, Nestable):
             # gather sub_nestables
             self.sub_entries = []
-            for child in self.data.children:
+            for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
-                    filled_child = self._client.backend.get_entry(child)
+                    child = self._client.backend.get_entry(child)
+                    self.data.children[i] = child
                 else:
-                    filled_child = child
+                    child = child
 
-                if filled_child is None:
+                if child is None:
                     raise EntryNotFoundError(f"{child} not found in backend, "
                                              "cannot fill with real data")
 
@@ -1298,16 +1299,17 @@ class NestableTableView(BaseDataTableView):
     def gather_sub_entries(self):
         if isinstance(self.data, UUID):
             self.data = self.client.backend.get_entry(self.data)
-        # TODO: gather and fill entries where necessary
+
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            for child in self.data.children:
+            for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
-                    filled_child = self._client.backend.get_entry(child)
+                    child = self._client.backend.get_entry(child)
+                    self.data.children[i] = child
                 else:
-                    filled_child = child
+                    child = child
 
-                if filled_child is None:
+                if child is None:
                     raise EntryNotFoundError(f"{child} not found in backend, "
                                              "cannot fill with real data")
 
