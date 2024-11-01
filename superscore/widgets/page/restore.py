@@ -1,6 +1,7 @@
 """Page for inspecting, comparing, and restoring Snapshot values"""
 
 import logging
+from enum import auto
 from functools import partial
 
 from qtpy import QtCore, QtWidgets
@@ -9,8 +10,9 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Setpoint, Snapshot
 from superscore.widgets.core import Display
-from superscore.widgets.views import (LivePVHeader, LivePVTableModel,
-                                      LivePVTableView)
+from superscore.widgets.views import (BaseDataTableView, BaseTableEntryModel,
+                                      HeaderEnum, LivePVHeader,
+                                      LivePVTableModel, LivePVTableView)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,8 @@ class SnapshotTableView(LivePVTableView):
         super().__init__(*args, **kwargs)
         self._model_cls = SnapshotTableModel
         self._is_live = start_live
+        # self.setColumnHidden(LivePVHeader.STORED_SEVERITY, True)
+        # self.setColumnHidden(LivePVHeader.STORED_STATUS, True)
 
     def gather_sub_entries(self) -> None:
         self.sub_entries = self.client._gather_leaves(self.data)
@@ -98,6 +102,79 @@ class RestoreDialog(Display, QtWidgets.QWidget):
         row = self.tableWidget.currentRow()
         self.entries.pop(row)
         self.tableWidget.removeRow(row)
+
+
+class CompareHeader(HeaderEnum):
+    PV_NAME = 0
+    PRIMARY_VALUE = auto()
+    SECONDARY_VALUE = auto()
+    PRIMARY_TIMESTAMP = auto()
+    SECONDARY_TIMESTAMP = auto()
+    PRIMARY_STATUS = auto()
+    SECONDARY_STATUS = auto()
+    PRIMARY_SEVERITY = auto()
+    SECONDARY_SEVERITY = auto()
+    PRIMARY_OPEN = auto()
+    SECONDARY_OPEN = auto()
+
+
+class CompareSnapshotTableModel(BaseTableEntryModel):
+    comparison_headers = {}
+
+    def __init__(
+        self,
+        *args,
+        primary_snapshot: Snapshot = None,
+        comparison_snapshot: Snapshot = None,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.headers = [h.header_name() for h in CompareHeader]
+        self._primary_data = primary_snapshot
+        self._secondary_data = comparison_snapshot
+        self.entries = []
+
+    def _collate_pvs(self) -> None:
+        self.entries = []
+        # for each PV in primary snapshot, find partner in secondary snapshot
+        pvs = self.client.search(
+            ("entry_type", "eq", Setpoint),
+            ("ancestor", "eq", self._primary_data.uuid),
+        )
+        seen = set()
+        for primary in pvs:
+            secondary_generator = self.client.search(
+                ("pv_name", "eq", primary.pv_name),
+                ("ancestor", "eq", self._secondary_data.uuid),
+            )
+            secondary = tuple(secondary_generator)[0]  # assumes at most one match
+            self.entries.append((primary, secondary))
+            seen.add(secondary.uuid)
+        # for each PV in secondary with no partner in primary, add row with 'None' partner
+        pvs = self.client.search(
+            ("entry_type", "eq", Setpoint),
+            ("ancestor", "eq", self._secondary_data.uuid),
+        )
+        for secondary in pvs:
+            if secondary.uuid not in seen:
+                self.entries.append((None, secondary))
+
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignCenter
+
+    @QtCore.Slot()
+    def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
+        self._secondary_data = comparison_snapshot
+        self._collate_pvs()
+
+
+class CompareSnapshotTableView(BaseDataTableView):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def gather_sub_entries(self):
+        pass
 
 
 class LiveButton(QtWidgets.QPushButton):
