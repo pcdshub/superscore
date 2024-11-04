@@ -6,7 +6,7 @@ def _get_icon_map():
     # a list of qtawesome icon names
     icon_map = {
         Collection: 'mdi.file-document-multiple',
-        Parameter: 'msc.symbol-field',
+        Parameter: 'mdi.file',
         Snapshot: 'mdi.camera',
         Setpoint: 'mdi.target',
         Readback: 'mdi.book-open-variant',
