@@ -1,11 +1,12 @@
 import logging
-from typing import Callable, Optional
+from typing import Optional
 
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
 from superscore.model import Collection, Entry, Parameter
+from superscore.type_hints import OpenPageSlot
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
@@ -47,7 +48,7 @@ class CollectionBuilderPage(Display, DataWidget):
         *args,
         client: Client,
         data: Optional[Collection] = None,
-        open_page_slot: Optional[Callable] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         if data is None:
