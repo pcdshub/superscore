@@ -7,7 +7,7 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Snapshot
+from superscore.model import Setpoint, Snapshot
 from superscore.widgets.core import Display
 from superscore.widgets.views import (LivePVHeader, LivePVTableModel,
                                       LivePVTableView)
@@ -54,6 +54,52 @@ class SnapshotTableView(LivePVTableView):
         self.set_live(not self._is_live)
 
 
+class RestoreDialog(Display, QtWidgets.QWidget):
+    """A dialog for selecting PVs to write to the EPICS system"""
+
+    filename = "restore_dialog.ui"
+
+    cancelButton: QtWidgets.QPushButton
+    restoreButton: QtWidgets.QPushButton
+
+    tableWidget: QtWidgets.QTableWidget
+
+    def __init__(self, client: Client, snapshot: Snapshot = None):
+        super().__init__()
+        self.client = client
+        if snapshot is None:
+            self.entries = []
+        else:
+            self.entries = [entry for entry in client._gather_leaves(snapshot) if isinstance(entry, Setpoint)]
+
+        self.tableWidget.setRowCount(len(self.entries))
+        self.tableWidget.setColumnCount(3)
+        for row, entry in enumerate(self.entries):
+            pv_item = QtWidgets.QTableWidgetItem(entry.pv_name)
+            self.tableWidget.setItem(row, 0, pv_item)
+
+            value_item = QtWidgets.QTableWidgetItem(str(entry.data))
+            value_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            self.tableWidget.setItem(row, 1, value_item)
+
+            remove_item = QtWidgets.QPushButton("Remove")
+            remove_item.clicked.connect(self.delete_row)
+            self.tableWidget.setCellWidget(row, 2, remove_item)
+
+        self.restoreButton.clicked.connect(self.restore)
+        self.cancelButton.clicked.connect(self.deleteLater)
+
+    def restore(self):
+        ephemeral_snapshot = Snapshot(children=self.entries)
+        self.client.apply(ephemeral_snapshot)
+        self.deleteLater()
+
+    def delete_row(self) -> None:
+        row = self.tableWidget.currentRow()
+        self.entries.pop(row)
+        self.tableWidget.removeRow(row)
+
+
 class LiveButton(QtWidgets.QPushButton):
     """A button for toggling the status of live data on a SnapshotTableModel"""
     labels = ["Compare to Live", "Turn off Live"]
@@ -78,6 +124,7 @@ class RestorePage(Display, QtWidgets.QWidget):
     secondarySnapshotTitle: QtWidgets.QLabel
     compareLiveButton: QtWidgets.QPushButton
     compareSnapshotButton: QtWidgets.QPushButton
+    restoreButton: QtWidgets.QPushButton
 
     tableView: SnapshotTableView
 
@@ -110,11 +157,18 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotLabel.hide()
         self.secondarySnapshotTitle.hide()
 
+        self.restoreButton.clicked.connect(self.launch_dialog)
+
     def set_live(self, is_live: bool):
         self.secondarySnapshotLabel.setVisible(is_live)
         self.secondarySnapshotTitle.setText("Live Data")
         self.secondarySnapshotTitle.setVisible(is_live)
         self.compareLiveButton.setChecked(is_live)
+
+    def launch_dialog(self):
+        self.dialog = RestoreDialog(self.client, self.snapshot)
+        self.dialog.restoreButton.clicked.connect(partial(self.tableView.set_live, True))
+        self.dialog.show()
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logging.debug("Closing SnapshotTableView")
