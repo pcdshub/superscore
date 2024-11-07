@@ -812,8 +812,9 @@ def sample_client(
     return client
 
 
-@pytest.fixture(scope='module')
-def linac_ioc():
+@pytest.fixture
+def linac_ioc(linac_backend):
     _, snapshot = linac_data()
-    with IOCFactory.from_entries(snapshot.children)(prefix="SCORETEST:") as ioc:
+    client = Client(backend=linac_backend)
+    with IOCFactory.from_entries(snapshot.children, client)(prefix="SCORETEST:") as ioc:
         yield ioc
