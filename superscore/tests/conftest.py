@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 from typing import List
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 
@@ -640,6 +641,98 @@ def linac_data():
     )
 
     return all_col, all_snapshot
+
+
+def comparison_linac_snapshot():
+    _, snapshot = linac_data()
+    snapshot.title = 'AD Comparison'
+    snapshot.description = ('A snapshot with different values and statuses to compare '
+                            'to the "standard" snapshot')
+    snapshot.uuid = UUID("8e0b1916-912a-457e-8ff9-4478b8018cec")
+
+    lcls_nc_snapshot, facet_snapshot, lcls_sc_snapshot = snapshot.children
+    lcls_nc_snapshot.uuid = UUID("4e217631-a595-4cdd-b918-a10c54ff8e11")
+    facet_snapshot.uuid = UUID('ac7f4854-8d3f-4461-9ebf-2321d092657f')
+    lcls_sc_snapshot.uuid = UUID('8f9d7f91-bd13-4c0d-ac8c-26aa80c72df1')
+
+    in20_snapshot, li21_snapshot, bsy_snapshot = lcls_nc_snapshot.children
+    in20_snapshot.uuid = UUID('a55281fe-6c20-4ed0-9d73-342b2ec4d1f9')
+    li21_snapshot.uuid = UUID('a430d9d2-9acb-4c98-be75-d61b674c478f')
+    bsy_snapshot.uuid = UUID('3a2c72f1-3792-4dba-8133-bd295c222ade')
+
+    in10_snapshot, li10_snapshot = facet_snapshot.children
+    in10_snapshot.uuid = UUID('04c1cfbf-4f52-49af-a3f8-e637b7ac42c6')
+    li10_snapshot.uuid = UUID('90255db1-95d6-4b65-9105-b7f09c623354')
+
+    gunb_snapshot, l0b_snapshot, _ = lcls_sc_snapshot.children
+    gunb_snapshot.uuid = UUID('59767800-60bd-4d1f-85b3-c71731818a4c')
+    l0b_snapshot.uuid = UUID('41cd90c4-d6d4-44bd-a4e4-04ef5c3920f5')
+
+    lasr_in20_snapshot = in20_snapshot.children[0]
+    lasr_in20_snapshot.uuid = UUID('769c7df6-e807-407c-b2e3-5c94e09cc1a2')
+
+    vac_li21_snapshot = li21_snapshot.children[0]
+    vac_li21_snapshot.uuid = UUID('1fc13363-cb6f-48bd-a26f-4d76cc0755eb')
+
+    vac_bsy_snapshot = bsy_snapshot.children[0]
+    vac_bsy_snapshot.uuid = UUID('11efd7e3-48fb-4f23-a3b5-cc337af2aa1c')
+
+    lasr_in10_snapshot = in10_snapshot.children[0]
+    lasr_in10_snapshot.uuid = UUID('9fb395b0-a544-4166-9b03-3b839d315b6a')
+
+    vac_li10_snapshot = li10_snapshot.children[0]
+    vac_li10_snapshot.uuid = UUID('e6bea38f-0799-4771-9a16-814a40ab42ab')
+
+    vac_gunb_snapshot, mgnt_gunb_snapshot, lasr_gunb_snapshot = gunb_snapshot.children
+    vac_gunb_snapshot.uuid = UUID('8118dcc6-2c9e-4b38-869e-2f0c724de4a8')
+    mgnt_gunb_snapshot.uuid = UUID('2b18360a-d038-4c80-a3aa-2739cdde7247')
+    lasr_gunb_snapshot.uuid = UUID('b82da301-8f85-4f62-89c2-e9c16e2e767d')
+
+    vac_l0b_snapshot = l0b_snapshot.children[0]
+    vac_l0b_snapshot.uuid = UUID('c1d13a88-3dbc-4f40-860b-9f63c793232f')
+
+    lasr_in20_value = lasr_in20_snapshot.children[0]
+    lasr_in20_value.uuid = UUID('ef321662-f98e-4511-b9b0-6f2d8037c302')
+    lasr_in20_value.data = -1
+    lasr_in20_value.severity = Severity.MAJOR
+
+    vac_li21_setpoint, vac_li21_readback = vac_li21_snapshot.children
+    vac_li21_setpoint.uuid = UUID('e977f215-a7c9-4caf-8f91-d2783f3e4a88')
+    vac_li21_setpoint.data = 0.0
+    vac_li21_setpoint.severity = Severity.MINOR
+    vac_li21_readback.uuid = UUID('949a9837-95bd-4ca0-8dad-f478f57143dd')
+
+    vac_bsy_value = vac_bsy_snapshot.children[0]
+    vac_bsy_value.uuid = UUID('b976bac4-d68b-45b0-a519-e0307a60b052')
+    vac_bsy_value.data = "lasdjfjasldfj"
+
+    lasr_in10_value = lasr_in10_snapshot.children[0]
+    lasr_in10_value.uuid = UUID('21bf36a2-002c-49fe-a7c3-eade33d62dfd')
+    lasr_in10_value.data = 640.68
+
+    vac_li10_value = vac_li10_snapshot.children[0]
+    vac_li10_value.uuid = UUID('732cb745-482f-40a7-b83c-d7f2d4ed2305')
+    vac_li10_value.data = .27
+
+    vac_gunb_value1, vac_gunb_value2 = vac_gunb_snapshot.children
+    vac_gunb_value1.uuid = UUID('0e6c4d09-2a77-4ac2-b57a-fc9c049e9063')
+    vac_gunb_value2.uuid = UUID('d2a45d2b-bb7c-4ccb-a2e3-5e5a44c7dd30')
+    vac_gunb_value2.data = True
+
+    mgnt_gunb_value = mgnt_gunb_snapshot.children[0]
+    mgnt_gunb_value.uuid = UUID('61c7ac48-77eb-430c-a86b-52c1267f8ef0')
+
+    lasr_gunb_value1, lasr_gunb_value2 = lasr_gunb_snapshot.children
+    lasr_gunb_value1.uuid = UUID('4719d31c-62fc-490b-9729-7889f0b79df8')
+    lasr_gunb_value1.severity = Severity.INVALID
+    lasr_gunb_value2.uuid = UUID('bced6e63-f4f8-4ab5-9256-66a7da66b160')
+
+    vac_l0b_value = vac_l0b_snapshot.children[0]
+    vac_l0b_value.uuid = UUID('de169754-cafd-4f38-9f26-cf92039e75d8')
+    vac_l0b_value.data = -15
+    vac_l0b_value.severity = Severity.MINOR
+
+    return snapshot
 
 
 @pytest.fixture(scope='function')
