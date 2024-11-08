@@ -8,6 +8,7 @@ from uuid import UUID
 
 from superscore.backends import get_backend
 from superscore.backends.core import SearchTerm, SearchTermType, _Backend
+from superscore.compare import EntryDiff, walk_find_diff
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
@@ -188,7 +189,16 @@ class Client:
 
     def compare(self, entry_l: Entry, entry_r: Entry) -> Any:
         """Compare two entries.  Should be of same type, and return a diff"""
-        raise NotImplementedError
+        if type(entry_l) is not type(entry_r):
+            raise ValueError("The two provided entries are of different types"
+                             f"({type(entry_l).__name__} vs {type(entry_r).__name__})")
+
+        # TODO: fill both entries before comparing
+
+        diffs = walk_find_diff(entry_l, entry_r)
+
+        # TODO: do we want this to be a fully expressed list?  is currently a generator
+        return EntryDiff(original_entry=entry_l, new_entry=entry_r, diffs=list(diffs))
 
     def snap(self, entry: Collection) -> Snapshot:
         """
