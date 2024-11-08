@@ -4,6 +4,7 @@ Top-level window widget that contains other widgets
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Optional
 
 import qtawesome as qta
@@ -12,11 +13,12 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Entry
+from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
 from superscore.widgets.views import RootTree
 
@@ -58,6 +60,8 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
+        self.tree_view.setExpandsOnDoubleClick(False)
+        self.tree_view.doubleClicked.connect(self.open_index)
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
@@ -126,25 +130,33 @@ class Window(Display, QtWidgets.QMainWindow):
 
         return page_widget
 
+    def open_index(self, index: QtCore.QModelIndex) -> None:
+        entry: Entry = index.internalPointer()._data
+        self.open_page(entry)
+
     def open_search_page(self) -> None:
         page = SearchPage(client=self.client, open_page_slot=self.open_page)
-        self.tab_widget.addTab(page, 'search')
+        index = self.tab_widget.addTab(page, 'search')
+        self.tab_widget.setCurrentIndex(index)
+
+    def open_restore_page(self, snapshot: Snapshot) -> None:
+        page = RestorePage(data=snapshot, client=self.client)
+        index = self.tab_widget.addTab(page, snapshot.title)
+        self.tab_widget.setCurrentIndex(index)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         self.menu = QtWidgets.QMenu(self)
         index: QtCore.QModelIndex = self.tree_view.indexAt(pos)
-        entry: Entry = index.internalPointer()._data
-
         if index is not None and index.data() is not None:
-            # WeakPartialMethodSlot may not be needed, menus are transient
-            def open(*_, **__):
-                self.open_page(entry)
-
+            entry: Entry = index.internalPointer()._data
             open_action = self.menu.addAction(
                 f'&Open Detailed {type(entry).__name__} page'
             )
-            open_action.triggered.connect(open)
-
+            # WeakPartialMethodSlot may not be needed, menus are transient
+            open_action.triggered.connect(partial(self.open_page, entry))
+            if isinstance(entry, Snapshot):
+                restore_page_action = self.menu.addAction('Inspect values')
+                restore_page_action.triggered.connect(partial(self.open_restore_page, entry))
         self.menu.exec_(self.tree_view.mapToGlobal(pos))
 
     def closeEvent(self, a0: QCloseEvent) -> None:

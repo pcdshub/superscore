@@ -700,11 +700,10 @@ class LivePVTableModel(BaseTableEntryModel):
 
         logger.debug(f"stopping and de-referencing thread @ {id(self._poll_thread)}")
         # does not remove reference to avoid premature python garbage collection
-        self._poll_thread.data = {}
         self._poll_thread.stop()
-
         if wait_time > 0.0:
             self._poll_thread.wait(wait_time)
+        self._poll_thread.data = {}
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
@@ -848,11 +847,11 @@ class LivePVTableModel(BaseTableEntryModel):
             return stored_data
         elif index.column() == LivePVHeader.LIVE_VALUE:
             live_value = self._get_live_data_field(entry, 'data')
-            stored_data = getattr(entry, 'data', None)
-            is_close = self.is_close(entry, stored_data)
-            if ((stored_data is not None) and role == QtCore.Qt.BackgroundRole
-                    and not is_close):
-                return QtGui.QColor('red')
+            if role == QtCore.Qt.BackgroundRole:
+                stored_data = getattr(entry, 'data', None)
+                is_close = self.is_close(entry, stored_data)
+                if stored_data is not None and not is_close:
+                    return QtGui.QColor('red')
             return str(live_value)
         elif index.column() == LivePVHeader.TIMESTAMP:
             return entry.creation_time.strftime('%Y/%m/%d %H:%M')
@@ -1156,6 +1155,19 @@ class BaseDataTableView(QtWidgets.QTableView):
             return
         self._model.set_editable(column, is_editable)
 
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MiddleButton:
+            index = self.indexAt(event.position().toPoint())
+            text = self._model.data(index, QtCore.Qt.DisplayRole)
+            clipboard = QtWidgets.QApplication.clipboard()
+            if clipboard.supportsSelection():
+                mode = clipboard.Selection
+            else:
+                mode = clipboard.Clipboard
+            clipboard.setText(text, mode=mode)
+            clipboard.setText(text)
+        super().mousePressEvent(event)
+
 
 class LivePVTableView(BaseDataTableView):
     """
@@ -1222,6 +1234,11 @@ class LivePVTableView(BaseDataTableView):
             self._model.stop_polling()
             self._model.client = self._client
             self._model.start_polling()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        logger.debug("Stopping pv_model polling")
+        self._model.stop_polling(wait_time=5000)
+        super().closeEvent(a0)
 
 
 class NestableHeader(HeaderEnum):
