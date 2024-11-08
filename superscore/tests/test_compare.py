@@ -9,7 +9,7 @@ from superscore.client import Client
 from superscore.compare import (AttributePath, DiffItem, EntryDiff,
                                 walk_find_diff)
 from superscore.model import (Collection, Entry, Parameter, Readback, Setpoint,
-                              Severity, Status)
+                              Severity, Snapshot, Status)
 
 
 def simplify_path(path: AttributePath) -> AttributePath:
@@ -120,7 +120,16 @@ date_format = "%Y-%m-%dT"
         "ffd668d3-57d9-404e-8366-0778af7aee61",
         []
     ),
-    (  # Same snapshot, no differences
+    (  # different initial type
+        "ffd668d3-57d9-404e-8366-0778af7aee61",
+        "8e380e15-5489-41db-a8a7-bc47a731f099",
+        [DiffItem(
+            path=[],
+            original_value=Snapshot,
+            new_value=Readback
+        )]
+    ),
+    (  # two different readbacks
         "ecb42cdb-b703-4562-86e1-45bd67a2ab1a",
         "8e380e15-5489-41db-a8a7-bc47a731f099",
         [
@@ -160,5 +169,9 @@ def test_client_diff(
     print(diff)
     assert len(expected_diffs) == len(diff.diffs)
     for found_diff, expected_diff in zip(diff.diffs, expected_diffs):
-        assert found_diff.original_value == expected_diff.original_value
-        assert found_diff.new_value == expected_diff.new_value
+        if isinstance(found_diff.original_value, Entry):
+            assert type(found_diff.original_value) == expected_diff.original_value
+            assert type(found_diff.new_value) == expected_diff.new_value
+        else:
+            assert found_diff.original_value == expected_diff.original_value
+            assert found_diff.new_value == expected_diff.new_value
