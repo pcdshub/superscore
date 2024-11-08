@@ -230,14 +230,14 @@ def test_stored_widget_swap(
         )
 
 
-def test_restore_page_toggle_live(restore_page):
+def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
     tableView = restore_page.tableView
     live_columns = tableView.live_headers
     toggle_live_button = restore_page.compareLiveButton
 
     toggle_live_button.click()
-    assert tableView._model._poll_thread.running
-    assert all((not tableView.isColumnHidden(column) for column in live_columns))
+    qtbot.waitUntil(lambda: tableView._model._poll_thread.running)
+    qtbot.waitUntil(lambda: all((not tableView.isColumnHidden(column) for column in live_columns)))
 
     toggle_live_button.click()
-    assert all((tableView.isColumnHidden(column) for column in live_columns))
+    qtbot.waitUntil(lambda: all((tableView.isColumnHidden(column) for column in live_columns)))
