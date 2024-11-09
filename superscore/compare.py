@@ -6,11 +6,11 @@ from typing import Any, Generator, Iterable, List, Optional, Tuple, Union
 from superscore.model import Entry
 
 # An attribute access path chain leading to the item of interest
-# simple fields:        (object, "field_name")
-# dictionary values:    ("__dict__", "key_name")   ... not used?
+# simple fields:        (dclass_object: dataclass, field_name: str)
+# dictionary values:    ("__dict__", key_name: str)
 # list entry:           ("__list__", list_index: int)
-# enum value:           ("__enum__", Enum.member_object)
-# set entry:            ("__set__", "set_member")
+# enum value:           ("__enum__", enum_member: Enum)
+# set entry:            ("__set__", set_member: str)
 AttributePath = List[Tuple[Any, Any]]
 
 
