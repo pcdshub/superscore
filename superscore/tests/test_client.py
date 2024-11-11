@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 
@@ -9,7 +10,8 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
-from superscore.model import Collection, Parameter, Readback, Root, Setpoint
+from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
+                              Root, Setpoint)
 
 from .conftest import MockTaskStatus
 
@@ -149,3 +151,33 @@ def test_search(sample_client):
         SearchTerm(operator='isclose', attr='data', value=(4, .5, 1))
     ))
     assert len(results) == 4
+
+
+def uuids_in_entry(entry: Entry):
+    """
+    Returns True if there is a UUID in a spot where an Entry could be,
+    False otherwise.
+    """
+    if isinstance(entry, Nestable):
+        for child in entry.children:
+            if isinstance(child, UUID):
+                return True
+
+    return False
+
+
+@pytest.mark.parametrize("entry_uuid", [
+    "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
+    "ffd668d3-57d9-404e-8366-0778af7aee61",
+])
+def test_fill(sample_client: Client, entry_uuid: str):
+    entry = list(sample_client.search(
+        ("uuid", "eq", UUID(entry_uuid))
+    ))[0]
+
+    # often entries have uuids in children, but ensure they're all uuids
+    entry.swap_to_uuids()
+    assert uuids_in_entry(entry)
+
+    sample_client.fill(entry)
+    assert not uuids_in_entry(entry)

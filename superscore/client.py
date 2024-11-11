@@ -8,6 +8,7 @@ from uuid import UUID
 
 from superscore.backends import get_backend
 from superscore.backends.core import SearchTerm, SearchTermType, _Backend
+from superscore.compare import DiffItem, EntryDiff, walk_find_diff
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
@@ -186,9 +187,57 @@ class Client:
         # check for references to ``entry`` in other objects?
         self.backend.delete_entry(entry)
 
-    def compare(self, entry_l: Entry, entry_r: Entry) -> Any:
-        """Compare two entries.  Should be of same type, and return a diff"""
-        raise NotImplementedError
+    def compare(self, entry_l: Entry, entry_r: Entry) -> EntryDiff:
+        """
+        Compare two entries and return a diff (EntryDiff).
+        Fills ``entry_l`` and ``entry_r`` before calculating the difference
+
+        Parameters
+        ----------
+        entry_l : Entry
+            the original (left-hand) Entry
+        entry_r : Entry
+            the new (right-hand) Entry
+
+        Returns
+        -------
+        EntryDiff
+            An EntryDiff that tracks the two comparison candidates, and a list
+            of DiffItem's
+        """
+        # Handle the most obvious case.
+        if type(entry_l) is not type(entry_r):
+            diffs = DiffItem(original_value=entry_l, new_value=entry_r, path=[])
+            return EntryDiff(original_entry=entry_l, new_entry=entry_r, diffs=[diffs])
+
+        self.fill(entry_l)
+        self.fill(entry_r)
+        diffs = walk_find_diff(entry_l, entry_r)
+
+        return EntryDiff(original_entry=entry_l, new_entry=entry_r, diffs=list(diffs))
+
+    def fill(self, entry: Entry) -> None:
+        """
+        Walk through ``entry`` and replace UUIDs with corresponding Entry's.
+        Currently only has meaning for Nestables.
+
+        Parameters
+        ----------
+        entry : Entry
+            Entry that may contain UUIDs to be filled with full Entry's
+        """
+        if isinstance(entry, Nestable):
+            new_children = []
+            for child in entry.children:
+                if isinstance(child, UUID):
+                    search_condition = SearchTerm('uuid', 'eq', child)
+                    filled_child = list(self.search(search_condition))[0]
+                    self.fill(filled_child)
+                    new_children.append(filled_child)
+                else:
+                    new_children.append(child)
+
+            entry.children = new_children
 
     def snap(self, entry: Collection) -> Snapshot:
         """
