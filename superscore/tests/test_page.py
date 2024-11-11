@@ -1,6 +1,6 @@
 """Largely smoke tests for various pages"""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytestqt.qtbot import QtBot
@@ -14,7 +14,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            ParameterPage, ReadbackPage,
                                            SetpointPage, SnapshotPage)
-from superscore.widgets.page.restore import RestorePage
+from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
 
 
@@ -241,3 +241,23 @@ def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
 
     toggle_live_button.click()
     qtbot.waitUntil(lambda: all((tableView.isColumnHidden(column) for column in live_columns)))
+
+
+@patch('superscore.control_layers.core.ControlLayer.put')
+def test_restore_dialog_restore(
+    put_mock,
+    mock_client: Client,
+    simple_snapshot: Snapshot,
+):
+    dialog = RestoreDialog(mock_client, simple_snapshot)
+    dialog.restore()
+    assert put_mock.call_args.args == mock_client._gather_data(simple_snapshot)
+
+
+def test_restore_dialog_remove_pv(mock_client: Client, simple_snapshot: Snapshot):
+    dialog = RestoreDialog(mock_client, simple_snapshot)
+    assert dialog.tableWidget.rowCount() == len(simple_snapshot.children)
+    remove_button_column = 2
+    dialog.tableWidget.setCurrentCell(1, remove_button_column)
+    dialog.delete_row()
+    assert dialog.tableWidget.rowCount() == len(simple_snapshot.children) - 1
