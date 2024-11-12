@@ -92,7 +92,7 @@ class RestoreDialog(Display, QtWidgets.QWidget):
     def restore(self):
         ephemeral_snapshot = Snapshot(children=self.entries)
         self.client.apply(ephemeral_snapshot)
-        self.deleteLater()
+        self.close()
 
     def delete_row(self) -> None:
         row = self.tableWidget.currentRow()
