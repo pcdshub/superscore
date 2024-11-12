@@ -256,8 +256,14 @@ def test_restore_dialog_restore(
 
 def test_restore_dialog_remove_pv(mock_client: Client, simple_snapshot: Snapshot):
     dialog = RestoreDialog(mock_client, simple_snapshot)
-    assert dialog.tableWidget.rowCount() == len(simple_snapshot.children)
-    remove_button_column = 2
-    dialog.tableWidget.setCurrentCell(1, remove_button_column)
+    tableWidget = dialog.tableWidget
+    assert tableWidget.rowCount() == len(simple_snapshot.children)
+
+    PV_COLUMN = 0
+    REMOVE_BUTTON_COLUMN = 2
+    item_to_remove = tableWidget.item(1, PV_COLUMN)
+    tableWidget.setCurrentCell(1, REMOVE_BUTTON_COLUMN)
     dialog.delete_row()
-    assert dialog.tableWidget.rowCount() == len(simple_snapshot.children) - 1
+    assert tableWidget.rowCount() == len(simple_snapshot.children) - 1
+    items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
+    assert item_to_remove not in items_left
