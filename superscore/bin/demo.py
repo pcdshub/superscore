@@ -65,5 +65,5 @@ def main(*args, db_path=None, **kwargs):
             client.save(entry)
             if isinstance(entry, (Snapshot, Setpoint, Readback)):
                 filled.append(entry)
-    with IOCFactory.from_entries(filled)(prefix=''):
+    with IOCFactory.from_entries(filled, client)(prefix=''):
         ui_main(*args, client=client, **kwargs)

@@ -1,6 +1,6 @@
 """Largely smoke tests for various pages"""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytestqt.qtbot import QtBot
@@ -14,7 +14,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            ParameterPage, ReadbackPage,
                                            SetpointPage, SnapshotPage)
-from superscore.widgets.page.restore import RestorePage
+from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
 
 
@@ -241,3 +241,29 @@ def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
 
     toggle_live_button.click()
     qtbot.waitUntil(lambda: all((tableView.isColumnHidden(column) for column in live_columns)))
+
+
+@patch('superscore.control_layers.core.ControlLayer.put')
+def test_restore_dialog_restore(
+    put_mock,
+    mock_client: Client,
+    simple_snapshot: Snapshot,
+):
+    dialog = RestoreDialog(mock_client, simple_snapshot)
+    dialog.restore()
+    assert put_mock.call_args.args == mock_client._gather_data(simple_snapshot)
+
+
+def test_restore_dialog_remove_pv(mock_client: Client, simple_snapshot: Snapshot):
+    dialog = RestoreDialog(mock_client, simple_snapshot)
+    tableWidget = dialog.tableWidget
+    assert tableWidget.rowCount() == len(simple_snapshot.children)
+
+    PV_COLUMN = 0
+    REMOVE_BUTTON_COLUMN = 2
+    item_to_remove = tableWidget.item(1, PV_COLUMN)
+    tableWidget.setCurrentCell(1, REMOVE_BUTTON_COLUMN)
+    dialog.delete_row()
+    assert tableWidget.rowCount() == len(simple_snapshot.children) - 1
+    items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
+    assert item_to_remove not in items_left
