@@ -7,7 +7,7 @@ from uuid import UUID
 from superscore.backends.core import _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
-from superscore.model import Entry, Nestable
+from superscore.model import Entry, Nestable, Root
 
 
 class TestBackend(_Backend):
@@ -17,6 +17,8 @@ class TestBackend(_Backend):
             self.data = []
         else:
             self.data = data
+
+        self._root = Root(entries=self.data)
 
     def save_entry(self, entry: Entry) -> None:
         try:
@@ -51,3 +53,7 @@ class TestBackend(_Backend):
                 elif entry.uuid == to_delete.uuid:
                     raise BackendError(f"Can't delete: entry {to_delete.uuid} is out of sync with the version in the backend")
             stack.extend([entry.children for entry in children if isinstance(entry, Nestable)])
+
+    @property
+    def root(self) -> Root:
+        return self._root
