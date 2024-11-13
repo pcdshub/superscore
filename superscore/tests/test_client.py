@@ -141,6 +141,7 @@ def test_find_config(sscore_cfg: str):
     assert 'other/cfg' == Client.find_config()
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_search(sample_client):
     results = list(sample_client.search(
         ('data', 'isclose', (4, 0, 0))
@@ -170,6 +171,7 @@ def uuids_in_entry(entry: Entry):
     "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
     "ffd668d3-57d9-404e-8366-0778af7aee61",
 ])
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_fill(sample_client: Client, entry_uuid: str):
     entry = list(sample_client.search(
         ("uuid", "eq", UUID(entry_uuid))

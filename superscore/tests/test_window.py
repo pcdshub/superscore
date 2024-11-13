@@ -1,5 +1,6 @@
 from uuid import UUID
 
+import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.client import Client
@@ -22,6 +23,7 @@ def test_main_window(qtbot: QtBot, mock_client: Client):
     qtbot.addWidget(window)
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_sample_window(qtbot: QtBot, sample_client: Client):
     window = Window(client=sample_client)
     qtbot.addWidget(window)

@@ -839,12 +839,17 @@ def simple_snapshot() -> Collection:
 
 
 @pytest.fixture(scope='function')
-def filestore_backend(tmp_path: Path) -> FilestoreBackend:
-    fp = Path(__file__).parent / 'db' / 'filestore.json'
+def filestore_backend(request, tmp_path: Path) -> FilestoreBackend:
     tmp_fp = tmp_path / 'tmp_filestore.json'
-    shutil.copy(fp, tmp_fp)
+    try:
+        user_path = Path(request.param)
+        fp = user_path if user_path.is_absolute() else Path(__file__).parent / user_path
+        shutil.copy(fp, tmp_fp)
+    except (AttributeError, TypeError):
+        pass
+    backend = FilestoreBackend(path=tmp_fp)
     print(tmp_path)
-    return FilestoreBackend(path=tmp_fp)
+    return backend
 
 
 @pytest.fixture(scope='function')
