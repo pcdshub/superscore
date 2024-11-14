@@ -7,13 +7,12 @@ import argparse
 import configparser
 import logging
 import os
-from collections.abc import Iterable
 from pathlib import Path
 
 import superscore.tests.conftest
 from superscore.bin.ui import main as ui_main
 from superscore.client import Client
-from superscore.model import Entry, Readback, Root, Setpoint, Snapshot
+from superscore.model import Readback, Setpoint
 from superscore.tests.ioc import IOCFactory
 from superscore.utils import build_abs_path
 
@@ -47,23 +46,10 @@ def main(*args, db_path=None, **kwargs):
         os.remove(client.backend.path)
     except FileNotFoundError:
         pass
-    filled = []  # IOCFactory needs the Entries with data
-    for fixture_name in parser.get("demo", "fixtures").split():
-        fixture = getattr(superscore.tests.conftest, fixture_name)
-        data = fixture()
-        # fixtures can return single Entries or iterables of Entries
-        if isinstance(data, Root):
-            entries = data.entries
-        elif isinstance(data, Entry):
-            entries = (data,)
-        elif isinstance(data, Iterable):
-            entries = data
-        else:
-            raise TypeError("Demo data must be a Root, Entry, or Iterable of "
-                            f"Entries: received {type(data)} from {fixture_name}")
-        for entry in entries:
-            client.save(entry)
-            if isinstance(entry, (Snapshot, Setpoint, Readback)):
-                filled.append(entry)
+    # write data from the sources to the backend
+    source_names = parser.get("demo", "fixtures").split()
+    superscore.tests.conftest.populate_backend(client.backend, source_names)
+    # IOCFactory needs the Entries with data
+    filled = [entry for entry in client.search() if isinstance(entry, (Setpoint, Readback))]
     with IOCFactory.from_entries(filled, client)(prefix=''):
         ui_main(*args, client=client, **kwargs)

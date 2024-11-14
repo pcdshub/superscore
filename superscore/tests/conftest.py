@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Union
+from typing import Callable, Iterable, List, Union
 from unittest.mock import MagicMock
 from uuid import UUID
 
@@ -13,8 +13,8 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
-from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
-                              Setpoint, Severity, Snapshot, Status)
+from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
+                              Root, Setpoint, Severity, Snapshot, Status)
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
 
@@ -838,16 +838,49 @@ def simple_snapshot() -> Collection:
     return snap
 
 
+def populate_backend(backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
+    """
+    Utility for quickly filling test backends with data. Supports a mix of many
+    types of sources:
+    * Roots
+    * Entries
+    * Callables that return Roots or Entries
+    * strings that resolve in this function's global namespace to such Callables
+    """
+    namespace = globals()
+    for source in sources:
+        try:
+            data = source()
+        except TypeError:
+            try:
+                func = namespace[source]
+                data = func()
+            except (AttributeError, TypeError):
+                data = source
+        finally:
+            if isinstance(data, Root):
+                for entry in data.entries:
+                    backend.save_entry(entry)
+            else:
+                backend.save_entry(data)
+
+
 @pytest.fixture(scope='function')
 def filestore_backend(request, tmp_path: Path) -> FilestoreBackend:
     tmp_fp = tmp_path / 'tmp_filestore.json'
     try:
-        user_path = Path(request.param)
-        fp = user_path if user_path.is_absolute() else Path(__file__).parent / user_path
-        shutil.copy(fp, tmp_fp)
-    except (AttributeError, TypeError):
-        pass
-    backend = FilestoreBackend(path=tmp_fp)
+        source = request.param
+    except AttributeError:
+        backend = FilestoreBackend(path=tmp_fp)
+    else:
+        if isinstance(source, str):
+            user_path = Path(source)
+            fp = user_path if user_path.is_absolute() else Path(__file__).parent / user_path
+            shutil.copy(fp, tmp_fp)
+            backend = FilestoreBackend(path=tmp_fp)
+        elif isinstance(source, Iterable):
+            backend = FilestoreBackend(path=tmp_fp)
+            populate_backend(backend, source)
     print(tmp_path)
     return backend
 

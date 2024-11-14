@@ -208,3 +208,12 @@ def test_fill_depth(fill_depth: int):
     client.fill(deep_coll, fill_depth)
 
     assert nest_depth(deep_coll) == fill_depth
+
+
+@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
+def test_parametrized_filestore(sample_client: Client):
+    assert len(list(sample_client.search())) > 0
+
+
+def test_parametrized_filestore_empty(sample_client: Client):
+    assert len(list(sample_client.search())) == 0
