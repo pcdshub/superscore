@@ -82,7 +82,11 @@ class EntryItem:
         if isinstance(self._data, Nestable):
             if any(isinstance(child, UUID) for child in self._data.children):
                 client.fill(self._data, fill_depth=2)
-                # re-construct child nodes
+
+            # re-construct child EntryItems if there is a mismatch or if any
+            # hold UUIDs as _data
+            if (any(isinstance(e._data, UUID) for e in self._children)
+                    or len(self._data.children) != self.childCount()):
                 self.takeChildren()
                 for child in self._data.children:
                     logger.debug(f'adding filled child: {type(child)}({child.uuid})')
@@ -224,10 +228,13 @@ class EntryItem:
         return qta.icon(icon_id)
 
 
-def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
+def build_tree(
+    entry: Union[Entry, Root, UUID],
+    parent: Optional[EntryItem] = None
+) -> EntryItem:
     """
     Walk down the ``entry`` tree and create an `EntryItem` for each, linking
-    them to their parents
+    them to their parents.
 
     Parameters
     ----------
@@ -242,6 +249,9 @@ def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
     EntryItem
         the constructed `EntryItem` with parent-child linkages
     """
+    # Note the base case here is when ``entry`` is a UUID, in which an EntryItem
+    # is made and recursion stops.  These children need to be present to let the
+    # view know that there are children in the item (that will later be filled)
 
     item = EntryItem(entry, tree_parent=parent)
     if isinstance(entry, Root):

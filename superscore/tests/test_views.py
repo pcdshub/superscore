@@ -234,7 +234,7 @@ def test_fill_uuids_nestable(
     assert all(not isinstance(c, UUID) for c in nested_coll.children)
 
 
-def test_fill_uuids_entry_item(linac_backend: TestBackend):
+def test_fill_uuids_entry_item(linac_backend: TestBackend, qtbot: QtBot):
     client = Client(backend=linac_backend)
     nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
     assert not all(isinstance(c, UUID) for c in nested_coll.children)
@@ -247,6 +247,19 @@ def test_fill_uuids_entry_item(linac_backend: TestBackend):
     original_depth = nest_depth(tree_model.root_item)
     assert original_depth == 1
 
-    tree_model.root_item.fill_uuids(client)
-    new_depth = nest_depth(tree_model.root_item)
-    assert new_depth == 4
+    # fill just the first child
+    # fill depth can depend on how the backend returns data.  Backend may not
+    # be lazy, so we assert only child1's children have EntryItems
+    root_item = tree_model.root_item
+    child1 = root_item.child(0)
+    assert child1.childCount() == 0
+    child1.fill_uuids(client)
+    assert child1.childCount() > 0
+    assert root_item.child(1).childCount() == 0
+    assert root_item.child(2).childCount() == 0
+
+    # filling the root item fills its children, which held uuids before
+    root_item.fill_uuids(client)
+    assert root_item.child(0).childCount() > 0
+    assert root_item.child(1).childCount() > 0
+    assert root_item.child(2).childCount() > 0

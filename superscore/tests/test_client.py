@@ -195,7 +195,7 @@ def test_fill_depth(fill_depth: int):
     bknd = TestBackend([deep_coll])
     client = Client(backend=bknd)
 
-    assert nest_depth(deep_coll) == 40
+    assert nest_depth(deep_coll) == 20
     deep_coll.swap_to_uuids()
     # for this test we want everything to be UUIDS
     for entry in bknd._entry_cache.values():
