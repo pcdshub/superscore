@@ -216,23 +216,33 @@ class Client:
 
         return EntryDiff(original_entry=entry_l, new_entry=entry_r, diffs=list(diffs))
 
-    def fill(self, entry: Entry) -> None:
+    def fill(self, entry: Union[Entry, UUID], fill_depth: Optional[int] = None) -> None:
         """
         Walk through ``entry`` and replace UUIDs with corresponding Entry's.
-        Currently only has meaning for Nestables.
+        Currently only has meaning for Nestables.  Filling happens "in-place",
+        modifying ``entry``.
 
         Parameters
         ----------
         entry : Entry
             Entry that may contain UUIDs to be filled with full Entry's
+        fill_depth : Optional[int], by default None
+            The depth to fill.  (value of 1 will fill just ``entry``'s children)
+            If None, fill until there is no filling left
         """
+        if fill_depth is not None:
+            if fill_depth < 0:
+                return
+
+            fill_depth -= 1
+
         if isinstance(entry, Nestable):
             new_children = []
             for child in entry.children:
                 if isinstance(child, UUID):
                     search_condition = SearchTerm('uuid', 'eq', child)
                     filled_child = list(self.search(search_condition))[0]
-                    self.fill(filled_child)
+                    self.fill(filled_child, fill_depth)
                     new_children.append(filled_child)
                 else:
                     new_children.append(child)
