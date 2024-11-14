@@ -465,7 +465,7 @@ class RootTree(QtCore.QAbstractItemModel):
 
         return None
 
-    def canFetchMore(self, parent: QtCore.QModelIndex):
+    def canFetchMore(self, parent: QtCore.QModelIndex) -> bool:
         item: EntryItem = parent.internalPointer()
         if item is None:
             return False
@@ -478,7 +478,7 @@ class RootTree(QtCore.QAbstractItemModel):
 
         return False
 
-    def fetchMore(self, parent: QtCore.QModelIndex):
+    def fetchMore(self, parent: QtCore.QModelIndex) -> None:
         item: EntryItem = parent.internalPointer()
         item.fill_uuids(client=self.client)
 

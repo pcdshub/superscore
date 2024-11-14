@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Union
 from unittest.mock import MagicMock
 from uuid import UUID
 
@@ -12,9 +12,10 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
-from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
-                              Severity, Snapshot, Status)
+from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
+                              Setpoint, Severity, Snapshot, Status)
 from superscore.tests.ioc import IOCFactory
+from superscore.widgets.views import EntryItem
 
 
 def linac_data():
@@ -911,3 +912,31 @@ def linac_ioc(linac_backend):
     client = Client(backend=linac_backend)
     with IOCFactory.from_entries(snapshot.children, client)(prefix="SCORETEST:") as ioc:
         yield ioc
+
+
+def nest_depth(entry: Union[Nestable, EntryItem]) -> int:
+    """
+    Return the depth of nesting in ``entry``.
+    Works for Entries or EntryItem's (tree items)
+    """
+    depths = []
+    q = []
+    q.append((entry, 0))  # entry and depth
+    while q:
+        e, depth = q.pop()
+        if isinstance(e, Nestable):
+            attr = 'children'
+        elif isinstance(e, EntryItem):
+            attr = '_children'
+        else:
+            depths.append(depth)
+            continue
+
+        children = getattr(e, attr)
+        if not children:
+            depths.append(depth)
+        else:
+            for child in children:
+                q.append((child, depth+1))
+
+    return max(depths)
