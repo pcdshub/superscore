@@ -16,6 +16,8 @@ Bugfixes
 Maintenance
 -----------
 - Adjust `Client.fill` to allow us to specify fill depth
+- Move `FilestoreBackend.compare` upstream into `_Backend`
+- Implement `.search` and `.root` in `TestBackend` for completeness
 
 Contributors
 ------------
