@@ -231,10 +231,9 @@ class Client:
             If None, fill until there is no filling left
         """
         if fill_depth is not None:
-            if fill_depth < 0:
-                return
-
             fill_depth -= 1
+            if fill_depth <= 0:
+                return
 
         if isinstance(entry, Nestable):
             new_children = []
