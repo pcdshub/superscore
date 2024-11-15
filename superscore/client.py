@@ -219,12 +219,12 @@ class Client:
     def fill(self, entry: Union[Entry, UUID], fill_depth: Optional[int] = None) -> None:
         """
         Walk through ``entry`` and replace UUIDs with corresponding Entry's.
-        Currently only has meaning for Nestables.  Filling happens "in-place",
-        modifying ``entry``.
+        Does nothing if ``entry`` is a non-Nestable or UUID.
+        Filling happens "in-place", modifying ``entry``.
 
         Parameters
         ----------
-        entry : Entry
+        entry : Union[Entry, UUID]
             Entry that may contain UUIDs to be filled with full Entry's
         fill_depth : Optional[int], by default None
             The depth to fill.  (value of 1 will fill just ``entry``'s children)
