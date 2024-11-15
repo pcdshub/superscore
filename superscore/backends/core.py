@@ -70,7 +70,7 @@ class _Backend:
     @staticmethod
     def compare(op: str, data: AnyEpicsType, target: SearchTermValue) -> bool:
         """
-        Return whether data and target satisfy the op comparator, typically durihg application
+        Return whether data and target satisfy the op comparator, typically during application
         of a search filter. Possible values of op are detailed in _Backend.search
 
         Parameters
