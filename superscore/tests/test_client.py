@@ -7,13 +7,13 @@ import pytest
 
 from superscore.backends.core import SearchTerm
 from superscore.backends.filestore import FilestoreBackend
+from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint)
-
-from .conftest import MockTaskStatus
+from superscore.tests.conftest import MockTaskStatus, nest_depth
 
 SAMPLE_CFG = Path(__file__).parent / 'config.cfg'
 
@@ -181,3 +181,28 @@ def test_fill(sample_client: Client, entry_uuid: str):
 
     sample_client.fill(entry)
     assert not uuids_in_entry(entry)
+
+
+@pytest.mark.parametrize("fill_depth,", list(range(1, 11)))
+def test_fill_depth(fill_depth: int):
+    deep_coll = Collection()
+    prev_coll = deep_coll
+    # Be sure more depth exists than the requested depth
+    for i in range(20):
+        child_coll = Collection(title=f"collection {i}")
+        prev_coll.children.append(child_coll)
+        prev_coll = child_coll
+    bknd = TestBackend([deep_coll])
+    client = Client(backend=bknd)
+
+    assert nest_depth(deep_coll) == 20
+    deep_coll.swap_to_uuids()
+    # for this test we want everything to be UUIDS
+    for entry in bknd._entry_cache.values():
+        entry.swap_to_uuids()
+
+    assert nest_depth(deep_coll) == 1
+
+    client.fill(deep_coll, fill_depth)
+
+    assert nest_depth(deep_coll) == fill_depth

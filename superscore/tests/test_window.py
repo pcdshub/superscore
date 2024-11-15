@@ -39,7 +39,9 @@ def test_sample_window(qtbot: QtBot, sample_client: Client):
 
     first_index = window.tree_view.model().index(0, 0)
     last_index = get_last_index(first_index)
+    # expand does not fetch more data by itself
     window.tree_view.expand(last_index)
+    window.tree_view.model().fetchMore(last_index)
 
     assert count_visible_items(window.tree_view) == 7
 

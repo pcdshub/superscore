@@ -6,7 +6,6 @@ import contextlib
 import json
 import logging
 import os
-import re
 import shutil
 from dataclasses import fields, replace
 from typing import Any, Dict, Generator, Optional, Union
@@ -14,10 +13,9 @@ from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
 
-from superscore.backends.core import SearchTermType, SearchTermValue, _Backend
+from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import BackendError
 from superscore.model import Entry, Root
-from superscore.type_hints import AnyEpicsType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -303,41 +301,6 @@ class FilestoreBackend(_Backend):
                             conditions.append(False)
                 if all(conditions):
                     yield entry
-
-    @staticmethod
-    def compare(op: str, data: AnyEpicsType, target: SearchTermValue) -> bool:
-        """
-        Return whether data and target satisfy the op comparator, typically durihg application
-        of a search filter. Possible values of op are detailed in _Backend.search
-
-        Parameters
-        ----------
-        op: str
-            one of the comparators that all backends must support, detailed in _Backend.search
-        data: AnyEpicsType | Tuple[AnyEpicsType]
-            data from an Entry that is being used to decide whether the Entry passes a filter
-        target: AnyEpicsType | Tuple[AnyEpicsType]
-            the filter value
-
-        Returns
-        -------
-        bool
-            whether data and target satisfy the op condition
-        """
-        if op == "eq":
-            return data == target
-        elif op == "lt":
-            return data <= target
-        elif op == "gt":
-            return data >= target
-        elif op == "in":
-            return data in target
-        elif op == "like":
-            if isinstance(data, UUID):
-                data = str(data)
-            return re.search(target, data)
-        else:
-            raise ValueError(f"SearchTerm does not support operator \"{op}\"")
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:

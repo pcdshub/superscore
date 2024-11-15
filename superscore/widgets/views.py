@@ -72,8 +72,25 @@ class EntryItem:
 
     def fill_uuids(self, client: Optional[Client] = None) -> None:
         """Fill this item's data if it is a uuid, using ``client``"""
-        if isinstance(self._data, UUID) and client is not None:
-            self._data = list(client.search(SearchTerm('uuid', 'eq', self._data)))[0]
+        if client is None:
+            return
+
+        if isinstance(self._data, UUID):
+            search_results = client.search(SearchTerm('uuid', 'eq', self._data))
+            self._data = list(search_results)[0]
+
+        if isinstance(self._data, Nestable):
+            if any(isinstance(child, UUID) for child in self._data.children):
+                client.fill(self._data, fill_depth=2)
+
+            # re-construct child EntryItems if there is a mismatch or if any
+            # hold UUIDs as _data
+            if (any(isinstance(e._data, UUID) for e in self._children)
+                    or len(self._data.children) != self.childCount()):
+                self.takeChildren()
+                for child in self._data.children:
+                    logger.debug(f'adding filled child: {type(child)}({child.uuid})')
+                    build_tree(child, parent=self)
 
     def data(self, column: int) -> Any:
         """
@@ -211,10 +228,13 @@ class EntryItem:
         return qta.icon(icon_id)
 
 
-def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
+def build_tree(
+    entry: Union[Entry, Root, UUID],
+    parent: Optional[EntryItem] = None
+) -> EntryItem:
     """
     Walk down the ``entry`` tree and create an `EntryItem` for each, linking
-    them to their parents
+    them to their parents.
 
     Parameters
     ----------
@@ -229,6 +249,9 @@ def build_tree(entry: Entry, parent: Optional[EntryItem] = None) -> EntryItem:
     EntryItem
         the constructed `EntryItem` with parent-child linkages
     """
+    # Note the base case here is when ``entry`` is a UUID, in which an EntryItem
+    # is made and recursion stops.  These children need to be present to let the
+    # view know that there are children in the item (that will later be filled)
 
     item = EntryItem(entry, tree_parent=parent)
     if isinstance(entry, Root):
@@ -431,7 +454,6 @@ class RootTree(QtCore.QAbstractItemModel):
             return None
 
         item: EntryItem = index.internalPointer()  # Gives original EntryItem
-        item.fill_uuids(client=self.client)
 
         # special handling for status info
         if index.column() == 1:
@@ -452,6 +474,27 @@ class RootTree(QtCore.QAbstractItemModel):
             return item.icon()
 
         return None
+
+    def canFetchMore(self, parent: QtCore.QModelIndex) -> bool:
+        item: EntryItem = parent.internalPointer()
+        if item is None:
+            return False
+
+        data = item._data
+
+        if (isinstance(data, Nestable) and
+                any(isinstance(child, UUID) for child in data.children)):
+            return True
+
+        return False
+
+    def fetchMore(self, parent: QtCore.QModelIndex) -> None:
+        item: EntryItem = parent.internalPointer()
+        item.fill_uuids(client=self.client)
+
+        num_children = item.childCount()
+        self.beginInsertRows(parent, 0, num_children)
+        self.endInsertRows()
 
 
 class HeaderEnum(IntEnum):
