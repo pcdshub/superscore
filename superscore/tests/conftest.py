@@ -1,4 +1,5 @@
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import List, Union
 from unittest.mock import MagicMock
@@ -18,7 +19,7 @@ from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
 
 
-def linac_data():
+def linac_data() -> Root:
     lasr_gunb_pv1 = Parameter(
         uuid="5544c58f-88b6-40aa-9076-f180a44908f5",
         pv_name="LASR:GUNB:TEST1",
@@ -641,11 +642,13 @@ def linac_data():
         ]
     )
 
-    return all_col, all_snapshot
+    return Root(entries=[all_col, all_snapshot])
 
 
-def comparison_linac_snapshot():
-    _, snapshot = linac_data()
+def linac_with_comparison_snapshot() -> Root:
+    root = linac_data()
+    original_snapshot = root.entries[1]
+    snapshot = deepcopy(original_snapshot)
     snapshot.title = 'AD Comparison'
     snapshot.description = ('A snapshot with different values and statuses to compare '
                             'to the "standard" snapshot')
@@ -733,13 +736,14 @@ def comparison_linac_snapshot():
     vac_l0b_value.data = -15
     vac_l0b_value.severity = Severity.MINOR
 
-    return snapshot
+    root.entries.append(snapshot)
+    return root
 
 
 @pytest.fixture(scope='function')
 def linac_backend():
-    all_col, all_snapshot = linac_data()
-    return TestBackend([all_col, all_snapshot])
+    root = linac_data()
+    return TestBackend(root.entries)
 
 
 @pytest.fixture(scope='function')
@@ -908,7 +912,7 @@ def sample_client(
 
 @pytest.fixture
 def linac_ioc(linac_backend):
-    _, snapshot = linac_data()
+    _, snapshot = linac_data().entries
     client = Client(backend=linac_backend)
     with IOCFactory.from_entries(snapshot.children, client)(prefix="SCORETEST:") as ioc:
         yield ioc
