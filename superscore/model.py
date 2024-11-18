@@ -111,6 +111,11 @@ class Parameter(Entry):
         readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
         return readback_is_valid and super().validate(toplevel=toplevel)
 
+    def accept(self, visitor) -> None:
+        visitor.visitParameter(self)
+        if self.readback is not None:
+            visitor.visit(self.readback)
+
 
 @dataclass
 class Setpoint(Entry):
@@ -141,6 +146,11 @@ class Setpoint(Entry):
     def validate(self, toplevel: bool = True) -> bool:
         readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
         return readback_is_valid and super().validate(toplevel=toplevel)
+
+    def accept(self, visitor) -> None:
+        visitor.visitSetpoint(self)
+        if self.readback is not None:
+            visitor.visit(self.readback)
 
 
 @dataclass
@@ -182,6 +192,9 @@ class Readback(Entry):
             rel_tolerance=origin.rel_tolerance,
             timeout=timeout,
         )
+
+    def accept(self, visitor) -> None:
+        visitor.visitReadback(self)
 
 
 class Nestable:
@@ -237,6 +250,11 @@ class Collection(Nestable, Entry):
         self.children = new_children
         return ref_list
 
+    def accept(self, visitor) -> None:
+        visitor.visitCollection(self)
+        for entry in self.children:
+            visitor.visit(entry)
+
 
 @dataclass
 class Snapshot(Nestable, Entry):
@@ -274,9 +292,19 @@ class Snapshot(Nestable, Entry):
 
         return ref_list
 
+    def accept(self, visitor) -> None:
+        visitor.visitSnapshot(self)
+        for entry in self.children:
+            visitor.visit(entry)
+
 
 @dataclass
 class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
     meta_id: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
+
+    def accept(self, visitor) -> None:
+        visitor.visitRoot(self)
+        for entry in self.entries:
+            visitor.visit(entry)
