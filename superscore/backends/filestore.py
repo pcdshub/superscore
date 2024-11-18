@@ -8,14 +8,15 @@ import logging
 import os
 import shutil
 from dataclasses import fields, replace
-from typing import Any, Dict, Generator, Optional, Union
+from functools import cache
+from typing import Any, Container, Dict, Generator, Optional, Union
 from uuid import UUID, uuid4
 
 from apischema import deserialize, serialize
 
 from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import BackendError
-from superscore.model import Entry, Root
+from superscore.model import Entry, Nestable, Root
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -285,6 +286,7 @@ class FilestoreBackend(_Backend):
         Keys are attributes on `Entry` subclasses, or special keywords.
         Values can be a single value or a tuple of values depending on operator.
         """
+        reachable = cache(self._gather_reachable)
         with self._load_and_store_context() as db:
             for entry in db.values():
                 conditions = []
@@ -292,6 +294,8 @@ class FilestoreBackend(_Backend):
                     # TODO: search for child pvs?
                     if attr == "entry_type":
                         conditions.append(isinstance(entry, target))
+                    elif attr == "ancestor":
+                        conditions.append(entry.uuid in reachable(target))
                     else:
                         try:
                             # check entry attribute by name
@@ -301,6 +305,22 @@ class FilestoreBackend(_Backend):
                             conditions.append(False)
                 if all(conditions):
                     yield entry
+
+    def _gather_reachable(self, ancestor: UUID) -> Container[UUID]:
+        """
+        Finds all entries accessible from ancestor, including ancestor, and returns
+        their UUIDs. This makes it easy to check if one entry is hierarchically under another.
+        """
+        reachable = set()
+        q = [ancestor]
+        while len(q) > 0:
+            cur = q.pop()
+            if not isinstance(cur, Entry):
+                cur = self._entry_cache[cur]
+            reachable.add(cur.uuid)
+            if isinstance(cur, Nestable):
+                q.extend(cur.children)
+        return reachable
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:
