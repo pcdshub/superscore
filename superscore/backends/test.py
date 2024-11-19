@@ -13,6 +13,7 @@ from superscore.model import Entry, Nestable, Root
 
 class TestBackend(_Backend):
     """Backend that manipulates Entries in-memory, for testing purposes."""
+    __test__ = False  # Tell pytest this isn't a test case
     _entry_cache: Dict[UUID, Entry] = {}
 
     def __init__(self, data: Optional[List[Entry]] = None):
