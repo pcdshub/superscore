@@ -11,11 +11,12 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import Collection, Parameter, Severity, Status
+from superscore.model import Collection, Parameter, Root, Severity, Status
 from superscore.tests.conftest import nest_depth
-from superscore.widgets.views import (CustRoles, LivePVHeader,
+from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
-                                      NestableTableView, RootTree)
+                                      NestableTableView, RootTree,
+                                      RootTreeView)
 
 
 @pytest.fixture(scope='function')
@@ -268,3 +269,29 @@ def test_fill_uuids_entry_item(linac_backend: TestBackend, qtbot: QtBot):
     assert root_item.child(0).child(0).childCount() > 0
     assert root_item.child(1).child(0).childCount() == 0
     assert root_item.child(2).child(0).childCount() == 0
+
+
+def test_roottree_setup(sample_database: Root):
+    tree_model = RootTree(base_entry=sample_database)
+    root_index = tree_model.index_from_item(tree_model.root_item)
+    # Check that the entire tree was created
+    assert tree_model.rowCount(root_index) == 4
+    assert tree_model.root_item.child(3).childCount() == 3
+
+
+def test_root_tree_view_setup_init_args(sample_client: Client):
+    tree_view = RootTreeView(
+        client=sample_client,
+        entry=sample_client.backend.root
+    )
+    assert isinstance(tree_view.model().root_item, EntryItem)
+    assert isinstance(tree_view.model(), RootTree)
+
+
+def test_root_tree_view_setup_post_init(sample_client: Client):
+    tree_view = RootTreeView()
+    tree_view.client = sample_client
+    tree_view.set_data(sample_client.backend.root)
+
+    assert isinstance(tree_view.model().root_item, EntryItem)
+    assert isinstance(tree_view.model(), RootTree)
