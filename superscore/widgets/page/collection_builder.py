@@ -12,7 +12,7 @@ from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
                                       LivePVTableView, NestableTableView,
-                                      RootTree)
+                                      RootTree, RootTreeView)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class CollectionBuilderPage(Display, DataWidget):
     meta_placeholder: QtWidgets.QWidget
     meta_widget: NameDescTagsWidget
 
-    tree_view: QtWidgets.QTreeView
+    tree_view: RootTreeView
 
     sub_coll_table_view: NestableTableView
     sub_pv_table_view: LivePVTableView
@@ -88,8 +88,11 @@ class CollectionBuilderPage(Display, DataWidget):
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
 
-        self.tree_model = RootTree(base_entry=self.data, client=self.client)
-        self.tree_view.setModel(self.tree_model)
+        self.tree_view.client = self.client
+        self.tree_view.set_data(self.data)
+        self.tree_view.open_page_slot = self.open_page_slot
+        self.tree_model: RootTree = self.tree_view.model()
+
         self.sub_coll_table_view.data_updated.connect(self.tree_model.refresh_tree)
         self.sub_pv_table_view.data_updated.connect(self.tree_model.refresh_tree)
 
