@@ -288,6 +288,8 @@ class RootTree(QtCore.QAbstractItemModel):
         self.base_entry = base_entry
         self.root_item = build_tree(base_entry)
         self.client = client
+        # ensure at least the first set of children are filled
+        self.root_item.fill_uuids(self.client)
         self.headers = ['name', 'description']
 
     def refresh_tree(self) -> None:
