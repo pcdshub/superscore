@@ -865,6 +865,29 @@ def populate_backend(backend, sources: Iterable[Union[Callable, str, Root, Entry
 
 @pytest.fixture(scope='function')
 def filestore_backend(request, tmp_path: Path) -> FilestoreBackend:
+    """
+    This fixture is intended to be given data via pytest.mark.parametrize in each test
+    definition that invokes it.  It can be parametrized even if a test doesn't invoke it
+    directly, such as if a test invokes a client fixture that then invokes it.  Invoking this
+    fixture without any parametrization results in a functional but empty backend.
+
+    Parametrization in intermediate fixture definitions will be clobbered by test
+    parametrization, so parametrizaton should only be done in test definitions to maintain
+    clarity around which data is being used.
+
+    Each parameter should be either:
+    - a path to a valid filestore, absolute or relative to conftest.py
+    - an Iterable of sources accepted by conftest.py::populate_backend
+
+    e.g.
+    @pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
+    def my_test(filestore_backend):
+        ...
+
+    @pytest.mark.parametrize("filestore_backend", [("linac_data",)], indirect=True)
+    def my_test(sample_client):
+        ...
+    """
     tmp_fp = tmp_path / 'tmp_filestore.json'
     try:
         source = request.param
