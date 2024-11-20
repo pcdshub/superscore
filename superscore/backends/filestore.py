@@ -264,7 +264,7 @@ class FilestoreBackend(_Backend):
             if db.get(entry.uuid):
                 raise BackendError("Entry already exists, try updating the entry "
                                    "instead of saving it")
-            db[entry.uuid] = entry
+            self.flatten_and_cache(entry)
             self._root.entries.append(entry)
 
     def update_entry(self, entry: Entry) -> None:
