@@ -849,20 +849,18 @@ def populate_backend(backend, sources: Iterable[Union[Callable, str, Root, Entry
     """
     namespace = globals()
     for source in sources:
-        try:
+        if isinstance(source, Callable):
             data = source()
-        except TypeError:
-            try:
-                func = namespace[source]
-                data = func()
-            except (AttributeError, TypeError):
-                data = source
-        finally:
-            if isinstance(data, Root):
-                for entry in data.entries:
-                    backend.save_entry(entry)
-            else:
-                backend.save_entry(data)
+        elif source in namespace:
+            func = namespace[source]
+            data = func()
+        else:
+            data = source
+        if isinstance(data, Root):
+            for entry in data.entries:
+                backend.save_entry(entry)
+        else:
+            backend.save_entry(data)
 
 
 @pytest.fixture(scope='function')
