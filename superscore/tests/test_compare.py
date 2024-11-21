@@ -152,6 +152,7 @@ date_format = "%Y-%m-%dT"
         ]
     ),
 ])
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_client_diff(
     sample_client: Client,
     l_uuid: str,

@@ -108,6 +108,7 @@ def test_page_smoke(page: str, request: pytest.FixtureRequest):
     print(type(request.getfixturevalue(page)))
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_apply_filter(search_page: SearchPage):
     search_page.apply_filter_button.clicked.emit()
     assert search_page.results_table_view.model().rowCount() == 6
@@ -135,6 +136,7 @@ def test_apply_filter(search_page: SearchPage):
     assert search_page.results_table_view.model().rowCount() == 1
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_coll_builder_add(collection_builder_page: CollectionBuilderPage):
     page = collection_builder_page
 
@@ -153,6 +155,7 @@ def test_coll_builder_add(collection_builder_page: CollectionBuilderPage):
     assert page.sub_coll_table_view._model.rowCount() == 1
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_coll_builder_edit(
     collection_builder_page: CollectionBuilderPage,
     qtbot: QtBot

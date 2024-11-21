@@ -1,6 +1,7 @@
 import shutil
+from copy import deepcopy
 from pathlib import Path
-from typing import List, Union
+from typing import Callable, Iterable, List, Union
 from unittest.mock import MagicMock
 from uuid import UUID
 
@@ -12,13 +13,13 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
-from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
-                              Setpoint, Severity, Snapshot, Status)
+from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
+                              Root, Setpoint, Severity, Snapshot, Status)
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
 
 
-def linac_data():
+def linac_data() -> Root:
     lasr_gunb_pv1 = Parameter(
         uuid="5544c58f-88b6-40aa-9076-f180a44908f5",
         pv_name="LASR:GUNB:TEST1",
@@ -641,11 +642,13 @@ def linac_data():
         ]
     )
 
-    return all_col, all_snapshot
+    return Root(entries=[all_col, all_snapshot])
 
 
-def comparison_linac_snapshot():
-    _, snapshot = linac_data()
+def linac_with_comparison_snapshot() -> Root:
+    root = linac_data()
+    original_snapshot = root.entries[1]
+    snapshot = deepcopy(original_snapshot)
     snapshot.title = 'AD Comparison'
     snapshot.description = ('A snapshot with different values and statuses to compare '
                             'to the "standard" snapshot')
@@ -733,13 +736,14 @@ def comparison_linac_snapshot():
     vac_l0b_value.data = -15
     vac_l0b_value.severity = Severity.MINOR
 
-    return snapshot
+    root.entries.append(snapshot)
+    return root
 
 
 @pytest.fixture(scope='function')
 def linac_backend():
-    all_col, all_snapshot = linac_data()
-    return TestBackend([all_col, all_snapshot])
+    root = linac_data()
+    return TestBackend(root.entries)
 
 
 @pytest.fixture(scope='function')
@@ -834,13 +838,72 @@ def simple_snapshot() -> Collection:
     return snap
 
 
+def populate_backend(backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
+    """
+    Utility for quickly filling test backends with data. Supports a mix of many
+    types of sources:
+    * Roots
+    * Entries
+    * Callables that return Roots or Entries
+    * strings that resolve in this function's global namespace to such Callables
+    """
+    namespace = globals()
+    for source in sources:
+        if isinstance(source, Callable):
+            data = source()
+        elif source in namespace:
+            func = namespace[source]
+            data = func()
+        else:
+            data = source
+        if isinstance(data, Root):
+            for entry in data.entries:
+                backend.save_entry(entry)
+        else:
+            backend.save_entry(data)
+
+
 @pytest.fixture(scope='function')
-def filestore_backend(tmp_path: Path) -> FilestoreBackend:
-    fp = Path(__file__).parent / 'db' / 'filestore.json'
+def filestore_backend(request, tmp_path: Path) -> FilestoreBackend:
+    """
+    This fixture is intended to be given data via pytest.mark.parametrize in each test
+    definition that invokes it.  It can be parametrized even if a test doesn't invoke it
+    directly, such as if a test invokes a client fixture that then invokes it.  Invoking this
+    fixture without any parametrization results in a functional but empty backend.
+
+    Parametrization in intermediate fixture definitions will be clobbered by test
+    parametrization, so parametrizaton should only be done in test definitions to maintain
+    clarity around which data is being used.
+
+    Each parameter should be either:
+    - a path to a valid filestore, absolute or relative to conftest.py
+    - an Iterable of sources accepted by conftest.py::populate_backend
+
+    e.g.
+    @pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
+    def my_test(filestore_backend):
+        ...
+
+    @pytest.mark.parametrize("filestore_backend", [("linac_data",)], indirect=True)
+    def my_test(sample_client):
+        ...
+    """
     tmp_fp = tmp_path / 'tmp_filestore.json'
-    shutil.copy(fp, tmp_fp)
+    try:
+        source = request.param
+    except AttributeError:
+        backend = FilestoreBackend(path=tmp_fp)
+    else:
+        if isinstance(source, str):
+            user_path = Path(source)
+            fp = user_path if user_path.is_absolute() else Path(__file__).parent / user_path
+            shutil.copy(fp, tmp_fp)
+            backend = FilestoreBackend(path=tmp_fp)
+        elif isinstance(source, Iterable):
+            backend = FilestoreBackend(path=tmp_fp)
+            populate_backend(backend, source)
     print(tmp_path)
-    return FilestoreBackend(path=tmp_fp)
+    return backend
 
 
 @pytest.fixture(scope='function')
@@ -908,7 +971,7 @@ def sample_client(
 
 @pytest.fixture
 def linac_ioc(linac_backend):
-    _, snapshot = linac_data()
+    _, snapshot = linac_data().entries
     client = Client(backend=linac_backend)
     with IOCFactory.from_entries(snapshot.children, client)(prefix="SCORETEST:") as ioc:
         yield ioc
