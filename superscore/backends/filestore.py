@@ -17,6 +17,7 @@ from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import BackendError
 from superscore.model import Entry, Root
 from superscore.utils import build_abs_path
+from superscore.visitor import SearchVisitor
 
 logger = logging.getLogger(__name__)
 
@@ -285,22 +286,10 @@ class FilestoreBackend(_Backend):
         Keys are attributes on `Entry` subclasses, or special keywords.
         Values can be a single value or a tuple of values depending on operator.
         """
-        with self._load_and_store_context() as db:
-            for entry in db.values():
-                conditions = []
-                for attr, op, target in search_terms:
-                    # TODO: search for child pvs?
-                    if attr == "entry_type":
-                        conditions.append(isinstance(entry, target))
-                    else:
-                        try:
-                            # check entry attribute by name
-                            value = getattr(entry, attr)
-                            conditions.append(self.compare(op, value, target))
-                        except AttributeError:
-                            conditions.append(False)
-                if all(conditions):
-                    yield entry
+        visitor = SearchVisitor(self, *search_terms)
+        root = self.root
+        visitor.visit(root)
+        yield from visitor.matches
 
     @contextlib.contextmanager
     def _load_and_store_context(self) -> Generator[Dict[UUID, Any], None, None]:
