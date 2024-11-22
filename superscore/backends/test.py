@@ -9,6 +9,7 @@ from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
+from superscore.visitor import SearchVisitor
 
 
 class TestBackend(_Backend):
@@ -84,18 +85,7 @@ class TestBackend(_Backend):
         return self._root
 
     def search(self, *search_terms: SearchTermType):
-        for entry in self._entry_cache.values():
-            conditions = []
-            for attr, op, target in search_terms:
-                # TODO: search for child pvs?
-                if attr == "entry_type":
-                    conditions.append(isinstance(entry, target))
-                else:
-                    try:
-                        # check entry attribute by name
-                        value = getattr(entry, attr)
-                        conditions.append(self.compare(op, value, target))
-                    except AttributeError:
-                        conditions.append(False)
-            if all(conditions):
-                yield entry
+        visitor = SearchVisitor(self, *search_terms)
+        root = self.root
+        visitor.visit(root)
+        yield from visitor.matches

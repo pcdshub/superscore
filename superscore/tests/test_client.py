@@ -5,7 +5,6 @@ from uuid import UUID
 
 import pytest
 
-from superscore.backends.core import SearchTerm
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -13,6 +12,7 @@ from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint)
+from superscore.search_term import SearchTerm
 from superscore.tests.conftest import (MockTaskStatus, nest_depth,
                                        setup_test_stack)
 

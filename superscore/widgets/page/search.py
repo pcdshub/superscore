@@ -8,8 +8,8 @@ import qtawesome as qta
 from dateutil import tz
 from qtpy import QtCore, QtWidgets
 
-from superscore.backends.core import SearchTerm
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
+from superscore.search_term import SearchTerm
 from superscore.type_hints import OpenPageSlot
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import Display, WindowLinker

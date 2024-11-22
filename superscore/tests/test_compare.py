@@ -4,13 +4,13 @@ from uuid import UUID
 
 import pytest
 
-from superscore.backends.core import SearchTerm
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.compare import (AttributePath, DiffItem, EntryDiff,
                                 walk_find_diff)
 from superscore.model import (Collection, Entry, Parameter, Readback, Setpoint,
                               Severity, Snapshot, Status)
+from superscore.search_term import SearchTerm
 from superscore.tests.conftest import setup_test_stack
 
 

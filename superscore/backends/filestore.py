@@ -8,7 +8,6 @@ import logging
 import os
 import shutil
 from dataclasses import fields, replace
-from functools import cache
 from typing import Any, Container, Dict, Generator, Optional, Union
 from uuid import UUID, uuid4
 
@@ -19,6 +18,7 @@ from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
 from superscore.utils import build_abs_path
+from superscore.visitor import SearchVisitor
 
 logger = logging.getLogger(__name__)
 
@@ -292,26 +292,10 @@ class FilestoreBackend(_Backend):
         Keys are attributes on `Entry` subclasses, or special keywords.
         Values can be a single value or a tuple of values depending on operator.
         """
-        reachable = cache(self._gather_reachable)
-        with self._load_and_store_context() as db:
-            for entry in db.values():
-                conditions = []
-                for attr, op, target in search_terms:
-                    # TODO: search for child pvs?
-                    if attr == "entry_type":
-                        conditions.append(isinstance(entry, target))
-                    elif attr == "ancestor":
-                        # `target` must be UUID since `reachable` is cached
-                        conditions.append(entry.uuid in reachable(target))
-                    else:
-                        try:
-                            # check entry attribute by name
-                            value = getattr(entry, attr)
-                            conditions.append(self.compare(op, value, target))
-                        except AttributeError:
-                            conditions.append(False)
-                if all(conditions):
-                    yield entry
+        visitor = SearchVisitor(self, *search_terms)
+        root = self.root
+        visitor.visit(root)
+        yield from visitor.matches
 
     def _gather_reachable(self, ancestor: Union[Entry, UUID]) -> Container[UUID]:
         """

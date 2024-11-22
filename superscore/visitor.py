@@ -1,26 +1,17 @@
 """"""
 import re
-from typing import Container, Iterable, NamedTuple, Union
+from typing import Iterable, Union
 from uuid import UUID
 
-from superscore.backends import _Backend
 from superscore.model import (Collection, Entry, Parameter, Readback, Root,
                               Setpoint, Snapshot)
+from superscore.search_term import SearchTerm, SearchTermValue
 from superscore.type_hints import AnyEpicsType
-
-SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
-SearchTermType = tuple[str, str, SearchTermValue]
-
-
-class SearchTerm(NamedTuple):
-    attr: str
-    operator: str
-    value: SearchTermValue
 
 
 class EntryVisitor:
     """"""
-    def __init__(self, backend: _Backend):
+    def __init__(self, backend):
         self.backend = backend
 
     def visit(self, entry: Union[Entry, Root, UUID]) -> None:
@@ -57,8 +48,8 @@ class SnapVisitor(EntryVisitor):
 
 
 class SearchVisitor(EntryVisitor):
-    def __init__(self, *search_terms: Iterable[SearchTerm], **kwargs):
-        super().__init__(self, **kwargs)
+    def __init__(self, backend, *search_terms: Iterable[SearchTerm]):
+        super().__init__(backend)
         self.search_terms = search_terms
         self.matches = []
 
@@ -94,7 +85,7 @@ class SearchVisitor(EntryVisitor):
         self._check_match(snapshot)
 
     def visitRoot(self, root: Root) -> None:
-        self._check_match(root)
+        return
 
     @staticmethod
     def compare(op: str, data: AnyEpicsType, target: SearchTermValue) -> bool:
