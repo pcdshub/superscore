@@ -301,7 +301,7 @@ class Snapshot(Nestable, Entry):
 @dataclass
 class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
-    meta_id: UUID = _root_uuid
+    uuid: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
 
     def accept(self, visitor) -> None:
