@@ -51,6 +51,7 @@ class SearchVisitor(EntryVisitor):
     def __init__(self, backend, *search_terms: Iterable[SearchTerm]):
         super().__init__(backend)
         self.search_terms = search_terms
+        self.path = []
         self.matches = []
 
     def _check_match(self, entry: Union[Entry, Root]) -> bool:
@@ -59,6 +60,8 @@ class SearchVisitor(EntryVisitor):
             # TODO: search for child pvs?
             if attr == "entry_type":
                 conditions.append(isinstance(entry, target))
+            elif attr == "ancestor":
+                conditions.append(any([entry.uuid == target for entry in self.path]))
             else:
                 try:
                     # check entry attribute by name
@@ -68,6 +71,13 @@ class SearchVisitor(EntryVisitor):
                     conditions.append(False)
         if all(conditions):
             self.matches.append(entry)
+
+    def visit(self, entry: Union[Entry, Root, UUID]) -> None:
+        if isinstance(entry, UUID):
+            entry = self.backend.get_entry(entry)
+        self.path.append(entry)
+        super().visit(entry)
+        self.path.pop()
 
     def visitParameter(self, parameter: Parameter) -> None:
         self._check_match(parameter)
