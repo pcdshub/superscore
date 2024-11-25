@@ -11,12 +11,20 @@ from superscore.compare import DiffType, EntryDiff
 from superscore.model import Entry
 from superscore.type_hints import OpenPageSlot
 from superscore.widgets.core import Display
-from superscore.widgets.views import (LivePVHeader, LivePVTableView,
-                                      NestableTableView, RootTree,
-                                      RootTreeView)
+from superscore.widgets.views import (EntryItem, LivePVHeader,
+                                      LivePVTableModel, LivePVTableView,
+                                      NestableTableModel, NestableTableView,
+                                      RootTree, RootTreeView)
+
+DIFF_COLOR_MAP = {
+    DiffType.DELETED: QtGui.QColor(255, 0, 0, alpha=100),
+    DiffType.MODIFIED: QtGui.QColor(255, 255, 0, alpha=100),
+    DiffType.ADDED: QtGui.QColor(0, 255, 0, alpha=100),
+    None: None,
+}
 
 
-class DiffRootTree(RootTree):
+class DiffModelMixin:
     """
     Tree model that highlights items that have been modified.
     Reads an `EntryDiff` and assigns background colors based on modification type
@@ -25,15 +33,8 @@ class DiffRootTree(RootTree):
     - Green: item added in diff
     """
 
-    color_map = {
-        DiffType.DELETED: QtGui.QColor(255, 0, 0, alpha=100),
-        DiffType.MODIFIED: QtGui.QColor(255, 255, 0, alpha=100),
-        DiffType.ADDED: QtGui.QColor(0, 255, 0, alpha=100),
-        None: None,
-    }
-
     _diff: EntryDiff
-    _modified_uuids: Set[UUID]
+    _linked_uuids: Set[UUID]
     _index_to_diff_type_cache: Dict[QtCore.QModelIndex, DiffType]
 
     def __init__(self, *args, diff: Optional[EntryDiff] = None, **kwargs) -> None:
@@ -42,29 +43,51 @@ class DiffRootTree(RootTree):
         # a cache that stores the background color, since entries may be lazily
         # loaded on demand.  To be cleared if data or diff are changed
         self._index_to_diff_type_cache = {}
-        self._modified_uuids = set()
+        self._linked_uuids = set()
+
+    def data(self, index: QtCore.QModelIndex, role: int) -> Any:
+        if role == QtCore.Qt.BackgroundColorRole:
+            color = self.get_background_color(index)
+            return color
+
+        return super().data(index, role)
 
     def get_background_color(self, index: QtCore.QModelIndex) -> Optional[QtGui.QColor]:
         # do nothing if no diff is setup
         if not self._diff:
             return
 
-        # show entries as modified if detected on left-side
-        if index.internalPointer()._data.uuid in self._modified_uuids:
-            return self.color_map[DiffType.MODIFIED]
-
         if index in self._index_to_diff_type_cache:
-            return self.color_map[self._index_to_diff_type_cache[index]]
+            return DIFF_COLOR_MAP[self._index_to_diff_type_cache[index]]
+
+        # show entries as modified if detected on left-side
+        if self._get_entry_from_index(index).uuid in self._linked_uuids:
+            return DIFF_COLOR_MAP[DiffType.MODIFIED]
 
         # find diffs and assign a proper color
 
         diff_type = self._get_difftype_for_index(index)
-        self._index_to_diff_type_cache[index] = diff_type
+        if diff_type:  # Only stash actual codes, otherwise will remember None
+            self._index_to_diff_type_cache[index] = diff_type
 
-        return self.color_map[diff_type]
+        return DIFF_COLOR_MAP[diff_type]
+
+    def _get_entry_from_index(self, index: QtCore.QModelIndex) -> Entry:
+        ipointer = index.internalPointer()
+
+        if isinstance(ipointer, EntryItem):
+            return ipointer._data
+        else:  # table view case
+            return self.entries[index.row()]
 
     def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
-        entry: Entry = index.internalPointer()._data
+        raise NotImplementedError
+
+
+class DiffRootTree(DiffModelMixin, RootTree):
+
+    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
+        entry: Entry = self._get_entry_from_index(index)
         for diff_item in self._diff.diffs:
             # deleted or added, entry is itself the changed item
             if entry in (diff_item.original_value, diff_item.new_value):
@@ -74,19 +97,34 @@ class DiffRootTree(RootTree):
             if entry in (segment[0] for segment in diff_item.path):
                 # uuids are almost always changed, if so add them to let the
                 # other tree know
-                self._modified_uuids.add(entry.uuid)
+                self._linked_uuids.add(entry.uuid)
                 for di in self._diff.diffs:
                     if di.original_value == entry.uuid:
-                        self._modified_uuids.add(di.new_value)
+                        self._linked_uuids.add(di.new_value)
 
                 return diff_item.type
 
-    def data(self, index: QtCore.QModelIndex, role: int) -> Any:
-        if role == QtCore.Qt.BackgroundColorRole:
-            color = self.get_background_color(index)
-            return color
 
-        return super().data(index, role)
+class DiffPVTableModel(DiffModelMixin, LivePVTableModel):
+
+    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
+        entry: Entry = self._get_entry_from_index(index)
+        col = index.column()
+        col_header = self.header_enum(col)
+
+        # field not in a settable header ... timestamp?
+        if col_header not in self._header_to_field:
+            return
+
+        field_name = self._header_to_field[col_header]
+        for diff_item in self._diff.diffs:
+            if (entry, field_name) in diff_item.path:
+                return diff_item.type
+
+
+class DiffNestableTableModel(DiffModelMixin, NestableTableModel):
+    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
+        return DiffType.MODIFIED
 
 
 class Side(Flag):
@@ -132,7 +170,7 @@ class DiffPage(Display, QtWidgets.QWidget):
         self.l_entry = l_entry
         self.r_entry = r_entry
         self.open_page_slot = open_page_slot
-        self._modified_uuids: Set[UUID] = set()
+        self._linked_uuids: Set[UUID] = set()
 
         self.widget_map = {
             Side.LEFT: {
@@ -179,7 +217,6 @@ class DiffPage(Display, QtWidgets.QWidget):
 
     def sync_splitter(self, pos: int, index: int, side: Side):
         sizes = self.widget_map[~side]['splitter'].sizes()
-        print(side, sizes, self.widget_map[~side]['splitter'])
         self.widget_map[side]['splitter'].setSizes(sizes)
 
     def set_entry(self, entry: Entry, side: Side):
@@ -190,13 +227,20 @@ class DiffPage(Display, QtWidgets.QWidget):
         )
 
         pv_view: LivePVTableView = self.widget_map[side]['pv']
-        pv_view.set_data(entry)
-
+        pv_view._model_cls = DiffPVTableModel
         nest_view: NestableTableView = self.widget_map[side]['nest']
-        nest_view.set_data(entry)
+        nest_view._model_cls = DiffNestableTableModel
+        self.set_table_entries(entry, side)
 
         # clear modified uuids
         self.modified_uuids = set()
+
+    def set_table_entries(self, entry: Entry, side: Side):
+        """Set the entry to view in table, use diff models for highlighting"""
+        pv_view: LivePVTableView = self.widget_map[side]['pv']
+        nest_view: NestableTableView = self.widget_map[side]['nest']
+        pv_view.set_data(entry)
+        nest_view.set_data(entry)
 
     def calculate_diff(self):
         # get diff from client method
@@ -204,9 +248,10 @@ class DiffPage(Display, QtWidgets.QWidget):
         diff = self.client.compare(self.l_entry, self.r_entry)
         self._diff = diff
         for side in Side:
-            model: DiffRootTree = self.widget_map[side]["tree"].model()
-            model._diff = diff
-            model._modified_uuids = self._modified_uuids
+            for view in ["tree", "pv", "nest"]:
+                model: DiffModelMixin = self.widget_map[side][view].model()
+                model._diff = diff
+                model._linked_uuids = self._linked_uuids
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         for side in Side:
