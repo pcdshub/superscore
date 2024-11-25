@@ -1,6 +1,7 @@
+import logging
 from enum import Flag
 from functools import partial
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from PyQt5.QtGui import QCloseEvent
@@ -16,12 +17,44 @@ from superscore.widgets.views import (EntryItem, LivePVHeader,
                                       NestableTableModel, NestableTableView,
                                       RootTree, RootTreeView)
 
+logger = logging.getLogger(__name__)
+
+
 DIFF_COLOR_MAP = {
     DiffType.DELETED: QtGui.QColor(255, 0, 0, alpha=100),
     DiffType.MODIFIED: QtGui.QColor(255, 255, 0, alpha=100),
     DiffType.ADDED: QtGui.QColor(0, 255, 0, alpha=100),
     None: None,
 }
+
+
+class BiDict(dict):
+    """
+    Bi-directional mapping dictionary.
+    Every key-value pair can only appear once in each dict (forward and inverse)
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inverse = {}
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.inverse[self[key]].remove(key)
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        if self[key] in self.inverse and not self.inverse[self[key]]:
+            del self.inverse[self[key]]
+        super().__delitem__(key)
+
+    def __getitem__(self, key: Any) -> Any:
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return self.inverse[key]
+
+    def __contains__(self, key: object) -> bool:
+        return super().__contains__(key)
 
 
 class DiffModelMixin:
@@ -34,16 +67,23 @@ class DiffModelMixin:
     """
 
     _diff: EntryDiff
-    _linked_uuids: Set[UUID]
+    _linked_uuids: Dict[UUID, UUID]
     _index_to_diff_type_cache: Dict[QtCore.QModelIndex, DiffType]
 
-    def __init__(self, *args, diff: Optional[EntryDiff] = None, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        diff: Optional[EntryDiff] = None,
+        linked_uuid_map: Optional[BiDict] = None,
+        **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self._diff = diff
         # a cache that stores the background color, since entries may be lazily
         # loaded on demand.  To be cleared if data or diff are changed
         self._index_to_diff_type_cache = {}
-        self._linked_uuids = set()
+        # to be set by
+        self._linked_uuids = linked_uuid_map
 
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
         if role == QtCore.Qt.BackgroundColorRole:
@@ -59,10 +99,6 @@ class DiffModelMixin:
 
         if index in self._index_to_diff_type_cache:
             return DIFF_COLOR_MAP[self._index_to_diff_type_cache[index]]
-
-        # show entries as modified if detected on left-side
-        if self._get_entry_from_index(index).uuid in self._linked_uuids:
-            return DIFF_COLOR_MAP[DiffType.MODIFIED]
 
         # find diffs and assign a proper color
 
@@ -88,20 +124,14 @@ class DiffRootTree(DiffModelMixin, RootTree):
 
     def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
         entry: Entry = self._get_entry_from_index(index)
+
+        # show entries as modified if detected on left-side
+        if entry.uuid in self._linked_uuids:
+            return DiffType.MODIFIED
+
         for diff_item in self._diff.diffs:
             # deleted or added, entry is itself the changed item
             if entry in (diff_item.original_value, diff_item.new_value):
-                return diff_item.type
-
-            # modified, entry is in the path (Match happens on left/original side)
-            if entry in (segment[0] for segment in diff_item.path):
-                # uuids are almost always changed, if so add them to let the
-                # other tree know
-                self._linked_uuids.add(entry.uuid)
-                for di in self._diff.diffs:
-                    if di.original_value == entry.uuid:
-                        self._linked_uuids.add(di.new_value)
-
                 return diff_item.type
 
 
@@ -170,7 +200,7 @@ class DiffPage(Display, QtWidgets.QWidget):
         self.l_entry = l_entry
         self.r_entry = r_entry
         self.open_page_slot = open_page_slot
-        self._linked_uuids: Set[UUID] = set()
+        self._linked_uuids: Dict[UUID, UUID] = BiDict()
 
         self.widget_map = {
             Side.LEFT: {
@@ -199,7 +229,13 @@ class DiffPage(Display, QtWidgets.QWidget):
 
         # initialize trees, tables, etc
         for side in Side:
+            print(f'initializing {side}')
+            tree_view: RootTreeView = self.widget_map[side]['tree']
+            tree_view._model_cls = DiffRootTree
+            tree_view.client = self.client
+
             pv_view: LivePVTableView = self.widget_map[side]['pv']
+            pv_view._model_cls = DiffPVTableModel
             pv_view.open_page_slot = self.open_page_slot
             pv_view.client = self.client
             for i in [LivePVHeader.LIVE_VALUE, LivePVHeader.LIVE_SEVERITY,
@@ -207,8 +243,9 @@ class DiffPage(Display, QtWidgets.QWidget):
                 pv_view.setColumnHidden(i, True)
 
             nest_view: NestableTableView = self.widget_map[side]['nest']
+            nest_view._model_cls = DiffNestableTableModel
             nest_view.client = self.client
-            pv_view.open_page_slot = self.open_page_slot
+            nest_view.open_page_slot = self.open_page_slot
 
         self.set_entry(self.l_entry, Side.LEFT)
         self.set_entry(self.r_entry, Side.RIGHT)
@@ -220,20 +257,13 @@ class DiffPage(Display, QtWidgets.QWidget):
         self.widget_map[side]['splitter'].setSizes(sizes)
 
     def set_entry(self, entry: Entry, side: Side):
-        """Initialize the widgets for the ``side`` with ``entry``"""
-        tree_view: RootTreeView = self.widget_map[side]['tree']
-        tree_view.setModel(
-            DiffRootTree(base_entry=entry, client=self.client)
-        )
-
-        pv_view: LivePVTableView = self.widget_map[side]['pv']
-        pv_view._model_cls = DiffPVTableModel
-        nest_view: NestableTableView = self.widget_map[side]['nest']
-        nest_view._model_cls = DiffNestableTableModel
+        """set entry data for all widgets on ``side`` to ``entry``"""
+        tree_view: RootTreeView = self.widget_map[side]["tree"]
+        tree_view.set_data(entry)
         self.set_table_entries(entry, side)
 
-        # clear modified uuids
-        self.modified_uuids = set()
+        # re-calculate diffs
+        self.calculate_diff()
 
     def set_table_entries(self, entry: Entry, side: Side):
         """Set the entry to view in table, use diff models for highlighting"""
@@ -247,9 +277,20 @@ class DiffPage(Display, QtWidgets.QWidget):
         # refresh tables to show highlighting
         diff = self.client.compare(self.l_entry, self.r_entry)
         self._diff = diff
+        self._linked_uuids = BiDict()
+
+        # uuids are almost always changed, if so add them to let the
+        for di in self._diff.diffs:
+            if isinstance(di.original_value, UUID) and isinstance(di.new_value, UUID):
+                self._linked_uuids[di.original_value] = di.new_value
+
         for side in Side:
             for view in ["tree", "pv", "nest"]:
                 model: DiffModelMixin = self.widget_map[side][view].model()
+                if model is None:
+                    logger.debug(f"No model set for {side.name} {view} view,"
+                                 "skipping diff setting step")
+                    continue
                 model._diff = diff
                 model._linked_uuids = self._linked_uuids
 

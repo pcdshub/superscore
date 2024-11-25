@@ -512,6 +512,7 @@ class RootTreeView(QtWidgets.QTreeView):
     Tree view for displaying an Entry.
     Contains a standard context menu and action set
     """
+    _model_cls = RootTree
 
     _model: Optional[RootTree] = None
     data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
@@ -573,7 +574,7 @@ class RootTreeView(QtWidgets.QTreeView):
             logger.debug("data not set, cannot initialize model")
             return
 
-        self._model = RootTree(base_entry=self.data, client=self.client)
+        self._model = self._model_cls(base_entry=self.data, client=self.client)
         self.setModel(self._model)
         self._model.dataChanged.connect(self.data_updated)
 
