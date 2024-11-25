@@ -52,4 +52,4 @@ file = "dev-requirements.txt"
 file = "docs-requirements.txt"
 
 [tool.pytest.ini_options]
-addopts = "--cov=. --asyncio-mode=auto"
+addopts = "--cov=. --no-cov-on-fail --asyncio-mode=auto"
