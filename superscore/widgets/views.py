@@ -15,13 +15,13 @@ import numpy as np
 import qtawesome as qta
 from qtpy import QtCore, QtGui, QtWidgets
 
-from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
+from superscore.search_term import SearchTerm
 from superscore.type_hints import OpenPageSlot
 from superscore.widgets import ICON_MAP
 
