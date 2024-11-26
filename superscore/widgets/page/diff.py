@@ -14,8 +14,9 @@ from superscore.type_hints import OpenPageSlot
 from superscore.widgets.core import Display
 from superscore.widgets.views import (EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
-                                      NestableTableModel, NestableTableView,
-                                      RootTree, RootTreeView)
+                                      NestableHeader, NestableTableModel,
+                                      NestableTableView, RootTree,
+                                      RootTreeView)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class BiDict(dict):
             return self.inverse[key]
 
     def __contains__(self, key: object) -> bool:
-        return super().__contains__(key)
+        return (super().__contains__(key) or self.inverse.__contains__(key))
 
 
 class DiffModelMixin:
@@ -122,7 +123,10 @@ class DiffModelMixin:
 
 class DiffRootTree(DiffModelMixin, RootTree):
 
-    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
+    def _get_difftype_for_index(
+        self,
+        index: QtCore.QModelIndex
+    ) -> Optional[DiffType]:
         entry: Entry = self._get_entry_from_index(index)
 
         # show entries as modified if detected on left-side
@@ -135,10 +139,12 @@ class DiffRootTree(DiffModelMixin, RootTree):
                 return diff_item.type
 
 
-class DiffPVTableModel(DiffModelMixin, LivePVTableModel):
-
-    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
-        entry: Entry = self._get_entry_from_index(index)
+class DiffTableModel(DiffModelMixin):
+    # Assumes use as mixin for BaseTableEntryModel
+    def _get_difftype_for_index(
+        self,
+        index: QtCore.QModelIndex
+    ) -> Optional[DiffType]:
         col = index.column()
         col_header = self.header_enum(col)
 
@@ -146,15 +152,33 @@ class DiffPVTableModel(DiffModelMixin, LivePVTableModel):
         if col_header not in self._header_to_field:
             return
 
+        entry = self._get_entry_from_index(index)
         field_name = self._header_to_field[col_header]
         for diff_item in self._diff.diffs:
-            if (entry, field_name) in diff_item.path:
-                return diff_item.type
+            for chain_obj, chain_access in diff_item.path:
+                if (
+                    isinstance(chain_obj, Entry)
+                    and (chain_obj.uuid in self._linked_uuids)
+                    and (entry.uuid is chain_obj.uuid
+                         or entry.uuid is self._linked_uuids[chain_obj.uuid])
+                    and (chain_access == field_name)
+                ):
+                    diff_type = diff_item.type
+                    # we need to check the directionality for added/deleted
+                    if diff_type is DiffType.ADDED and (chain_obj.uuid == entry.uuid):
+                        return
+                    elif diff_type is DiffType.DELETED and (chain_obj.uuid != entry.uuid):
+                        return
+                    else:
+                        return diff_type
 
 
-class DiffNestableTableModel(DiffModelMixin, NestableTableModel):
-    def _get_difftype_for_index(self, index: QtCore.QModelIndex) -> Optional[DiffType]:
-        return DiffType.MODIFIED
+class DiffPVTableModel(DiffTableModel, LivePVTableModel):
+    pass
+
+
+class DiffNestableTableModel(DiffTableModel, NestableTableModel):
+    pass
 
 
 class Side(Flag):
@@ -238,9 +262,6 @@ class DiffPage(Display, QtWidgets.QWidget):
             pv_view._model_cls = DiffPVTableModel
             pv_view.open_page_slot = self.open_page_slot
             pv_view.client = self.client
-            for i in [LivePVHeader.LIVE_VALUE, LivePVHeader.LIVE_SEVERITY,
-                      LivePVHeader.LIVE_STATUS]:
-                pv_view.setColumnHidden(i, True)
 
             nest_view: NestableTableView = self.widget_map[side]['nest']
             nest_view._model_cls = DiffNestableTableModel
@@ -249,6 +270,16 @@ class DiffPage(Display, QtWidgets.QWidget):
 
         self.set_entry(self.l_entry, Side.LEFT)
         self.set_entry(self.r_entry, Side.RIGHT)
+
+        # Need to set visibility after model is configured
+        for side in Side:
+            pv_view: LivePVTableView = self.widget_map[side]['pv']
+            for i in [LivePVHeader.LIVE_VALUE, LivePVHeader.LIVE_SEVERITY,
+                      LivePVHeader.LIVE_STATUS, LivePVHeader.REMOVE]:
+                pv_view.setColumnHidden(i, True)
+
+            nest_view: NestableTableView = self.widget_map[side]['nest']
+            nest_view.setColumnHidden(NestableHeader.REMOVE, True)
 
         self.calculate_diff()
 
