@@ -231,5 +231,20 @@ def test_search_entries_by_ancestor(sample_client: Client):
     assert len(entries) == 1
 
 
+@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
+def test_search_caching(sample_client: Client):
+    entry = sample_client.backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    result = sample_client.search(
+        ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
+    )
+    assert len(tuple(result)) == 3
+    entry.children = []
+    sample_client.backend.update_entry(entry)
+    result = sample_client.search(
+        ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
+    )
+    assert len(tuple(result)) == 1  # update is picked up in new search
+
+
 def test_parametrized_filestore_empty(sample_client: Client):
     assert len(list(sample_client.search())) == 0
