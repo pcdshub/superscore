@@ -211,7 +211,8 @@ def test_gather_reachable(filestore_backend: _Backend):
     assert len(reachable) == 32
     assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable
 
-    # direct parent snapshot
-    reachable = filestore_backend._gather_reachable(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    # direct parent snapshot; works with UUID or Entry
+    entry = filestore_backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    reachable = filestore_backend._gather_reachable(entry)
     assert len(reachable) == 3
     assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable

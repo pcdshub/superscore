@@ -295,6 +295,7 @@ class FilestoreBackend(_Backend):
                     if attr == "entry_type":
                         conditions.append(isinstance(entry, target))
                     elif attr == "ancestor":
+                        # `target` must be UUID since `reachable` is cached
                         conditions.append(entry.uuid in reachable(target))
                     else:
                         try:
@@ -306,7 +307,7 @@ class FilestoreBackend(_Backend):
                 if all(conditions):
                     yield entry
 
-    def _gather_reachable(self, ancestor: UUID) -> Container[UUID]:
+    def _gather_reachable(self, ancestor: Union[Entry, UUID]) -> Container[UUID]:
         """
         Finds all entries accessible from ancestor, including ancestor, and returns
         their UUIDs. This makes it easy to check if one entry is hierarchically under another.
