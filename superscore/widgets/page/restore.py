@@ -10,9 +10,9 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Setpoint, Snapshot
 from superscore.widgets.core import Display
-from superscore.widgets.views import (BaseDataTableView, BaseTableEntryModel,
-                                      HeaderEnum, LivePVHeader,
-                                      LivePVTableModel, LivePVTableView)
+from superscore.widgets.views import (BaseDataTableView, HeaderEnum,
+                                      LivePVHeader, LivePVTableModel,
+                                      LivePVTableView)
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class SnapshotTableView(LivePVTableView):
         super().__init__(*args, **kwargs)
         self._model_cls = SnapshotTableModel
         self._is_live = start_live
-        # self.setColumnHidden(LivePVHeader.STORED_SEVERITY, True)
-        # self.setColumnHidden(LivePVHeader.STORED_STATUS, True)
+        self.setColumnHidden(LivePVHeader.STORED_SEVERITY, True)
+        self.setColumnHidden(LivePVHeader.STORED_STATUS, True)
 
     def gather_sub_entries(self) -> None:
         self.sub_entries = self.client._gather_leaves(self.data)
@@ -105,31 +105,24 @@ class RestoreDialog(Display, QtWidgets.QWidget):
 
 
 class CompareHeader(HeaderEnum):
-    PV_NAME = 0
-    PRIMARY_VALUE = auto()
-    SECONDARY_VALUE = auto()
-    PRIMARY_TIMESTAMP = auto()
-    SECONDARY_TIMESTAMP = auto()
-    PRIMARY_STATUS = auto()
-    SECONDARY_STATUS = auto()
-    PRIMARY_SEVERITY = auto()
-    SECONDARY_SEVERITY = auto()
-    PRIMARY_OPEN = auto()
-    SECONDARY_OPEN = auto()
+    COMPARISON_VALUE = auto()
+    COMPARISON_TIMESTAMP = auto()
+    COMPARISON_OPEN = auto()
 
 
-class CompareSnapshotTableModel(BaseTableEntryModel):
-    comparison_headers = {}
+class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
 
     def __init__(
         self,
         *args,
+        client: Client,
         primary_snapshot: Snapshot = None,
         comparison_snapshot: Snapshot = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.headers = [h.header_name() for h in CompareHeader]
+        self.headers = [h.header_name() for header in (LivePVHeader, CompareHeader) for h in header]
+        self.client = client
         self._primary_data = primary_snapshot
         self._secondary_data = comparison_snapshot
         self.entries = []
@@ -162,6 +155,34 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
     def data(self, index: QtCore.QModelIndex, role: int):
         if role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
+        elif role == QtCore.Qt.DisplayRole:
+            primary, secondary = self.entries[index.row()]
+            match index.column():
+                case CompareHeader.PV_NAME:
+                    return primary.pv_name
+                case CompareHeader.PRIMARY_VALUE:
+                    return primary.data
+                case CompareHeader.SECONDARY_VALUE:
+                    return secondary.data
+                case CompareHeader.PRIMARY_TIMESTAMP:
+                    return primary.creation_time
+                case CompareHeader.SECONDARY_TIMESTAMP:
+                    return secondary.creation_time
+                case CompareHeader.PRIMARY_OPEN:
+                    return QtCore.QVariant()
+                case CompareHeader.SECONDARY_OPEN:
+                    return QtCore.QVariant()
+        else:
+            return QtCore.QVariant()
+
+    def rowCount(self):
+        pass
+
+    def columnCount(self):
+        pass
+
+    def headerData(self):
+        pass
 
     @QtCore.Slot()
     def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
@@ -170,11 +191,16 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
 
 
 class CompareSnapshotTableView(BaseDataTableView):
+
+    setCompareSnapshot = QtCore.Signal(Snapshot)
+
     def __init__(self, *args, **kwargs):
         pass
 
     def gather_sub_entries(self):
-        pass
+        model = self.model()
+        model._collate_pvs()
+        self.sub_entries = model.entries
 
 
 class LiveButton(QtWidgets.QPushButton):
