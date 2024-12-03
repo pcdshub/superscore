@@ -71,8 +71,15 @@ class EntryItem:
                 self._bridge_cache[id(data)] = bridge
                 self.bridge = bridge
 
-    def fill_uuids(self, client: Optional[Client] = None) -> None:
-        """Fill this item's data if it is a uuid, using ``client``"""
+    def fill_uuids(
+        self,
+        client: Optional[Client] = None,
+        fill_depth: int = 2
+    ) -> None:
+        """
+        Fill this item's data if it is a uuid, using ``client``.
+        By default fills to a depth of 2, to keep the tree view data loading lazy
+        """
         if client is None:
             return
 
@@ -82,7 +89,7 @@ class EntryItem:
 
         if isinstance(self._data, Nestable):
             if any(isinstance(child, UUID) for child in self._data.children):
-                client.fill(self._data, fill_depth=2)
+                client.fill(self._data, fill_depth=fill_depth)
 
             # re-construct child EntryItems if there is a mismatch or if any
             # hold UUIDs as _data
@@ -539,9 +546,6 @@ class RootTreeView(QtWidgets.QTreeView):
 
     @client.setter
     def client(self, client: Client):
-        self._set_client(client)
-
-    def _set_client(self, client: Client):
         if client is self._client:
             return
 
