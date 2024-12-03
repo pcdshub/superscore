@@ -53,7 +53,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTreeView" name="tree_view">
+         <widget class="RootTreeView" name="tree_view">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -85,7 +85,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>37</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -177,6 +177,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RootTreeView</class>
+   <extends>QTreeView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

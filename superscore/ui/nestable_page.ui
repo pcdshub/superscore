@@ -42,7 +42,7 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QTreeView" name="tree_view">
+     <widget class="RootTreeView" name="tree_view">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>1</horstretch>
@@ -83,6 +83,11 @@
   <customwidget>
    <class>NestableTableView</class>
    <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+  <customwidget>
+   <class>RootTreeView</class>
+   <extends>QTreeView</extends>
    <header>superscore.widgets.views</header>
   </customwidget>
  </customwidgets>

@@ -11,11 +11,12 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import Collection, Parameter, Severity, Status
+from superscore.model import Collection, Parameter, Root, Severity, Status
 from superscore.tests.conftest import nest_depth
-from superscore.widgets.views import (CustRoles, LivePVHeader,
+from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
-                                      NestableTableView, RootTree)
+                                      NestableTableView, RootTree,
+                                      RootTreeView)
 
 
 @pytest.fixture(scope='function')
@@ -242,24 +243,55 @@ def test_fill_uuids_entry_item(linac_backend: TestBackend, qtbot: QtBot):
     nested_coll.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in nested_coll.children)
 
-    tree_model = RootTree(base_entry=nested_coll, client=client)
+    # hack: make all of linac_backend flat
+    for entry in linac_backend._entry_cache.values():
+        entry.swap_to_uuids()
 
+    tree_model = RootTree(base_entry=nested_coll, client=client)
     original_depth = nest_depth(tree_model.root_item)
-    assert original_depth == 1
+    # default fill depth is 2, so children and their children get EntryItems
+    assert original_depth == 2
 
     # fill just the first child
     # fill depth can depend on how the backend returns data.  Backend may not
     # be lazy, so we assert only child1's children have EntryItems
     root_item = tree_model.root_item
     child1 = root_item.child(0)
-    assert child1.childCount() == 0
+    assert child1.child(0).childCount() == 0
     child1.fill_uuids(client)
-    assert child1.childCount() > 0
-    assert root_item.child(1).childCount() == 0
-    assert root_item.child(2).childCount() == 0
+    assert child1.child(0).childCount() > 0
+    assert root_item.child(1).child(0).childCount() == 0
+    assert root_item.child(2).child(0).childCount() == 0
 
-    # filling the root item fills its children, which held uuids before
+    # filling only occurs if direct children are UUIDs, does nothing here
+    # since it was originally filled by RootTree
     root_item.fill_uuids(client)
-    assert root_item.child(0).childCount() > 0
-    assert root_item.child(1).childCount() > 0
-    assert root_item.child(2).childCount() > 0
+    assert root_item.child(0).child(0).childCount() > 0
+    assert root_item.child(1).child(0).childCount() == 0
+    assert root_item.child(2).child(0).childCount() == 0
+
+
+def test_roottree_setup(sample_database: Root):
+    tree_model = RootTree(base_entry=sample_database)
+    root_index = tree_model.index_from_item(tree_model.root_item)
+    # Check that the entire tree was created
+    assert tree_model.rowCount(root_index) == 4
+    assert tree_model.root_item.child(3).childCount() == 3
+
+
+def test_root_tree_view_setup_init_args(sample_client: Client):
+    tree_view = RootTreeView(
+        client=sample_client,
+        entry=sample_client.backend.root
+    )
+    assert isinstance(tree_view.model().root_item, EntryItem)
+    assert isinstance(tree_view.model(), RootTree)
+
+
+def test_root_tree_view_setup_post_init(sample_client: Client):
+    tree_view = RootTreeView()
+    tree_view.client = sample_client
+    tree_view.set_data(sample_client.backend.root)
+
+    assert isinstance(tree_view.model().root_item, EntryItem)
+    assert isinstance(tree_view.model(), RootTree)

@@ -17,9 +17,9 @@ def count_visible_items(tree_view):
     return count
 
 
-def test_main_window(qtbot: QtBot, mock_client: Client):
+def test_main_window(qtbot: QtBot, sample_client: Client):
     """Pass if main window opens successfully"""
-    window = Window(client=mock_client)
+    window = Window(client=sample_client)
     qtbot.addWidget(window)
 
 

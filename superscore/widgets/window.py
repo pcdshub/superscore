@@ -20,7 +20,7 @@ from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
-from superscore.widgets.views import RootTree
+from superscore.widgets.views import RootTreeView
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class Window(Display, QtWidgets.QMainWindow):
 
     filename = 'main_window.ui'
 
-    tree_view: QtWidgets.QTreeView
+    tree_view: RootTreeView
     tab_widget: QtWidgets.QTabWidget
 
     action_new_coll: QtWidgets.QAction
@@ -55,13 +55,11 @@ class Window(Display, QtWidgets.QMainWindow):
         self.tab_widget.tabCloseRequested.connect(self.remove_tab)
 
         # setup tree view
-        self.tree_model = RootTree(base_entry=self.client.backend.root,
-                                   client=self.client)
-        self.tree_view.setModel(self.tree_model)
-        self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.tree_view.customContextMenuRequested.connect(self._tree_context_menu)
-        self.tree_view.setExpandsOnDoubleClick(False)
-        self.tree_view.doubleClicked.connect(self.open_index)
+        self.tree_view.client = self.client
+        self.tree_view.set_data(self.client.backend.root)
+        # override context menu and open_page_slot methods
+        self.tree_view.create_context_menu = self._window_context_menu
+        self.tree_view.open_page_slot = self.open_page
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
@@ -144,20 +142,19 @@ class Window(Display, QtWidgets.QMainWindow):
         index = self.tab_widget.addTab(page, snapshot.title)
         self.tab_widget.setCurrentIndex(index)
 
-    def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
-        self.menu = QtWidgets.QMenu(self)
-        index: QtCore.QModelIndex = self.tree_view.indexAt(pos)
-        if index is not None and index.data() is not None:
-            entry: Entry = index.internalPointer()._data
-            open_action = self.menu.addAction(
-                f'&Open Detailed {type(entry).__name__} page'
-            )
-            # WeakPartialMethodSlot may not be needed, menus are transient
-            open_action.triggered.connect(partial(self.open_page, entry))
-            if isinstance(entry, Snapshot):
-                restore_page_action = self.menu.addAction('Inspect values')
-                restore_page_action.triggered.connect(partial(self.open_restore_page, entry))
-        self.menu.exec_(self.tree_view.mapToGlobal(pos))
+    def _window_context_menu(self, entry: Entry) -> QtWidgets.QMenu:
+        """override for RootTreeView context menu"""
+        menu = QtWidgets.QMenu(self)
+        open_action = menu.addAction(
+            f'&Open Detailed {type(entry).__name__} page'
+        )
+        # WeakPartialMethodSlot may not be needed, menus are transient
+        open_action.triggered.connect(partial(self.open_page, entry))
+        if isinstance(entry, Snapshot):
+            restore_page_action = menu.addAction('Inspect values')
+            restore_page_action.triggered.connect(partial(self.open_restore_page, entry))
+
+        return menu
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         while self.tab_widget.count() > 0:

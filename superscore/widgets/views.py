@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import time
 from enum import Enum, IntEnum, auto
+from functools import partial
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Union
 from uuid import UUID
 from weakref import WeakValueDictionary
@@ -70,8 +71,15 @@ class EntryItem:
                 self._bridge_cache[id(data)] = bridge
                 self.bridge = bridge
 
-    def fill_uuids(self, client: Optional[Client] = None) -> None:
-        """Fill this item's data if it is a uuid, using ``client``"""
+    def fill_uuids(
+        self,
+        client: Optional[Client] = None,
+        fill_depth: int = 2
+    ) -> None:
+        """
+        Fill this item's data if it is a uuid, using ``client``.
+        By default fills to a depth of 2, to keep the tree view data loading lazy
+        """
         if client is None:
             return
 
@@ -81,7 +89,7 @@ class EntryItem:
 
         if isinstance(self._data, Nestable):
             if any(isinstance(child, UUID) for child in self._data.children):
-                client.fill(self._data, fill_depth=2)
+                client.fill(self._data, fill_depth=fill_depth)
 
             # re-construct child EntryItems if there is a mismatch or if any
             # hold UUIDs as _data
@@ -288,6 +296,8 @@ class RootTree(QtCore.QAbstractItemModel):
         self.base_entry = base_entry
         self.root_item = build_tree(base_entry)
         self.client = client
+        # ensure at least the first set of children are filled
+        self.root_item.fill_uuids(self.client)
         self.headers = ['name', 'description']
 
     def refresh_tree(self) -> None:
@@ -495,6 +505,111 @@ class RootTree(QtCore.QAbstractItemModel):
         num_children = item.childCount()
         self.beginInsertRows(parent, 0, num_children)
         self.endInsertRows()
+
+
+class RootTreeView(QtWidgets.QTreeView):
+    """
+    Tree view for displaying an Entry.
+    Contains a standard context menu and action set
+    """
+
+    _model: Optional[RootTree] = None
+    data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    def __init__(
+        self,
+        *args,
+        client: Optional[Client] = None,
+        entry: Optional[Entry] = None,
+        open_page_slot: Optional[OpenPageSlot] = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._client = client
+        self.data = entry
+        self.open_page_slot = open_page_slot
+
+        self.setup_ui()
+
+    def setup_ui(self) -> None:
+        # Configure basic settings
+        self.maybe_setup_model()
+
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._tree_context_menu)
+        self.setExpandsOnDoubleClick(False)
+        self.doubleClicked.connect(self.open_index)
+
+    @property
+    def client(self):
+        return self._client
+
+    @client.setter
+    def client(self, client: Client):
+        if client is self._client:
+            return
+
+        if not isinstance(client, Client):
+            raise ValueError("Provided client is not a superscore Client")
+
+        self._client = client
+        self.maybe_setup_model()
+
+    def set_data(self, data: Any):
+        """Set the data for this view, re-setup ui"""
+        if not isinstance(data, (Root, Entry)):
+            raise ValueError(
+                f"Attempted to set an incompatable data type ({type(data)})"
+            )
+        self.data = data
+        self.maybe_setup_model()
+
+    def maybe_setup_model(self):
+        if self.client is None:
+            logger.debug("Client not set, cannot initialize model")
+            return
+
+        if self.data is None:
+            logger.debug("data not set, cannot initialize model")
+            return
+
+        self._model = RootTree(base_entry=self.data, client=self.client)
+        self.setModel(self._model)
+        self._model.dataChanged.connect(self.data_updated)
+
+        self.data_updated.emit()
+
+    def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
+        index: QtCore.QModelIndex = self.indexAt(pos)
+        if index is not None and index.data() is not None:
+            entry: Entry = index.internalPointer()._data
+            menu = self.create_context_menu(entry)
+
+            menu.exec_(self.mapToGlobal(pos))
+
+    def create_context_menu(self, entry: Entry) -> QtWidgets.QMenu:
+        """
+        Default method for creating the context menu.
+        Overload/replace this method if you would like to change this behavior
+        """
+        menu = QtWidgets.QMenu(self)
+        open_action = menu.addAction(
+            f'&Open Detailed {type(entry).__name__} page'
+        )
+        # WeakPartialMethodSlot may not be needed, menus are transient
+        open_action.triggered.connect(partial(self.open_page, entry))
+
+        return menu
+
+    def open_index(self, index: QtCore.QModelIndex) -> None:
+        entry: Entry = index.internalPointer()._data
+        print(f'double click on : {type(entry)}')
+        self.open_page(entry)
+
+    def open_page(self, entry):
+        """Simple wrapper around the open page slot"""
+        if self.open_page_slot is not None:
+            self.open_page_slot(entry)
 
 
 class HeaderEnum(IntEnum):

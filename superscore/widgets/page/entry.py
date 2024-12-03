@@ -19,7 +19,8 @@ from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
 from superscore.widgets.views import (LivePVTableView, NestableTableView,
-                                      RootTree, edit_widget_from_epics_data)
+                                      RootTreeView,
+                                      edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class NestablePage(Display, DataWidget):
 
     meta_placeholder: QtWidgets.QWidget
     meta_widget: NameDescTagsWidget
-    tree_view: QtWidgets.QTreeView
+    tree_view: RootTreeView
     sub_coll_table_view: NestableTableView
     sub_pv_table_view: LivePVTableView
 
@@ -58,8 +59,9 @@ class NestablePage(Display, DataWidget):
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         # show tree view
-        self.model = RootTree(base_entry=self.data, client=self.client)
-        self.tree_view.setModel(self.model)
+        self.tree_view.client = self.client
+        self.tree_view.set_data(self.data)
+        self.tree_view.open_page_slot = self.open_page_slot
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
