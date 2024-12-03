@@ -202,3 +202,17 @@ def test_update_entry(backends: _Backend):
     p1 = Parameter()
     with pytest.raises(BackendError):
         backends.update_entry(p1)
+
+
+@pytest.mark.parametrize("filestore_backend", [("linac_data",)], indirect=True)
+def test_gather_reachable(filestore_backend: _Backend):
+    # top-level snapshot
+    reachable = filestore_backend._gather_reachable(UUID("06282731-33ea-4270-ba14-098872e627dc"))
+    assert len(reachable) == 32
+    assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable
+
+    # direct parent snapshot; works with UUID or Entry
+    entry = filestore_backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    reachable = filestore_backend._gather_reachable(entry)
+    assert len(reachable) == 3
+    assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable
