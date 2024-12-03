@@ -8,7 +8,8 @@ import logging
 import time
 from enum import Enum, IntEnum, auto
 from functools import partial
-from typing import Any, ClassVar, Dict, Generator, List, Optional, Union
+from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
+                    Union)
 from uuid import UUID
 from weakref import WeakValueDictionary
 
@@ -25,11 +26,101 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
 from superscore.qt_helpers import QDataclassBridge
 from superscore.type_hints import OpenPageSlot
 from superscore.widgets import ICON_MAP
+from superscore.widgets.core import QtSingleton
 
 logger = logging.getLogger(__name__)
 
 
 PVEntry = Union[Parameter, Setpoint, Readback]
+
+
+def add_open_page_to_menu(
+    menu: QtWidgets.QMenu,
+    entry: Entry,
+    open_page_slot: OpenPageSlot
+) -> None:
+    open_action = menu.addAction(
+        f'&Open Detailed {type(entry).__name__} page'
+    )
+    # WeakPartialMethodSlot may not be needed, menus are transient
+    # TODO: refactor to not require passing open_page_slot, maybe with window
+    # singleton eventually
+    open_action.triggered.connect(partial(open_page_slot, entry))
+
+
+# Entries for comparison
+class DiffDispatcher(QtCore.QObject, metaclass=QtSingleton):
+    """
+    Singleton QObject holding a signal and up to two entries for comparison.
+    Emits comparison_ready signal when selecting the second entry for comparison
+    """
+    comparison_ready: ClassVar[QtCore.Signal] = QtCore.Signal()
+    l_entry: Optional[Entry] = None
+    r_entry: Optional[Entry] = None
+
+    def select_for_compare(self, entry: Entry) -> None:
+        """Adds ``entry`` for comparison"""
+        if not isinstance(entry, Entry):
+            return
+
+        self.l_entry = entry
+
+    def compare_with_selected(self, entry: Entry) -> None:
+        if self.l_entry is None:
+            return
+
+        self.r_entry = entry
+        self.comparison_ready.emit()
+
+    def reset(self) -> None:
+        """Reset entries selected for diff"""
+        self.l_entry = None
+        self.r_entry = None
+
+
+def add_comparison_actions_to_menu(menu: QtWidgets.QMenu, entry: Entry) -> None:
+    """
+    Add relevant comparison actions to the Menu.
+
+    stashes the Entries to be compared in order to expose the right
+    """
+    ddisp = DiffDispatcher()
+    # add select item (to L if both are none, to R otherwise)
+    selected_uuids = [e.uuid for e in (ddisp.l_entry, ddisp.r_entry)
+                      if isinstance(e, Entry)]
+    if entry.uuid in selected_uuids:
+        # add a dummy action
+        menu.addAction("(Entry already selected for comparison)")
+        reset_action = menu.addAction("Reset items selected for comparison")
+        reset_action.triggered.connect(ddisp.reset)
+        return
+
+    add_l_action = menu.addAction("Select item for comparison")
+    add_l_action.triggered.connect(partial(ddisp.select_for_compare, entry))
+
+    if ddisp.l_entry is not None:
+        # add compare to selected if L is None
+        add_r_action = menu.addAction("Compare item with selected")
+        add_r_action.triggered.connect(partial(ddisp.compare_with_selected, entry))
+
+    if ddisp.l_entry or ddisp.r_entry:
+        # add reset
+        reset_action = menu.addAction("Reset items selected for comparison")
+        reset_action.triggered.connect(ddisp.reset)
+
+
+class MenuOption(Enum):
+    """Supported options for context menus"""
+    OPEN_PAGE = auto()
+    DIFF = auto()
+
+
+# TODO: change type hints to accurately reflect callables
+MENU_OPT_ADDER_MAP: Dict[MenuOption,
+                         Callable[[QtWidgets.QMenu, Entry], None]] = {
+    MenuOption.OPEN_PAGE: add_open_page_to_menu,
+    MenuOption.DIFF: add_comparison_actions_to_menu,
+}
 
 
 class CustRoles(IntEnum):
@@ -517,6 +608,11 @@ class RootTreeView(QtWidgets.QTreeView):
     _model: Optional[RootTree] = None
     data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
 
+    context_menu_options: Dict[MenuOption, bool] = {
+        MenuOption.OPEN_PAGE: True,
+        MenuOption.DIFF: True,
+    }
+
     def __init__(
         self,
         *args,
@@ -594,17 +690,19 @@ class RootTreeView(QtWidgets.QTreeView):
         Overload/replace this method if you would like to change this behavior
         """
         menu = QtWidgets.QMenu(self)
-        open_action = menu.addAction(
-            f'&Open Detailed {type(entry).__name__} page'
-        )
-        # WeakPartialMethodSlot may not be needed, menus are transient
-        open_action.triggered.connect(partial(self.open_page, entry))
+
+        if self.context_menu_options[MenuOption.OPEN_PAGE] and self.open_page_slot:
+            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry, self.open_page_slot)
+
+        menu.addSeparator()
+
+        if self.context_menu_options[MenuOption.DIFF]:
+            MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
 
         return menu
 
     def open_index(self, index: QtCore.QModelIndex) -> None:
         entry: Entry = index.internalPointer()._data
-        print(f'double click on : {type(entry)}')
         self.open_page(entry)
 
     def open_page(self, entry):
@@ -1201,6 +1299,11 @@ class BaseDataTableView(QtWidgets.QTableView):
     open_column: int = 0
     remove_column: int = 0
 
+    context_menu_options: Dict[MenuOption, bool] = {
+        MenuOption.OPEN_PAGE: True,
+        MenuOption.DIFF: True,
+    }
+
     def __init__(
         self,
         *args,
@@ -1230,6 +1333,10 @@ class BaseDataTableView(QtWidgets.QTableView):
         self.remove_delegate = ButtonDelegate(button_text='remove')
         self.setItemDelegateForColumn(self.remove_column, self.remove_delegate)
         self.remove_delegate.clicked.connect(self.remove_row)
+
+        # set context menu
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.create_context_menu_at_pos)
 
     def open_row_details(self, index: QtCore.QModelIndex) -> None:
         """slot for opening row details page"""
@@ -1326,6 +1433,30 @@ class BaseDataTableView(QtWidgets.QTableView):
             clipboard.setText(text, mode=mode)
             clipboard.setText(text)
         super().mousePressEvent(event)
+
+    def create_context_menu_at_pos(self, pos: QtCore.QPoint) -> None:
+        index: QtCore.QModelIndex = self.indexAt(pos)
+        if index is not None and index.data() is not None:
+            entry = self._model.entries[index.row()]
+            menu = self.create_context_menu(entry)
+
+            menu.exec_(self.mapToGlobal(pos))
+
+    def create_context_menu(self, entry: Entry) -> QtWidgets.QMenu:
+        """
+        Default method for creating the context menu.
+        Overload/replace this method if you would like to change this behavior
+        """
+        menu = QtWidgets.QMenu(self)
+        if self.context_menu_options[MenuOption.OPEN_PAGE] and self.open_page_slot:
+            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry, self.open_page_slot)
+
+        menu.addSeparator()
+
+        if self.context_menu_options[MenuOption.DIFF]:
+            MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
+
+        return menu
 
 
 class LivePVTableView(BaseDataTableView):
