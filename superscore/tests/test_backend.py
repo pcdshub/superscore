@@ -50,6 +50,7 @@ class TestTestBackend:
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_save_entry(backends: _Backend):
     new_entry = Parameter()
 
@@ -63,6 +64,7 @@ def test_save_entry(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_delete_entry(backends: _Backend):
     entry = backends.root.entries[0]
     backends.delete_entry(entry)
@@ -71,6 +73,7 @@ def test_delete_entry(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_search_entry(backends: _Backend):
     # Given an entry we know is in the backend
     results = backends.search(
@@ -116,6 +119,7 @@ def test_search_entry(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_fuzzy_search(backends: _Backend):
     results = list(backends.search(
         SearchTerm('description', 'like', 'motor'))
@@ -134,6 +138,7 @@ def test_fuzzy_search(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_tag_search(backends: _Backend):
     results = list(backends.search(
         SearchTerm('tags', 'gt', set())
@@ -161,6 +166,7 @@ def test_tag_search(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_search_error(backends: _Backend):
     with pytest.raises(TypeError):
         results = backends.search(
@@ -175,6 +181,7 @@ def test_search_error(backends: _Backend):
 
 
 @pytest.mark.parametrize('backends', [0], indirect=True)
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_update_entry(backends: _Backend):
     # grab an entry from the database and modify it.
     entry = list(backends.search(
@@ -195,3 +202,17 @@ def test_update_entry(backends: _Backend):
     p1 = Parameter()
     with pytest.raises(BackendError):
         backends.update_entry(p1)
+
+
+@pytest.mark.parametrize("filestore_backend", [("linac_data",)], indirect=True)
+def test_gather_reachable(filestore_backend: _Backend):
+    # top-level snapshot
+    reachable = filestore_backend._gather_reachable(UUID("06282731-33ea-4270-ba14-098872e627dc"))
+    assert len(reachable) == 32
+    assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable
+
+    # direct parent snapshot; works with UUID or Entry
+    entry = filestore_backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    reachable = filestore_backend._gather_reachable(entry)
+    assert len(reachable) == 3
+    assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable

@@ -4,7 +4,7 @@ from superscore.tests.conftest import linac_data
 from superscore.tests.ioc import IOCFactory
 
 if __name__ == '__main__':
-    _, snapshot = linac_data()
+    _, snapshot = linac_data().entries
     LinacIOC = IOCFactory.from_entries(snapshot.children)
 
     ioc_options, run_options = ioc_arg_parser(

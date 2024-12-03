@@ -141,6 +141,7 @@ def test_find_config(sscore_cfg: str):
     assert 'other/cfg' == Client.find_config()
 
 
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_search(sample_client):
     results = list(sample_client.search(
         ('data', 'isclose', (4, 0, 0))
@@ -170,6 +171,7 @@ def uuids_in_entry(entry: Entry):
     "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
     "ffd668d3-57d9-404e-8366-0778af7aee61",
 ])
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
 def test_fill(sample_client: Client, entry_uuid: str):
     entry = list(sample_client.search(
         ("uuid", "eq", UUID(entry_uuid))
@@ -206,3 +208,43 @@ def test_fill_depth(fill_depth: int):
     client.fill(deep_coll, fill_depth)
 
     assert nest_depth(deep_coll) == fill_depth
+
+
+@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
+def test_search_entries_by_ancestor(sample_client: Client):
+    entries = tuple(sample_client.search(
+        ("entry_type", "eq", Setpoint),
+        ("pv_name", "eq", "LASR:GUNB:TEST1"),
+    ))
+    assert len(entries) == 2
+    entries = tuple(sample_client.search(
+        ("entry_type", "eq", Setpoint),
+        ("pv_name", "eq", "LASR:GUNB:TEST1"),
+        ("ancestor", "eq", UUID("06282731-33ea-4270-ba14-098872e627dc")),  # top-level snapshot
+    ))
+    assert len(entries) == 1
+    entries = tuple(sample_client.search(
+        ("entry_type", "eq", Setpoint),
+        ("pv_name", "eq", "LASR:GUNB:TEST1"),
+        ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),  # direct parent
+    ))
+    assert len(entries) == 1
+
+
+@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
+def test_search_caching(sample_client: Client):
+    entry = sample_client.backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    result = sample_client.search(
+        ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
+    )
+    assert len(tuple(result)) == 3
+    entry.children = []
+    sample_client.backend.update_entry(entry)
+    result = sample_client.search(
+        ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
+    )
+    assert len(tuple(result)) == 1  # update is picked up in new search
+
+
+def test_parametrized_filestore_empty(sample_client: Client):
+    assert len(list(sample_client.search())) == 0
