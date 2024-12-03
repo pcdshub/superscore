@@ -422,7 +422,7 @@ class Client:
 
         for child in coll.children:
             if isinstance(child, UUID):
-                child = self.backend.get(child)
+                child = self.backend.get_entry(child)
             if isinstance(child, Parameter):
                 if child.readback is not None:
                     edata = self._value_or_default(
