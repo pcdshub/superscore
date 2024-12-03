@@ -42,9 +42,10 @@ class BiDict(dict):
         if key in self:
             self.inverse[self[key]].remove(key)
         super().__setitem__(key, value)
+        self.inverse[value] = key
 
     def __delitem__(self, key):
-        if self[key] in self.inverse and not self.inverse[self[key]]:
+        if self[key] in self.inverse:
             del self.inverse[self[key]]
         super().__delitem__(key)
 
@@ -155,6 +156,10 @@ class DiffTableModel(DiffModelMixin):
         entry = self._get_entry_from_index(index)
         field_name = self._header_to_field[col_header]
         for diff_item in self._diff.diffs:
+            # handle type changes
+            if entry in (diff_item.original_value, diff_item.new_value):
+                return diff_item.type
+
             for chain_obj, chain_access in diff_item.path:
                 if (
                     isinstance(chain_obj, Entry)
@@ -253,7 +258,6 @@ class DiffPage(Display, QtWidgets.QWidget):
 
         # initialize trees, tables, etc
         for side in Side:
-            print(f'initializing {side}')
             tree_view: RootTreeView = self.widget_map[side]['tree']
             tree_view._model_cls = DiffRootTree
             tree_view.client = self.client
@@ -280,8 +284,6 @@ class DiffPage(Display, QtWidgets.QWidget):
 
             nest_view: NestableTableView = self.widget_map[side]['nest']
             nest_view.setColumnHidden(NestableHeader.REMOVE, True)
-
-        self.calculate_diff()
 
     def sync_splitter(self, pos: int, index: int, side: Side):
         sizes = self.widget_map[~side]['splitter'].sizes()
