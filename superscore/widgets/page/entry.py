@@ -4,12 +4,14 @@ Widgets for visualizing and editing core model dataclasses
 import logging
 from copy import deepcopy
 from typing import Optional, Union
+from uuid import UUID
 
 import qtawesome as qta
 from qtpy import QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.control_layers._base_shim import EpicsData
+from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
 from superscore.type_hints import AnyEpicsType
@@ -35,6 +37,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
     sub_pv_table_view: LivePVTableView
 
     save_button: QtWidgets.QPushButton
+    snapshot_button: QtWidgets.QPushButton
 
     data: Nestable
 
@@ -67,6 +70,8 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.sub_coll_table_view.data_updated.connect(self.track_changes)
 
         self.save_button.clicked.connect(self.save)
+        self.snapshot_button.clicked.connect(self.take_snapshot)
+        self.snapshot_button.setText("Take new Snapshot")
 
         self.set_editable(self.editable)
 
@@ -100,6 +105,30 @@ class NestablePage(Display, DataWidget, WindowLinker):
         logger.debug(f"Stopping polling threads for {type(self.data)}")
         self.sub_pv_table_view._model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)
+
+    def take_snapshot(self) -> None:
+        # TODO: if data dirty, abort
+        entry = self.data
+        if isinstance(entry, Snapshot):
+            origin = entry.origin_collection
+            if origin is None:
+                logging.error("The original collection is unknown: cannot save snapshot")
+                return
+            elif isinstance(origin, UUID):
+                try:
+                    entry = self.client.backend.get_entry(origin)
+                except EntryNotFoundError:
+                    logging.error("The original collection does not exist: cannot save snapshot")
+                    return
+            else:
+                entry = origin
+        window = self.get_window()
+
+        snapshot = self.client.snap(entry)
+        self.client.save(snapshot)
+        self.refresh_window()
+        window.open_restore_page(snapshot=snapshot)
+        return
 
 
 class CollectionPage(NestablePage):

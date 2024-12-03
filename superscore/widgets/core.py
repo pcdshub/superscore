@@ -466,6 +466,10 @@ class WindowLinker:
         if window is not None:
             return window.open_page
 
+    def get_window(self):
+        """Return the singleton Window instance"""
+        return get_window()
+
     def refresh_window(self):
         """Refresh window ui elements"""
         # tree view
