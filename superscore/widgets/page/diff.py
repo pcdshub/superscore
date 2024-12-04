@@ -61,11 +61,16 @@ class BiDict(dict):
 
 class DiffModelMixin:
     """
-    Tree model that highlights items that have been modified.
+    QAbstractItemModel Mixin that highlights items that have been modified.
+    This must be mixed in with a ``QtCore.QAbstractItemModel``
+
     Reads an `EntryDiff` and assigns background colors based on modification type
     - Red: item removed in diff
     - Yellow: item modified in diff
     - Green: item added in diff
+
+    Caches color assignments, and does not re-calculate / clear the cache until
+    new data is assigned to the model
     """
 
     _diff: EntryDiff
@@ -79,6 +84,10 @@ class DiffModelMixin:
         linked_uuid_map: Optional[BiDict] = None,
         **kwargs
     ) -> None:
+        if not isinstance(self, QtCore.QAbstractItemModel):
+            raise TypeError("DiffModelMixin (and its subclasses) must be mixed"
+                            "in with a QtCore.QAbstractItemModel.  "
+                            f"MRO: ({list(c.__name__ for c in type(self).__mro__)})")
         super().__init__(*args, **kwargs)
         self._diff = diff
         # a cache that stores the background color, since entries may be lazily
@@ -87,7 +96,16 @@ class DiffModelMixin:
         # to be set by
         self._linked_uuids = linked_uuid_map
 
+        self.layoutChanged.connect(self._clear_diff_cache)
+
+    def _clear_diff_cache(self) -> None:
+        self._index_to_diff_type_cache = {}
+
     def data(self, index: QtCore.QModelIndex, role: int) -> Any:
+        """
+        If asked for a background color, get and return it.  Else fall back
+        to functionality defined in mixed in class.
+        """
         if role == QtCore.Qt.BackgroundColorRole:
             color = self.get_background_color(index)
             return color
@@ -95,6 +113,20 @@ class DiffModelMixin:
         return super().data(index, role)
 
     def get_background_color(self, index: QtCore.QModelIndex) -> Optional[QtGui.QColor]:
+        """
+        Get the background color for the entry at ``index`` based on the stored
+        EntryDiff, if one has been set
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            the model index to get the diff background color for
+
+        Returns
+        -------
+        Optional[QtGui.QColor]
+            the corresponding color, None if no diff found
+        """
         # do nothing if no diff is setup
         if not self._diff:
             return
@@ -111,6 +143,22 @@ class DiffModelMixin:
         return DIFF_COLOR_MAP[diff_type]
 
     def _get_entry_from_index(self, index: QtCore.QModelIndex) -> Entry:
+        """
+        Get the Entry from the provided Index.  Currently covers two model
+        index types:
+        - TreeModel (index.internalPointer() -> EntryItem)
+        - BaseTableEntryModel (self.entries[index.row()] -> Entry)
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            the requested model index
+
+        Returns
+        -------
+        Entry
+            The entry corresponding to ``index``
+        """
         ipointer = index.internalPointer()
 
         if isinstance(ipointer, EntryItem):
@@ -123,6 +171,7 @@ class DiffModelMixin:
 
 
 class DiffRootTree(DiffModelMixin, RootTree):
+    """A tree model with diff highlighting specialized for RootTree"""
 
     def _get_difftype_for_index(
         self,
@@ -141,6 +190,9 @@ class DiffRootTree(DiffModelMixin, RootTree):
 
 
 class DiffTableModel(DiffModelMixin):
+    """
+    A table model with diff highlighting specialized for ``BaseTableEntryModel``
+    """
     # Assumes use as mixin for BaseTableEntryModel
     def _get_difftype_for_index(
         self,
@@ -187,17 +239,30 @@ class DiffNestableTableModel(DiffTableModel, NestableTableModel):
 
 
 class Side(Flag):
+    """Simple right/left side enum, where inversion gives the other side"""
     LEFT = True
     RIGHT = False
 
 
 class DiffPage(Display, QtWidgets.QWidget):
     """
-    Diff Page.  Many splitters, existing views + highlighting
-    No editing (so no data widget needed for bridge)
+    Diff View Page.  Compares two ``Entry`` objects, attempting to highlight
+    differences where appropriate
+
+    Features:
+    - Synchronized splitters
+    - Subclasses of common views augmented with diff highlighting
+    - No editing (so no data widget needed for bridge)
         - defers editing to details
 
-    Refresh behavior?
+    To use, either:
+    - supply the two entries on page creation
+    - set the entries with DiffPage.set_entry()
+
+    TODO:
+    - Buttons for setting entries inside page
+    - Button for refreshing entry data (new grab from client)
+    - Top level Summary of Entries and possibly their differences
     """
     filename = "diff_page.ui"
 
@@ -248,7 +313,8 @@ class DiffPage(Display, QtWidgets.QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        # Synchronize splitters
+        """Initial ui setup.  Wire up slots and initialize models"""
+        # Synchronize vertical splitters
         self.l_vert_splitter.splitterMoved.connect(partial(
             self.sync_splitter, side=Side.RIGHT
         ))
@@ -286,11 +352,23 @@ class DiffPage(Display, QtWidgets.QWidget):
             nest_view.setColumnHidden(NestableHeader.REMOVE, True)
 
     def sync_splitter(self, pos: int, index: int, side: Side):
+        """
+        Slot for QSplitter.splitterMoved.  ``side`` must be supplied via partial
+        """
         sizes = self.widget_map[~side]['splitter'].sizes()
         self.widget_map[side]['splitter'].setSizes(sizes)
 
     def set_entry(self, entry: Entry, side: Side):
-        """set entry data for all widgets on ``side`` to ``entry``"""
+        """
+        Set entry data for all widgets on ``side`` to ``entry``.
+
+        Parameters
+        ----------
+        entry : Entry
+            data to be set
+        side : Side
+            side to set data on
+        """
         tree_view: RootTreeView = self.widget_map[side]["tree"]
         tree_view.set_data(entry)
         self.set_table_entries(entry, side)
@@ -299,13 +377,23 @@ class DiffPage(Display, QtWidgets.QWidget):
         self.calculate_diff()
 
     def set_table_entries(self, entry: Entry, side: Side):
-        """Set the entry to view in table, use diff models for highlighting"""
+        """
+        Set the ``entry`` to the PV and Nestable table view on ``side``
+
+        Parameters
+        ----------
+        entry : Entry
+            data to be set
+        side : Side
+            side to set data on
+        """
         pv_view: LivePVTableView = self.widget_map[side]['pv']
         nest_view: NestableTableView = self.widget_map[side]['nest']
         pv_view.set_data(entry)
         nest_view.set_data(entry)
 
     def calculate_diff(self):
+        """Calculate the diff between the stored left and right entries"""
         # get diff from client method
         # refresh tables to show highlighting
         diff = self.client.compare(self.l_entry, self.r_entry)
