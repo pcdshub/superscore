@@ -1357,7 +1357,7 @@ class BaseDataTableView(QtWidgets.QTableView):
 
     def set_data(self, data: Any):
         """Set the data for this view, re-setup ui"""
-        if not isinstance(data, (list, Nestable)):
+        if not isinstance(data, (list, Entry)):
             raise ValueError(
                 f"Attempted to set an incompatable data type ({type(data)})"
             )
