@@ -11,6 +11,7 @@ from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
                               Snapshot)
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            ParameterPage, ReadbackPage,
                                            SetpointPage, SnapshotPage)
@@ -90,6 +91,35 @@ def restore_page(qtbot: QtBot, sample_client: Client, simple_snapshot: Snapshot)
     page.close()
 
 
+@pytest.fixture
+def diff_page(qtbot: QtBot, sample_client: Client):
+    l_snapshot = Snapshot(
+        title="l_snap",
+        description="l desc",
+        children=[
+            Setpoint(pv_name="MY:SET", data=1),
+            Readback(pv_name="MY:RBV", data=1),
+        ]
+    )
+    r_snapshot = Snapshot(
+        title="r_snap",
+        description="r desc",
+        children=[
+            Setpoint(pv_name="MY:SET", data=2),
+            Readback(pv_name="MY:RBV", data=1),
+            Readback(pv_name="MY:RBV2", data=2),
+        ]
+    )
+    page = DiffPage(
+        client=sample_client,
+        l_entry=l_snapshot,
+        r_entry=r_snapshot,
+    )
+    qtbot.addWidget(page)
+    yield page
+    page.close()
+
+
 @pytest.mark.parametrize(
     'page',
     [
@@ -101,6 +131,7 @@ def restore_page(qtbot: QtBot, sample_client: Client, simple_snapshot: Snapshot)
         "search_page",
         "collection_builder_page",
         "restore_page",
+        "diff_page",
     ]
 )
 def test_page_smoke(page: str, request: pytest.FixtureRequest):

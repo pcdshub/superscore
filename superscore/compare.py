@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields, is_dataclass
+from enum import Enum, auto
 from typing import Any, Generator, Iterable, List, Optional, Tuple, Union
 
 from superscore.model import Entry
@@ -12,6 +13,12 @@ from superscore.model import Entry
 # enum value:           ("__enum__", enum_member: Enum)
 # set entry:            ("__set__", set_member: str)
 AttributePath = List[Tuple[Any, Any]]
+
+
+class DiffType(Enum):
+    DELETED = auto()
+    MODIFIED = auto()
+    ADDED = auto()
 
 
 @dataclass
@@ -48,6 +55,17 @@ class DiffItem:
         repr_str += f": ({orig_val_str}->{new_val_str})"
 
         return repr_str
+
+    @property
+    def type(self) -> DiffType:
+        if (self.original_value is not None) and (self.new_value is None):
+            return DiffType.DELETED
+        elif (self.original_value is None) and (self.new_value is not None):
+            return DiffType.ADDED
+        elif (self.original_value is not None) and (self.new_value is not None):
+            return DiffType.MODIFIED
+        else:
+            raise ValueError("DiffItem original and new values are both None")
 
 
 @dataclass

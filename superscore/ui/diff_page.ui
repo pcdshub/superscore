@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>692</width>
+    <height>587</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QWidget" name="meta_placeholder" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSplitter" name="horiz_splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QSplitter" name="l_vert_splitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="RootTreeView" name="l_tree_view"/>
+      <widget class="LivePVTableView" name="l_pv_table_view"/>
+      <widget class="NestableTableView" name="l_nest_table_view"/>
+     </widget>
+     <widget class="QSplitter" name="r_vert_splitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="RootTreeView" name="r_tree_view"/>
+      <widget class="LivePVTableView" name="r_pv_table_view"/>
+      <widget class="NestableTableView" name="r_nest_table_view"/>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LivePVTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+  <customwidget>
+   <class>NestableTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+  <customwidget>
+   <class>RootTreeView</class>
+   <extends>QTreeView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

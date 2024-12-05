@@ -18,9 +18,10 @@ from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
-from superscore.widgets.views import RootTreeView
+from superscore.widgets.views import DiffDispatcher, RootTreeView
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,9 @@ class Window(Display, QtWidgets.QMainWindow):
     tab_widget: QtWidgets.QTabWidget
 
     action_new_coll: QtWidgets.QAction
+
+    # Diff dispatcher singleton
+    diff_dispatcher: DiffDispatcher = DiffDispatcher()
 
     def __init__(self, *args, client: Optional[Client] = None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,6 +67,9 @@ class Window(Display, QtWidgets.QMainWindow):
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
+
+        # open diff page
+        self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
@@ -140,6 +147,16 @@ class Window(Display, QtWidgets.QMainWindow):
     def open_restore_page(self, snapshot: Snapshot) -> None:
         page = RestorePage(data=snapshot, client=self.client)
         index = self.tab_widget.addTab(page, snapshot.title)
+        self.tab_widget.setCurrentIndex(index)
+
+    def open_diff_page(self) -> None:
+        page = DiffPage(
+            client=self.client,
+            open_page_slot=self.open_page,
+            l_entry=self.diff_dispatcher.l_entry,
+            r_entry=self.diff_dispatcher.r_entry,
+        )
+        index = self.tab_widget.addTab(page, 'Comparison View')
         self.tab_widget.setCurrentIndex(index)
 
     def _window_context_menu(self, entry: Entry) -> QtWidgets.QMenu:
