@@ -25,7 +25,7 @@ DIFF_COLOR_MAP = {
     DiffType.DELETED: QtGui.QColor(255, 0, 0, alpha=100),
     DiffType.MODIFIED: QtGui.QColor(255, 255, 0, alpha=100),
     DiffType.ADDED: QtGui.QColor(0, 255, 0, alpha=100),
-    None: None,
+    None: None,  # the no modification case, do not change background color
 }
 
 
@@ -39,8 +39,10 @@ class BiDict(dict):
         self.inverse = {}
 
     def __setitem__(self, key, value):
+        # setting in the standard direction to a new value
+        # must remove the inverse oldvalue-key pair
         if key in self:
-            self.inverse[self[key]].remove(key)
+            del self.inverse[self[key]]
         super().__setitem__(key, value)
         self.inverse[value] = key
 
