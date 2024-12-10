@@ -583,8 +583,11 @@ class RootTree(QtCore.QAbstractItemModel):
 
         data = item._data
 
-        if (isinstance(data, Nestable) and
-                any(isinstance(child, UUID) for child in data.children)):
+        has_uuid_children = (
+            any(isinstance(dc_child, UUID) for dc_child in data.children)
+            or any(isinstance(ei_child._data, UUID) for ei_child in item._children)
+        )
+        if isinstance(data, Nestable) and has_uuid_children:
             return True
 
         return False
