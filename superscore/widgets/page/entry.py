@@ -9,12 +9,12 @@ import qtawesome as qta
 from qtpy import QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
-from superscore.type_hints import AnyEpicsType, OpenPageSlot
-from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
+from superscore.type_hints import AnyEpicsType
+from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
+                                     WindowLinker)
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
@@ -25,7 +25,7 @@ from superscore.widgets.views import (LivePVTableView, NestableTableView,
 logger = logging.getLogger(__name__)
 
 
-class NestablePage(Display, DataWidget):
+class NestablePage(Display, DataWidget, WindowLinker):
     filename = 'nestable_page.ui'
 
     meta_placeholder: QtWidgets.QWidget
@@ -42,15 +42,11 @@ class NestablePage(Display, DataWidget):
         self,
         *args,
         data: Nestable,
-        client: Client,
         editable: bool = False,
-        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         super().__init__(*args, data=data, **kwargs)
-        self.client = client
         self.editable = editable
-        self.open_page_slot = open_page_slot
         self._last_data = deepcopy(self.data)
         self.setup_ui()
 
@@ -61,7 +57,6 @@ class NestablePage(Display, DataWidget):
         # show tree view
         self.tree_view.client = self.client
         self.tree_view.set_data(self.data)
-        self.tree_view.open_page_slot = self.open_page_slot
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
@@ -115,7 +110,7 @@ class SnapshotPage(NestablePage):
     data: Snapshot
 
 
-class BaseParameterPage(Display, DataWidget):
+class BaseParameterPage(Display, DataWidget, WindowLinker):
     filename = 'parameter_page.ui'
 
     meta_placeholder: QtWidgets.QWidget
@@ -159,15 +154,11 @@ class BaseParameterPage(Display, DataWidget):
     def __init__(
         self,
         *args,
-        client: Client,
         editable: bool = False,
-        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.client = client
         self.editable = editable
-        self.open_page_slot = open_page_slot
         self.value_stored_widget = None
         self.edata = None
         self._edata_thread: Optional[BusyCursorThread] = None

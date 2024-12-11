@@ -15,7 +15,7 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
-from superscore.widgets.core import DataWidget, Display
+from superscore.widgets.core import DataWidget, Display, QtSingleton
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
@@ -26,7 +26,7 @@ from superscore.widgets.views import DiffDispatcher, RootTreeView
 logger = logging.getLogger(__name__)
 
 
-class Window(Display, QtWidgets.QMainWindow):
+class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
     """Main superscore window"""
 
     filename = 'main_window.ui'
@@ -61,9 +61,8 @@ class Window(Display, QtWidgets.QMainWindow):
         # setup tree view
         self.tree_view.client = self.client
         self.tree_view.set_data(self.client.backend.root)
-        # override context menu and open_page_slot methods
+        # override context menu
         self.tree_view.create_context_menu = self._window_context_menu
-        self.tree_view.open_page_slot = self.open_page
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
@@ -85,8 +84,7 @@ class Window(Display, QtWidgets.QMainWindow):
 
     def open_collection_builder(self):
         """open collection builder page"""
-        page = CollectionBuilderPage(client=self.client,
-                                     open_page_slot=self.open_page)
+        page = CollectionBuilderPage(client=self.client)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
         update_slot = WeakPartialMethodSlot(
@@ -124,8 +122,7 @@ class Window(Display, QtWidgets.QMainWindow):
             logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
             return
 
-        page_widget = page(data=entry, client=self.client,
-                           open_page_slot=self.open_page)
+        page_widget = page(data=entry, client=self.client)
         icon = qta.icon(ICON_MAP[type(entry)])
         tab_name = getattr(
             entry, 'title', getattr(entry, 'pv_name', f'<{type(entry).__name__}>')
@@ -140,7 +137,7 @@ class Window(Display, QtWidgets.QMainWindow):
         self.open_page(entry)
 
     def open_search_page(self) -> None:
-        page = SearchPage(client=self.client, open_page_slot=self.open_page)
+        page = SearchPage(client=self.client)
         index = self.tab_widget.addTab(page, 'search')
         self.tab_widget.setCurrentIndex(index)
 
@@ -152,7 +149,6 @@ class Window(Display, QtWidgets.QMainWindow):
     def open_diff_page(self) -> None:
         page = DiffPage(
             client=self.client,
-            open_page_slot=self.open_page,
             l_entry=self.diff_dispatcher.l_entry,
             r_entry=self.diff_dispatcher.r_entry,
         )
