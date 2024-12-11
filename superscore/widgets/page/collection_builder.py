@@ -4,10 +4,9 @@ from typing import Optional
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.client import Client
 from superscore.model import Collection, Entry, Parameter
-from superscore.type_hints import OpenPageSlot
-from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
+from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
+                                     WindowLinker)
 from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
@@ -17,7 +16,7 @@ from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
 logger = logging.getLogger(__name__)
 
 
-class CollectionBuilderPage(Display, DataWidget):
+class CollectionBuilderPage(Display, DataWidget, WindowLinker):
     filename = 'collection_builder_page.ui'
     data: Collection
 
@@ -46,16 +45,12 @@ class CollectionBuilderPage(Display, DataWidget):
     def __init__(
         self,
         *args,
-        client: Client,
         data: Optional[Collection] = None,
-        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs
     ):
         if data is None:
             data = Collection()
         super().__init__(*args, data=data, **kwargs)
-        self.client = client
-        self.open_page_slot = open_page_slot
         self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
@@ -90,7 +85,6 @@ class CollectionBuilderPage(Display, DataWidget):
 
         self.tree_view.client = self.client
         self.tree_view.set_data(self.data)
-        self.tree_view.open_page_slot = self.open_page_slot
         self.tree_model: RootTree = self.tree_view.model()
 
         self.sub_coll_table_view.data_updated.connect(self.tree_model.refresh_tree)

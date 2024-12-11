@@ -17,6 +17,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
+from superscore.widgets.window import Window
 
 
 def linac_data() -> Root:
@@ -1003,3 +1004,10 @@ def nest_depth(entry: Union[Nestable, EntryItem]) -> int:
                 q.append((child, depth+1))
 
     return max(depths)
+
+
+@pytest.fixture(autouse=True)
+def teardown_window_singleton():
+    # clean up window autouse fixture inside this module only
+    yield
+    Window._instance = None
