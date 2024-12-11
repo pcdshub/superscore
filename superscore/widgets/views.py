@@ -583,12 +583,16 @@ class RootTree(QtCore.QAbstractItemModel):
 
         data = item._data
 
-        has_uuid_children = (
-            any(isinstance(dc_child, UUID) for dc_child in data.children)
-            or any(isinstance(ei_child._data, UUID) for ei_child in item._children)
-        )
-        if isinstance(data, Nestable) and has_uuid_children:
-            return True
+        # Root should never need to be fetched, since we fill to depth
+        # of 2 when we initialize the tree, and root is always at depth 0 if
+        # present
+        if isinstance(data, Nestable):
+            if (
+                any(isinstance(dc_child, UUID) for dc_child in data.children)
+                or any(isinstance(ei_child._data, UUID) for ei_child
+                       in item._children)
+            ):
+                return True
 
         return False
 
