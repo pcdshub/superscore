@@ -4,7 +4,6 @@ from typing import Optional
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.client import Client
 from superscore.model import Collection, Entry, Parameter
 from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
                                      WindowLinker)
@@ -46,14 +45,12 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
     def __init__(
         self,
         *args,
-        client: Client,
         data: Optional[Collection] = None,
         **kwargs
     ):
         if data is None:
             data = Collection()
         super().__init__(*args, data=data, **kwargs)
-        self._client = client
         self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
