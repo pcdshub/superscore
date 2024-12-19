@@ -12,7 +12,7 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import Collection, Parameter, Root, Severity, Status
-from superscore.tests.conftest import nest_depth
+from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
                                       NestableTableView, RootTree,
@@ -21,13 +21,13 @@ from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
 
 @pytest.fixture(scope='function')
 def pv_poll_model(
-    mock_client: Client,
+    test_client: Client,
     parameter_with_readback: Parameter,
     qtbot: QtBot
 ):
     """Minimal LivePVTableModel, containing only Parameters (no stored data)"""
     model = LivePVTableModel(
-        client=mock_client,
+        client=test_client,
         entries=[parameter_with_readback],
         poll_period=1.0
     )
@@ -44,7 +44,7 @@ def pv_poll_model(
 
 @pytest.fixture(scope="function")
 def pv_table_view(
-    mock_client: Client,
+    test_client: Client,
     simple_snapshot: Collection,
     qtbot: QtBot,
 ):
@@ -65,10 +65,10 @@ def pv_table_view(
     def simple_coll_return_vals(pv_name: str):
         return ret_vals[pv_name]
 
-    mock_client.cl.get = MagicMock(side_effect=simple_coll_return_vals)
+    test_client.cl.get = MagicMock(side_effect=simple_coll_return_vals)
 
     view = LivePVTableView()
-    view.client = mock_client
+    view.client = test_client
     view.set_data(simple_snapshot)
 
     qtbot.wait_until(lambda: view.model()._poll_thread.isRunning())
@@ -198,7 +198,7 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
 
 
 def test_fill_uuids_pvs(
-    mock_client: Client,
+    test_client: Client,
     simple_snapshot: Collection,
     qtbot: QtBot,
 ):
@@ -208,7 +208,7 @@ def test_fill_uuids_pvs(
     view = LivePVTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend
-    view.client = mock_client
+    view.client = test_client
     view.set_data(simple_snapshot)
 
     assert all(not isinstance(c, UUID) for c in simple_snapshot.children)
@@ -219,7 +219,7 @@ def test_fill_uuids_pvs(
 
 
 def test_fill_uuids_nestable(
-    mock_client: Client,
+    test_client: Client,
     linac_backend: TestBackend,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
@@ -229,25 +229,25 @@ def test_fill_uuids_nestable(
     view = NestableTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend.  (entries will be "filled" with mock data)
-    view.client = mock_client
+    view.client = test_client
     view.set_data(nested_coll)
 
     assert all(not isinstance(c, UUID) for c in nested_coll.children)
 
 
-def test_fill_uuids_entry_item(linac_backend: TestBackend, qtbot: QtBot):
-    client = Client(backend=linac_backend)
-    nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+@setup_test_stack(sources=['linac_data'], backend_type=TestBackend)
+def test_fill_uuids_entry_item(test_client: Client, qtbot: QtBot):
+    nested_coll = test_client.backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
     assert not all(isinstance(c, UUID) for c in nested_coll.children)
     # should have a nest depth of 4
     nested_coll.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in nested_coll.children)
 
     # hack: make all of linac_backend flat
-    for entry in linac_backend._entry_cache.values():
+    for entry in test_client.backend._entry_cache.values():
         entry.swap_to_uuids()
 
-    tree_model = RootTree(base_entry=nested_coll, client=client)
+    tree_model = RootTree(base_entry=nested_coll, client=test_client)
     original_depth = nest_depth(tree_model.root_item)
     # default fill depth is 2, so children and their children get EntryItems
     assert original_depth == 2
@@ -258,14 +258,14 @@ def test_fill_uuids_entry_item(linac_backend: TestBackend, qtbot: QtBot):
     root_item = tree_model.root_item
     child1 = root_item.child(0)
     assert child1.child(0).childCount() == 0
-    child1.fill_uuids(client)
+    child1.fill_uuids(test_client)
     assert child1.child(0).childCount() > 0
     assert root_item.child(1).child(0).childCount() == 0
     assert root_item.child(2).child(0).childCount() == 0
 
     # filling only occurs if direct children are UUIDs, does nothing here
     # since it was originally filled by RootTree
-    root_item.fill_uuids(client)
+    root_item.fill_uuids(test_client)
     assert root_item.child(0).child(0).childCount() > 0
     assert root_item.child(1).child(0).childCount() == 0
     assert root_item.child(2).child(0).childCount() == 0
@@ -279,19 +279,21 @@ def test_roottree_setup(sample_database: Root):
     assert tree_model.root_item.child(3).childCount() == 3
 
 
-def test_root_tree_view_setup_init_args(sample_client: Client):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_view_setup_init_args(test_client: Client):
     tree_view = RootTreeView(
-        client=sample_client,
-        entry=sample_client.backend.root
+        client=test_client,
+        entry=test_client.backend.root
     )
     assert isinstance(tree_view.model().root_item, EntryItem)
     assert isinstance(tree_view.model(), RootTree)
 
 
-def test_root_tree_view_setup_post_init(sample_client: Client):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_view_setup_post_init(test_client: Client):
     tree_view = RootTreeView()
-    tree_view.client = sample_client
-    tree_view.set_data(sample_client.backend.root)
+    tree_view.client = test_client
+    tree_view.set_data(test_client.backend.root)
 
     assert isinstance(tree_view.model().root_item, EntryItem)
     assert isinstance(tree_view.model(), RootTree)

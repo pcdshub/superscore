@@ -5,11 +5,13 @@ from uuid import UUID
 import pytest
 
 from superscore.backends.core import SearchTerm
+from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.compare import (AttributePath, DiffItem, EntryDiff,
                                 walk_find_diff)
 from superscore.model import (Collection, Entry, Parameter, Readback, Setpoint,
                               Severity, Snapshot, Status)
+from superscore.tests.conftest import setup_test_stack
 
 
 def simplify_path(path: AttributePath) -> AttributePath:
@@ -152,21 +154,21 @@ date_format = "%Y-%m-%dT"
         ]
     ),
 ])
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_client_diff(
-    sample_client: Client,
+    test_client: Client,
     l_uuid: str,
     r_uuid: str,
     expected_diffs: list[DiffItem]
 ):
     """Run comparison tests based on filestore backend.  Ignore paths"""
-    l_entry = list(sample_client.search(
+    l_entry = list(test_client.search(
         SearchTerm(operator='eq', attr='uuid', value=UUID(l_uuid))
     ))[0]
-    r_entry = list(sample_client.search(
+    r_entry = list(test_client.search(
         SearchTerm(operator='eq', attr='uuid', value=UUID(r_uuid))
     ))[0]
-    diff: EntryDiff = sample_client.compare(l_entry, r_entry)
+    diff: EntryDiff = test_client.compare(l_entry, r_entry)
     print(diff)
     assert len(expected_diffs) == len(diff.diffs)
     for found_diff, expected_diff in zip(diff.diffs, expected_diffs):
