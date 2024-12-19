@@ -1,9 +1,10 @@
 from uuid import UUID
 
-import pytest
 from pytestqt.qtbot import QtBot
 
+from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
+from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.window import Window
 
 
@@ -17,15 +18,16 @@ def count_visible_items(tree_view):
     return count
 
 
-def test_main_window(qtbot: QtBot, sample_client: Client):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_main_window(qtbot: QtBot, test_client: Client):
     """Pass if main window opens successfully"""
-    window = Window(client=sample_client)
+    window = Window(client=test_client)
     qtbot.addWidget(window)
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_sample_window(qtbot: QtBot, sample_client: Client):
-    window = Window(client=sample_client)
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_sample_window(qtbot: QtBot, test_client: Client):
+    window = Window(client=test_client)
     qtbot.addWidget(window)
 
     assert count_visible_items(window.tree_view) == 4

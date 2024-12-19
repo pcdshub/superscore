@@ -13,7 +13,8 @@ from superscore.control_layers import EpicsData
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint)
-from superscore.tests.conftest import MockTaskStatus, nest_depth
+from superscore.tests.conftest import (MockTaskStatus, nest_depth,
+                                       setup_test_stack)
 
 SAMPLE_CFG = Path(__file__).parent / 'config.cfg'
 
@@ -44,7 +45,7 @@ def sscore_cfg(xdg_config_patch: Path):
     os.environ["XDG_CONFIG_HOME"] = xdg_cfg
 
 
-def test_gather_data(mock_client, sample_database):
+def test_gather_data(test_client, sample_database):
     snapshot = sample_database.entries[3]
     orig_pv = snapshot.children[0]
     dup_pv = Setpoint(
@@ -54,42 +55,45 @@ def test_gather_data(mock_client, sample_database):
         data="You shouldn't see this",
     )
     snapshot.children.append(dup_pv)
-    pvs, data_list = mock_client._gather_data(snapshot)
+    pvs, data_list = test_client._gather_data(snapshot)
     assert len(pvs) == len(data_list) == 3
     assert data_list[pvs.index("MY:PREFIX:mtr1.ACCL")] == 2
 
 
-@patch('superscore.control_layers.core.ControlLayer.put')
-def test_apply(put_mock, mock_client: Client, sample_database: Root, setpoint_with_readback):
+def test_apply(test_client: Client, sample_database: Root, setpoint_with_readback):
+    put_mock = test_client.cl.put
     put_mock.return_value = MockTaskStatus()
     snap = sample_database.entries[3]
-    mock_client.apply(snap)
+    test_client.apply(snap)
     assert put_mock.call_count == 1
     call_args = put_mock.call_args[0]
     assert len(call_args[0]) == len(call_args[1]) == 3
 
     put_mock.reset_mock()
 
-    mock_client.apply(snap, sequential=True)
+    test_client.apply(snap, sequential=True)
     assert put_mock.call_count == 3
 
     put_mock.reset_mock()
-    mock_client.apply(setpoint_with_readback, sequential=True)
+    test_client.apply(setpoint_with_readback, sequential=True)
     assert put_mock.call_count == 1
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
+@setup_test_stack(mock_cl=False)
 def test_snap(
     get_mock,
-    mock_client: Client,
+    test_client: Client,
     sample_database: Root,
     parameter_with_readback: Parameter
 ):
+    # Testing get -> _get_one chain, must not mock control layer
+
     coll = sample_database.entries[2]
     coll.children.append(parameter_with_readback)
 
     get_mock.side_effect = [EpicsData(i) for i in range(5)]
-    snapshot = mock_client.snap(coll)
+    snapshot = test_client.snap(coll)
     assert get_mock.call_count == 5
     assert all([snapshot.children[i].data == i for i in range(4)])  # children saved in order
     setpoint = snapshot.children[-1]
@@ -99,16 +103,20 @@ def test_snap(
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
-def test_snap_exception(get_mock, mock_client: Client, sample_database: Root):
+@setup_test_stack(mock_cl=False)
+def test_snap_exception(get_mock, test_client: Client, sample_database: Root):
+    # Testing get -> _get_one chain, must not mock control layer
     coll = sample_database.entries[2]
     get_mock.side_effect = [EpicsData(0), EpicsData(1), CommunicationError,
                             EpicsData(3), EpicsData(4)]
-    snapshot = mock_client.snap(coll)
+    snapshot = test_client.snap(coll)
     assert snapshot.children[2].data is None
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
-def test_snap_RO(get_mock, mock_client: Client, sample_database: Root):
+@setup_test_stack(mock_cl=False)
+def test_snap_RO(get_mock, test_client: Client, sample_database: Root):
+    # Testing get -> _get_one chain, must not mock control layer
     coll: Collection = sample_database.entries[2]
     coll.children.append(
         Parameter(pv_name="RO:PV",
@@ -116,8 +124,9 @@ def test_snap_RO(get_mock, mock_client: Client, sample_database: Root):
                   rel_tolerance=-.1,
                   read_only=True)
     )
+
     get_mock.side_effect = [EpicsData(i) for i in range(5)]
-    snapshot = mock_client.snap(coll)
+    snapshot = test_client.snap(coll)
 
     assert get_mock.call_count == 4
     for coll_child, snap_child in zip(coll.children, snapshot.children):
@@ -141,14 +150,14 @@ def test_find_config(sscore_cfg: str):
     assert 'other/cfg' == Client.find_config()
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_search(sample_client):
-    results = list(sample_client.search(
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_search(test_client):
+    results = list(test_client.search(
         ('data', 'isclose', (4, 0, 0))
     ))
     assert len(results) == 0
 
-    results = list(sample_client.search(
+    results = list(test_client.search(
         SearchTerm(operator='isclose', attr='data', value=(4, .5, 1))
     ))
     assert len(results) == 4
@@ -171,9 +180,9 @@ def uuids_in_entry(entry: Entry):
     "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
     "ffd668d3-57d9-404e-8366-0778af7aee61",
 ])
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_fill(sample_client: Client, entry_uuid: str):
-    entry = list(sample_client.search(
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_fill(test_client: Client, entry_uuid: str):
+    entry = list(test_client.search(
         ("uuid", "eq", UUID(entry_uuid))
     ))[0]
 
@@ -181,7 +190,7 @@ def test_fill(sample_client: Client, entry_uuid: str):
     entry.swap_to_uuids()
     assert uuids_in_entry(entry)
 
-    sample_client.fill(entry)
+    test_client.fill(entry)
     assert not uuids_in_entry(entry)
 
 
@@ -210,20 +219,23 @@ def test_fill_depth(fill_depth: int):
     assert nest_depth(deep_coll) == fill_depth
 
 
-@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
-def test_search_entries_by_ancestor(sample_client: Client):
-    entries = tuple(sample_client.search(
+@setup_test_stack(
+    sources=["linac_with_comparison_snapshot"],
+    backend_type=FilestoreBackend
+)
+def test_search_entries_by_ancestor(test_client: Client):
+    entries = tuple(test_client.search(
         ("entry_type", "eq", Setpoint),
         ("pv_name", "eq", "LASR:GUNB:TEST1"),
     ))
     assert len(entries) == 2
-    entries = tuple(sample_client.search(
+    entries = tuple(test_client.search(
         ("entry_type", "eq", Setpoint),
         ("pv_name", "eq", "LASR:GUNB:TEST1"),
         ("ancestor", "eq", UUID("06282731-33ea-4270-ba14-098872e627dc")),  # top-level snapshot
     ))
     assert len(entries) == 1
-    entries = tuple(sample_client.search(
+    entries = tuple(test_client.search(
         ("entry_type", "eq", Setpoint),
         ("pv_name", "eq", "LASR:GUNB:TEST1"),
         ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),  # direct parent
@@ -231,20 +243,23 @@ def test_search_entries_by_ancestor(sample_client: Client):
     assert len(entries) == 1
 
 
-@pytest.mark.parametrize("filestore_backend", [("linac_with_comparison_snapshot",)], indirect=True)
-def test_search_caching(sample_client: Client):
-    entry = sample_client.backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
-    result = sample_client.search(
+@setup_test_stack(
+    sources=["linac_with_comparison_snapshot"],
+    backend_type=FilestoreBackend
+)
+def test_search_caching(test_client: Client):
+    entry = test_client.backend.get_entry(UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a"))
+    result = test_client.search(
         ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
     )
     assert len(tuple(result)) == 3
     entry.children = []
-    sample_client.backend.update_entry(entry)
-    result = sample_client.search(
+    test_client.backend.update_entry(entry)
+    result = test_client.search(
         ("ancestor", "eq", UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")),
     )
     assert len(tuple(result)) == 1  # update is picked up in new search
 
 
-def test_parametrized_filestore_empty(sample_client: Client):
-    assert len(list(sample_client.search())) == 0
+def test_parametrized_filestore_empty(test_client: Client):
+    assert len(list(test_client.search())) == 0
