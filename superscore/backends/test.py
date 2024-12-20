@@ -60,14 +60,22 @@ class TestBackend(_Backend):
 
     def delete_entry(self, to_delete: Entry) -> None:
         stack = [self.data.copy()]
+        # remove from nested children
         while len(stack) > 0:
             children = stack.pop()
             for entry in children.copy():
                 if entry == to_delete:
                     children.remove(entry)
                 elif entry.uuid == to_delete.uuid:
-                    raise BackendError(f"Can't delete: entry {to_delete.uuid} is out of sync with the version in the backend")
+                    raise BackendError(
+                        f"Can't delete: entry {to_delete.uuid} "
+                        "is out of sync with the version in the backend"
+                    )
             stack.extend([entry.children for entry in children if isinstance(entry, Nestable)])
+
+        # Remove from top level if necessary
+        if to_delete in self.data:
+            self.data.remove(to_delete)
 
         self._fill_entry_cache()
 
