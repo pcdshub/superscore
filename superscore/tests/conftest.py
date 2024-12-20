@@ -1,4 +1,5 @@
 import inspect
+import itertools
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
@@ -260,19 +261,20 @@ def test_client(
 
 
 def setup_test_stack(
-    sources: Optional[List[str]] = None,
-    backend_type: Optional[Type[_Backend]] = None,
-    mock_cl: bool = True,
+    sources: Optional[Union[List[str], List[List[str]]]] = None,
+    backend_type: Optional[Union[Type[_Backend], List[Type[_Backend]]]] = None,
+    mock_cl: Union[bool, List[bool]] = True,
 ):
     """
     Set up the test stack (data, backend, client) for a test given the
     parameters above.  By default produces a `Client` with a mocked `_Backend`
-    and `ControlLayer`, which can neither save nor return data.
+    and `ControlLayer`, which can neither save nor return data.  If you are
+    using the default settings of the above fixtures, you do not need to use
+    this decorator.
 
-    If you are using the default settings of the above fixtures, you do not need
-    to use this decorator.
-
-    This is a convenience wrapper around @pytest.mark.parametrize
+    To specify a test matrix, supply a list of the desired parameters.
+    For "sources", this will be a list of lists, for "backend_type" this would
+    be a list of `_Backend` classes, etc.
 
     To use, simply supply the requested arguments:
 
@@ -286,8 +288,9 @@ def setup_test_stack(
         def test_full_stack(test_client: Client):
             # do a test
 
+    This is a convenience wrapper around @pytest.mark.parametrize
+
     Intricacies:
-    - currently no way to parametrize and generate multiple tests
     - need to define on tests, not fixtures that call test_*
         - those tests may not actually have test_* etc in params
     - the decorated test must request the "highest level" fixture expected by
@@ -299,22 +302,34 @@ def setup_test_stack(
     def decorator(func):
         param_list = []
         # gather data_params
-        data_params = {"sources": sources or []}
-        backend_params = {"backend_type": backend_type or "MockBackend"}
-        client_params = {"mock_cl": mock_cl}
+        if sources and isinstance(sources[0], List):
+            data_param_list = [{"sources": s} for s in sources]
+        else:
+            data_param_list = [{"sources": sources or []}]
+
+        if isinstance(backend_type, List):
+            backend_param_list = [{"backend_type": btype} for btype in backend_type]
+        else:
+            backend_param_list = [{"backend_type": backend_type or "MockBackend"}]
+
+        if isinstance(mock_cl, List):  # for completeness, likely unnecessary
+            client_param_list = [{"mock_cl": mcl} for mcl in mock_cl]
+        else:
+            client_param_list = [{"mock_cl": mock_cl}]
 
         # gather requisite fixtures, ignoring parameters for components higher
         # in the food chain
         func_params = inspect.signature(func).parameters
         if "test_client" in func_params:
             fixture_list = "test_data,test_backend,test_client,"
-            param_list = [(data_params, backend_params, client_params)]
+            param_list = list(itertools.product(data_param_list, backend_param_list,
+                                                client_param_list))
         elif "test_backend" in func_params:
             fixture_list = "test_data,test_backend,"
-            param_list = [(data_params, backend_params)]
+            param_list = list(itertools.product(data_param_list, backend_param_list))
         elif "test_data" in func_params:
             fixture_list = "test_data,"
-            param_list = [data_params]
+            param_list = data_param_list  # Avoid extra tuple packing
         else:
             raise ValueError(
                 "None of (test_data, test_backend, test_client) fixtures found "
@@ -326,7 +341,7 @@ def setup_test_stack(
             )
 
         print(f"Setting up test stack with: {fixture_list}, "
-              "({len(param_list)}){param_list}")
+              f"({len(param_list)}){param_list}")
 
         # This takes advantage of the fact that fixture definitions are gathered
         # first, then run.  This means that if a fixture requests a plain
