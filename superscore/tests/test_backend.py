@@ -5,6 +5,7 @@ import pytest
 
 from superscore.backends.core import SearchTerm, _Backend
 from superscore.backends.filestore import FilestoreBackend
+from superscore.backends.test import TestBackend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Collection, Parameter, Snapshot
@@ -51,7 +52,7 @@ class TestTestBackend:
             linac_backend.delete_entry(unsynced)
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(backend_type=[FilestoreBackend, TestBackend])
 def test_save_entry(test_backend: _Backend):
     new_entry = Parameter()
 
@@ -60,19 +61,24 @@ def test_save_entry(test_backend: _Backend):
     assert found_entry == new_entry
 
     # Cannot save an entry that already exists.
-    with pytest.raises(BackendError):
+    with pytest.raises(EntryExistsError):
         test_backend.save_entry(new_entry)
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_delete_entry(test_backend: _Backend):
     entry = test_backend.root.entries[0]
     test_backend.delete_entry(entry)
 
-    assert test_backend.get_entry(entry.uuid) is None
+    with pytest.raises(EntryNotFoundError):
+        test_backend.get_entry(entry.uuid)
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_search_entry(test_backend: _Backend):
     # Given an entry we know is in the backend
     results = test_backend.search(
@@ -117,7 +123,9 @@ def test_search_entry(test_backend: _Backend):
     assert len(list(results)) == 1
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_fuzzy_search(test_backend: _Backend):
     results = list(test_backend.search(
         SearchTerm('description', 'like', 'motor'))
@@ -135,7 +143,9 @@ def test_fuzzy_search(test_backend: _Backend):
     assert len(results) == 1
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_tag_search(test_backend: _Backend):
     results = list(test_backend.search(
         SearchTerm('tags', 'gt', set())
@@ -162,7 +172,9 @@ def test_tag_search(test_backend: _Backend):
     assert len(results) == 1
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_search_error(test_backend: _Backend):
     with pytest.raises(TypeError):
         results = test_backend.search(
@@ -176,7 +188,9 @@ def test_search_error(test_backend: _Backend):
         list(results)
 
 
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@setup_test_stack(
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+)
 def test_update_entry(test_backend: _Backend):
     # grab an entry from the database and modify it.
     entry = list(test_backend.search(
@@ -199,7 +213,10 @@ def test_update_entry(test_backend: _Backend):
         test_backend.update_entry(p1)
 
 
-@setup_test_stack(sources=["linac_data"], backend_type=FilestoreBackend)
+# TODO: Assess if _gather_reachable should be upstreamed to _Backend
+@setup_test_stack(
+    sources=["linac_data"], backend_type=FilestoreBackend,
+)
 def test_gather_reachable(test_backend: _Backend):
     # top-level snapshot
     reachable = test_backend._gather_reachable(UUID("06282731-33ea-4270-ba14-098872e627dc"))
