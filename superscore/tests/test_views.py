@@ -1,7 +1,7 @@
 import copy
 from typing import Any
 from unittest.mock import MagicMock
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import apischema
 import pytest
@@ -11,7 +11,8 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import Collection, Parameter, Root, Severity, Status
+from superscore.model import (Collection, Nestable, Parameter, Root, Severity,
+                              Status)
 from superscore.tests.conftest import nest_depth
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -295,3 +296,38 @@ def test_root_tree_view_setup_post_init(sample_client: Client):
 
     assert isinstance(tree_view.model().root_item, EntryItem)
     assert isinstance(tree_view.model(), RootTree)
+
+
+@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
+def test_root_tree_fetchmore(sample_client: Client):
+    tree_view = RootTreeView()
+    tree_view.client = sample_client
+    for entry in sample_client.backend.root.entries:
+        entry.swap_to_uuids()
+    tree_view.set_data(sample_client.backend.root)
+
+    model: RootTree = tree_view.model()
+    child_index = model.index_from_item(model.root_item.child(2))
+    # check that we have filling to do
+    assert isinstance(child_index.internalPointer()._data, Nestable)
+    assert any(isinstance(child, UUID) for child
+               in child_index.internalPointer()._data.children)
+
+    assert model.canFetchMore(child_index)
+    model.fetchMore(child_index)
+    assert not model.canFetchMore(child_index)
+
+    # Swap EntryItem children to uuids, confirm we re-attempt to fetch
+    for child in child_index.internalPointer()._children:
+        child._data = uuid4()
+
+    assert model.canFetchMore(child_index)
+    model.fetchMore(child_index)
+    assert not model.canFetchMore(child_index)
+
+    # Swap dataclass children to uuids, confirm we re-attempt to fetch
+    child_index.internalPointer()._data.swap_to_uuids()
+
+    assert model.canFetchMore(child_index)
+    model.fetchMore(child_index)
+    assert not model.canFetchMore(child_index)
