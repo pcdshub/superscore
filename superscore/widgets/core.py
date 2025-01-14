@@ -4,15 +4,17 @@ Core widget classes for qt-based GUIs.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar, List
+from typing import ClassVar, List, Optional
 from weakref import WeakValueDictionary
 
 from pcdsutils.qt.designer_display import DesignerDisplay
 from qtpy import QtCore, QtWidgets
 
+from superscore.client import Client
 from superscore.qt_helpers import QDataclassBridge, QDataclassList
-from superscore.type_hints import AnyDataclass
+from superscore.type_hints import AnyDataclass, OpenPageSlot
 from superscore.utils import SUPERSCORE_SOURCE_PATH
+from superscore.widgets import get_window
 from superscore.widgets.manip_helpers import (FrameOnEditFilter,
                                               match_line_edit_text_width)
 
@@ -423,3 +425,43 @@ class QtSingleton(type(QtCore.QObject), type):
         if cls._instance is None:
             cls._instance = super().__call__(*args, **kwargs)
         return cls._instance
+
+
+class WindowLinker:
+    """
+    Mixin class that provides access methods for resources held by the main Window.
+    These include:
+    - client: first attempts to grab the client set at init, if none exists use
+              the Window's client
+    - open_page_slot: grabs the slot from the Window
+    """
+
+    def __init__(self, *args, client: Optional[Client] = None, **kwargs) -> None:
+        self._client = client
+        super().__init__(*args, **kwargs)
+
+    @property
+    def client(self) -> Optional[Client]:
+        # Return the provided client if it exists, grab the Window's otherwise
+        if self._client is not None:
+            return self._client
+        else:
+            window = get_window()
+            if window is not None:
+                return window.client
+
+    @client.setter
+    def client(self, client: Client):
+        if not isinstance(client, Client):
+            raise TypeError(f"Cannot set a {type(client)} as a client")
+
+        if client is self._client:
+            return
+
+        self._client = client
+
+    @property
+    def open_page_slot(self) -> Optional[OpenPageSlot]:
+        window = get_window()
+        if window is not None:
+            return window.open_page
