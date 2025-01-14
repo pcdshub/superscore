@@ -24,9 +24,8 @@ from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
-from superscore.type_hints import OpenPageSlot
-from superscore.widgets import ICON_MAP
-from superscore.widgets.core import QtSingleton
+from superscore.widgets import ICON_MAP, get_window
+from superscore.widgets.core import QtSingleton, WindowLinker
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +36,15 @@ PVEntry = Union[Parameter, Setpoint, Readback]
 def add_open_page_to_menu(
     menu: QtWidgets.QMenu,
     entry: Entry,
-    open_page_slot: OpenPageSlot
 ) -> None:
+    window = get_window()
     open_action = menu.addAction(
         f'&Open Detailed {type(entry).__name__} page'
     )
     # WeakPartialMethodSlot may not be needed, menus are transient
     # TODO: refactor to not require passing open_page_slot, maybe with window
     # singleton eventually
-    open_action.triggered.connect(partial(open_page_slot, entry))
+    open_action.triggered.connect(partial(window.open_page, entry))
 
 
 # Entries for comparison
@@ -583,9 +582,16 @@ class RootTree(QtCore.QAbstractItemModel):
 
         data = item._data
 
-        if (isinstance(data, Nestable) and
-                any(isinstance(child, UUID) for child in data.children)):
-            return True
+        # Root should never need to be fetched, since we fill to depth
+        # of 2 when we initialize the tree, and root is always at depth 0 if
+        # present
+        if isinstance(data, Nestable):
+            if (
+                any(isinstance(dc_child, UUID) for dc_child in data.children)
+                or any(isinstance(ei_child._data, UUID) for ei_child
+                       in item._children)
+            ):
+                return True
 
         return False
 
@@ -598,7 +604,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self.endInsertRows()
 
 
-class RootTreeView(QtWidgets.QTreeView):
+class RootTreeView(QtWidgets.QTreeView, WindowLinker):
     """
     Tree view for displaying an Entry.
     Contains a standard context menu and action set
@@ -618,13 +624,11 @@ class RootTreeView(QtWidgets.QTreeView):
         *args,
         client: Optional[Client] = None,
         entry: Optional[Entry] = None,
-        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self._client = client
         self.data = entry
-        self.open_page_slot = open_page_slot
 
         self.setup_ui()
 
@@ -637,12 +641,11 @@ class RootTreeView(QtWidgets.QTreeView):
         self.setExpandsOnDoubleClick(False)
         self.doubleClicked.connect(self.open_index)
 
-    @property
-    def client(self):
-        return self._client
-
-    @client.setter
+    @WindowLinker.client.setter
     def client(self, client: Client):
+        if not isinstance(client, Client):
+            raise TypeError(f"Cannot set a {type(client)} as a client")
+
         if client is self._client:
             return
 
@@ -1288,7 +1291,7 @@ class _PVPollThread(QtCore.QThread):
             time.sleep(max((0, self.poll_period - elapsed)))
 
 
-class BaseDataTableView(QtWidgets.QTableView):
+class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
     """
     Base TableView for holding and manipulating an entry / list of entries
     """
@@ -1307,16 +1310,12 @@ class BaseDataTableView(QtWidgets.QTableView):
     def __init__(
         self,
         *args,
-        client: Optional[Client] = None,
         data: Optional[Union[Entry, List[Entry]]] = None,
-        open_page_slot: Optional[OpenPageSlot] = None,
         **kwargs,
     ) -> None:
         """need to set open_column, close_column in subclass"""
         super().__init__(*args, **kwargs)
         self.data = data
-        self._client = client
-        self.open_page_slot = open_page_slot
         self.sub_entries = []
         self.model_kwargs = {}
 
@@ -1398,15 +1397,14 @@ class BaseDataTableView(QtWidgets.QTableView):
         """
         raise NotImplementedError
 
-    @property
-    def client(self):
-        return self._client
-
-    @client.setter
+    @WindowLinker.client.setter
     def client(self, client: Client):
         self._set_client(client)
 
     def _set_client(self, client: Client):
+        if not isinstance(client, Client):
+            raise TypeError(f"Cannot set a {type(client)} as a client")
+
         if client is self._client:
             return
 

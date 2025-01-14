@@ -7,11 +7,9 @@ from uuid import UUID
 from PyQt5.QtGui import QCloseEvent
 from qtpy import QtCore, QtGui, QtWidgets
 
-from superscore.client import Client
 from superscore.compare import DiffType, EntryDiff
 from superscore.model import Entry
-from superscore.type_hints import OpenPageSlot
-from superscore.widgets.core import Display
+from superscore.widgets.core import Display, WindowLinker
 from superscore.widgets.views import (EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
                                       NestableHeader, NestableTableModel,
@@ -246,7 +244,7 @@ class Side(Flag):
     RIGHT = False
 
 
-class DiffPage(Display, QtWidgets.QWidget):
+class DiffPage(Display, QtWidgets.QWidget, WindowLinker):
     """
     Diff View Page.  Compares two ``Entry`` objects, attempting to highlight
     differences where appropriate
@@ -285,17 +283,13 @@ class DiffPage(Display, QtWidgets.QWidget):
     def __init__(
         self,
         *args,
-        client: Client,
-        open_page_slot: Optional[OpenPageSlot] = None,
         l_entry: Optional[Entry] = None,
         r_entry: Optional[Entry] = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.client = client
         self.l_entry = l_entry
         self.r_entry = r_entry
-        self.open_page_slot = open_page_slot
         self._linked_uuids: Dict[UUID, UUID] = BiDict()
 
         self.widget_map = {
@@ -332,13 +326,11 @@ class DiffPage(Display, QtWidgets.QWidget):
 
             pv_view: LivePVTableView = self.widget_map[side]['pv']
             pv_view._model_cls = DiffPVTableModel
-            pv_view.open_page_slot = self.open_page_slot
             pv_view.client = self.client
 
             nest_view: NestableTableView = self.widget_map[side]['nest']
             nest_view._model_cls = DiffNestableTableModel
             nest_view.client = self.client
-            nest_view.open_page_slot = self.open_page_slot
 
         self.set_entry(self.l_entry, Side.LEFT)
         self.set_entry(self.r_entry, Side.RIGHT)

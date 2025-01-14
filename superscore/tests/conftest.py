@@ -17,6 +17,7 @@ from superscore.control_layers.core import ControlLayer
 from superscore.model import Entry, Nestable, Root
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
+from superscore.widgets.window import Window
 
 # expose fixtures and helpers from other files in conftest so they will be gathered
 from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
@@ -354,3 +355,10 @@ def setup_test_stack(
         )(func)
 
     return decorator
+
+
+@pytest.fixture(autouse=True)
+def teardown_window_singleton():
+    # clean up window autouse fixture inside this module only
+    yield
+    Window._instance = None

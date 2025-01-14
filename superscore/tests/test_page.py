@@ -1,6 +1,6 @@
 """Largely smoke tests for various pages"""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from pytestqt.qtbot import QtBot
@@ -222,10 +222,11 @@ def test_open_page_slot(
     page_fixture: str,
     request: pytest.FixtureRequest,
 ):
-    page: BaseParameterPage = request.getfixturevalue(page_fixture)
-    page.open_page_slot = MagicMock()
-    page.open_rbv_button.clicked.emit()
-    assert page.open_page_slot.called
+    with patch("superscore.widgets.page.entry.BaseParameterPage.open_page_slot",
+               new_callable=PropertyMock):
+        page: BaseParameterPage = request.getfixturevalue(page_fixture)
+        page.open_rbv_button.clicked.emit()
+        assert page.open_page_slot.called
 
 
 @pytest.mark.parametrize(
