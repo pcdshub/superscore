@@ -300,13 +300,13 @@ def test_root_tree_view_setup_post_init(test_client: Client):
     assert isinstance(tree_view.model(), RootTree)
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_root_tree_fetchmore(sample_client: Client):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_fetchmore(test_client: Client):
     tree_view = RootTreeView()
-    tree_view.client = sample_client
-    for entry in sample_client.backend.root.entries:
+    tree_view.client = test_client
+    for entry in test_client.backend.root.entries:
         entry.swap_to_uuids()
-    tree_view.set_data(sample_client.backend.root)
+    tree_view.set_data(test_client.backend.root)
 
     model: RootTree = tree_view.model()
     child_index = model.index_from_item(model.root_item.child(2))
