@@ -6,10 +6,12 @@ import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
                               Snapshot)
+from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
@@ -20,9 +22,9 @@ from superscore.widgets.page.search import SearchPage
 
 
 @pytest.fixture(scope='function')
-def collection_page(qtbot: QtBot, sample_client: Client):
+def collection_page(qtbot: QtBot, test_client: Client):
     data = Collection()
-    page = CollectionPage(data=data, client=sample_client)
+    page = CollectionPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
 
@@ -32,9 +34,9 @@ def collection_page(qtbot: QtBot, sample_client: Client):
 
 
 @pytest.fixture(scope="function")
-def snapshot_page(qtbot: QtBot, sample_client: Client):
+def snapshot_page(qtbot: QtBot, test_client: Client):
     data = Snapshot()
-    page = SnapshotPage(data=data, client=sample_client)
+    page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
 
@@ -44,55 +46,55 @@ def snapshot_page(qtbot: QtBot, sample_client: Client):
 
 
 @pytest.fixture(scope="function")
-def parameter_page(qtbot: QtBot, sample_client: Client):
+def parameter_page(qtbot: QtBot, test_client: Client):
     data = Parameter()
-    page = ParameterPage(data=data, client=sample_client)
+    page = ParameterPage(data=data, client=test_client)
     qtbot.addWidget(page)
     return page
 
 
 @pytest.fixture(scope="function")
-def setpoint_page(qtbot: QtBot, sample_client: Client):
+def setpoint_page(qtbot: QtBot, test_client: Client):
     data = Setpoint()
-    page = SetpointPage(data=data, client=sample_client)
+    page = SetpointPage(data=data, client=test_client)
     qtbot.addWidget(page)
     return page
 
 
 @pytest.fixture(scope="function")
-def readback_page(qtbot: QtBot, sample_client: Client):
+def readback_page(qtbot: QtBot, test_client: Client):
     data = Readback()
-    page = ReadbackPage(data=data, client=sample_client)
+    page = ReadbackPage(data=data, client=test_client)
     qtbot.addWidget(page)
     return page
 
 
 @pytest.fixture(scope='function')
-def search_page(qtbot: QtBot, sample_client: Client):
-    page = SearchPage(client=sample_client)
+def search_page(qtbot: QtBot, test_client: Client):
+    page = SearchPage(client=test_client)
     qtbot.addWidget(page)
     return page
 
 
 @pytest.fixture(scope="function")
-def collection_builder_page(qtbot: QtBot, sample_client: Client):
-    page = CollectionBuilderPage(client=sample_client)
+def collection_builder_page(qtbot: QtBot, test_client: Client):
+    page = CollectionBuilderPage(client=test_client)
     qtbot.addWidget(page)
     yield page
     page.close()
     qtbot.waitUntil(lambda: page.sub_pv_table_view._model._poll_thread.isFinished())
 
 
-@pytest.fixture
-def restore_page(qtbot: QtBot, sample_client: Client, simple_snapshot: Snapshot):
-    page = RestorePage(data=simple_snapshot, client=sample_client)
+@pytest.fixture(scope="function")
+def restore_page(qtbot: QtBot, test_client: Client, simple_snapshot: Snapshot):
+    page = RestorePage(data=simple_snapshot, client=test_client)
     qtbot.addWidget(page)
     yield page
     page.close()
 
 
 @pytest.fixture
-def diff_page(qtbot: QtBot, sample_client: Client):
+def diff_page(qtbot: QtBot, test_client: Client):
     l_snapshot = Snapshot(
         title="l_snap",
         description="l desc",
@@ -111,7 +113,7 @@ def diff_page(qtbot: QtBot, sample_client: Client):
         ]
     )
     page = DiffPage(
-        client=sample_client,
+        client=test_client,
         l_entry=l_snapshot,
         r_entry=r_snapshot,
     )
@@ -139,8 +141,8 @@ def test_page_smoke(page: str, request: pytest.FixtureRequest):
     print(type(request.getfixturevalue(page)))
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_apply_filter(search_page: SearchPage):
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_apply_filter(test_client, search_page: SearchPage):
     search_page.apply_filter_button.clicked.emit()
     assert search_page.results_table_view.model().rowCount() == 6
 
@@ -167,8 +169,8 @@ def test_apply_filter(search_page: SearchPage):
     assert search_page.results_table_view.model().rowCount() == 1
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
-def test_coll_builder_add(collection_builder_page: CollectionBuilderPage):
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_coll_builder_add(test_client, collection_builder_page: CollectionBuilderPage):
     page = collection_builder_page
 
     page.pv_line_edit.setText("THIS:PV")
@@ -186,8 +188,9 @@ def test_coll_builder_add(collection_builder_page: CollectionBuilderPage):
     assert page.sub_coll_table_view._model.rowCount() == 1
 
 
-@pytest.mark.parametrize("filestore_backend", ["db/filestore.json"], indirect=True)
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_coll_builder_edit(
+    test_client,
     collection_builder_page: CollectionBuilderPage,
     qtbot: QtBot
 ):
@@ -278,19 +281,20 @@ def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
     qtbot.waitUntil(lambda: all((tableView.isColumnHidden(column) for column in live_columns)))
 
 
-@patch('superscore.control_layers.core.ControlLayer.put')
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_restore_dialog_restore(
-    put_mock,
-    mock_client: Client,
+    test_client: Client,
     simple_snapshot: Snapshot,
 ):
-    dialog = RestoreDialog(mock_client, simple_snapshot)
+    put_mock = test_client.cl.put
+    dialog = RestoreDialog(test_client, simple_snapshot)
     dialog.restore()
-    assert put_mock.call_args.args == mock_client._gather_data(simple_snapshot)
+    assert put_mock.call_args.args == test_client._gather_data(simple_snapshot)
 
 
-def test_restore_dialog_remove_pv(mock_client: Client, simple_snapshot: Snapshot):
-    dialog = RestoreDialog(mock_client, simple_snapshot)
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_restore_dialog_remove_pv(test_client: Client, simple_snapshot: Snapshot):
+    dialog = RestoreDialog(test_client, simple_snapshot)
     tableWidget = dialog.tableWidget
     assert tableWidget.rowCount() == len(simple_snapshot.children)
 

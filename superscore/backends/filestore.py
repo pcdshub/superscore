@@ -15,7 +15,8 @@ from uuid import UUID, uuid4
 from apischema import deserialize, serialize
 
 from superscore.backends.core import SearchTermType, _Backend
-from superscore.errors import BackendError
+from superscore.errors import (BackendError, EntryExistsError,
+                               EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
 from superscore.utils import build_abs_path
 
@@ -253,7 +254,12 @@ class FilestoreBackend(_Backend):
         with self._load_and_store_context() as db:
             if isinstance(uuid, str):
                 uuid = UUID(uuid)
-            return db.get(uuid)
+            result = db.get(uuid)
+
+        if result is None:
+            raise EntryNotFoundError(f"Entry {uuid} could not be found")
+
+        return result
 
     def save_entry(self, entry: Entry) -> None:
         """
@@ -262,8 +268,8 @@ class FilestoreBackend(_Backend):
         """
         with self._load_and_store_context() as db:
             if db.get(entry.uuid):
-                raise BackendError("Entry already exists, try updating the entry "
-                                   "instead of saving it")
+                raise EntryExistsError("Entry already exists, try updating the "
+                                       "entry instead of saving it")
             self.flatten_and_cache(entry)
             self._root.entries.append(entry)
 
