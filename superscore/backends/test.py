@@ -1,7 +1,6 @@
 """
 Backend that manipulates Entries in-memory for testing purposes.
 """
-from copy import deepcopy
 from typing import Dict, List, Optional, Union
 from uuid import UUID
 
@@ -28,7 +27,7 @@ class TestBackend(_Backend):
 
     def _fill_entry_cache(self) -> None:
         self._entry_cache = {}
-        stack = deepcopy(self.data)
+        stack = [entry for entry in self.data]
         while len(stack) > 0:
             entry = stack.pop()
             uuid = entry.uuid
