@@ -49,6 +49,9 @@ def _build_commands():
     return result
 
 
+COMMANDS = _build_commands()
+
+
 def main():
     top_parser = argparse.ArgumentParser(
         prog='superscore',
@@ -71,7 +74,6 @@ def main():
     )
 
     subparsers = top_parser.add_subparsers(help='Possible subcommands')
-    COMMANDS = _build_commands()
     for command_name, (build_func, main) in COMMANDS.items():
         sub = subparsers.add_parser(command_name)
         build_func(sub)
