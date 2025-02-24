@@ -9,7 +9,7 @@ import logging
 import os
 from pathlib import Path
 
-import superscore.tests.conftest
+from superscore.backends.test import populate_backend
 from superscore.bin.ui import main as ui_main
 from superscore.client import Client
 from superscore.model import Readback, Setpoint
@@ -48,7 +48,7 @@ def main(*args, db_path=None, **kwargs):
         pass
     # write data from the sources to the backend
     source_names = parser.get("demo", "fixtures").split()
-    superscore.tests.conftest.populate_backend(client.backend, source_names)
+    populate_backend(client.backend, source_names)
     # IOCFactory needs the Entries with data
     filled = [entry for entry in client.search() if isinstance(entry, (Setpoint, Readback))]
     with IOCFactory.from_entries(filled, client)(prefix=''):

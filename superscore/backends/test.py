@@ -2,9 +2,10 @@
 Backend that manipulates Entries in-memory for testing purposes.
 """
 from copy import deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Union
 from uuid import UUID
 
+import superscore.tests.conftest_data
 from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
@@ -99,3 +100,30 @@ class TestBackend(_Backend):
                         conditions.append(False)
             if all(conditions):
                 yield entry
+
+
+def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
+    """
+    Utility for quickly filling test backends with data. Supports a mix of many
+    types of sources:
+    * Roots
+    * Entries
+    * Callables that return Roots or Entries
+    * strings that search for test data callables
+    """
+    for source in sources:
+        if isinstance(source, Callable):
+            data = source()
+        elif isinstance(source, str):
+            func = getattr(superscore.tests.conftest_data, source, False)
+            data = func()
+        elif isinstance(source, (Root, Entry)):
+            data = source
+        else:
+            raise ValueError(f"Unsupported source type: {type(source)}")
+
+        if isinstance(data, Root):
+            for entry in data.entries:
+                backend.save_entry(entry)
+        else:
+            backend.save_entry(data)
