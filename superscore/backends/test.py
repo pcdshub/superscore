@@ -1,7 +1,6 @@
 """
 Backend that manipulates Entries in-memory for testing purposes.
 """
-from copy import deepcopy
 from typing import Dict, List, Optional, Union
 from uuid import UUID
 
@@ -9,6 +8,7 @@ from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
+from superscore.visitor import SearchVisitor
 
 
 class TestBackend(_Backend):
@@ -27,7 +27,7 @@ class TestBackend(_Backend):
 
     def _fill_entry_cache(self) -> None:
         self._entry_cache = {}
-        stack = deepcopy(self.data)
+        stack = [entry for entry in self.data]
         while len(stack) > 0:
             entry = stack.pop()
             uuid = entry.uuid
@@ -84,18 +84,7 @@ class TestBackend(_Backend):
         return self._root
 
     def search(self, *search_terms: SearchTermType):
-        for entry in self._entry_cache.values():
-            conditions = []
-            for attr, op, target in search_terms:
-                # TODO: search for child pvs?
-                if attr == "entry_type":
-                    conditions.append(isinstance(entry, target))
-                else:
-                    try:
-                        # check entry attribute by name
-                        value = getattr(entry, attr)
-                        conditions.append(self.compare(op, value, target))
-                    except AttributeError:
-                        conditions.append(False)
-            if all(conditions):
-                yield entry
+        visitor = SearchVisitor(self, *search_terms)
+        root = self.root
+        visitor.visit(root)
+        yield from visitor.matches

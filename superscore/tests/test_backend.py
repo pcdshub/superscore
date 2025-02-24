@@ -3,12 +3,13 @@ from uuid import UUID
 
 import pytest
 
-from superscore.backends.core import SearchTerm, _Backend
+from superscore.backends.core import _Backend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Collection, Parameter, Snapshot
+from superscore.search_term import SearchTerm
 from superscore.tests.conftest import setup_test_stack
 
 

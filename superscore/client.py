@@ -7,13 +7,14 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 from uuid import UUID
 
 from superscore.backends import get_backend
-from superscore.backends.core import SearchTerm, SearchTermType, _Backend
+from superscore.backends.core import _Backend
 from superscore.compare import DiffItem, EntryDiff, walk_find_diff
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Setpoint, Snapshot)
+from superscore.search_term import SearchTerm, SearchTermType
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
