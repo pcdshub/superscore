@@ -1,7 +1,12 @@
+"""
+Home for functions that return an Entry or Root
+
+Do not place pytest fixtures here, as these callables may be used in running
+demo instances.  Instead create corresponding fixtures in conftest.py directly
+"""
+
 from copy import deepcopy
 from uuid import UUID
-
-import pytest
 
 from superscore.model import (Collection, Parameter, Readback, Root, Setpoint,
                               Severity, Snapshot, Status)
@@ -728,7 +733,6 @@ def linac_with_comparison_snapshot() -> Root:
     return root
 
 
-@pytest.fixture(scope='function')
 def setpoint_with_readback() -> Setpoint:
     """
     A simple setpoint-readback value pair
@@ -749,7 +753,6 @@ def setpoint_with_readback() -> Setpoint:
     return setpoint
 
 
-@pytest.fixture(scope='function')
 def parameter_with_readback() -> Parameter:
     """
     A simple setpoint-readback parameter pair
@@ -768,7 +771,6 @@ def parameter_with_readback() -> Parameter:
     return setpoint
 
 
-@pytest.fixture(scope="function")
 def simple_snapshot() -> Collection:
     snap = Snapshot(description='various types', title='types collection')
     snap.children.append(Setpoint(pv_name="MY:FLOAT"))
@@ -777,7 +779,6 @@ def simple_snapshot() -> Collection:
     return snap
 
 
-@pytest.fixture(scope='function')
 def sample_database() -> Root:
     """
     A sample superscore database, including all the Entry types.

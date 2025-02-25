@@ -86,8 +86,12 @@ def collection_builder_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope="function")
-def restore_page(qtbot: QtBot, test_client: Client, simple_snapshot: Snapshot):
-    page = RestorePage(data=simple_snapshot, client=test_client)
+def restore_page(
+    qtbot: QtBot,
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot
+):
+    page = RestorePage(data=simple_snapshot_fixture, client=test_client)
     qtbot.addWidget(page)
     yield page
     page.close()
@@ -284,25 +288,28 @@ def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_restore_dialog_restore(
     test_client: Client,
-    simple_snapshot: Snapshot,
+    simple_snapshot_fixture: Snapshot,
 ):
     put_mock = test_client.cl.put
-    dialog = RestoreDialog(test_client, simple_snapshot)
+    dialog = RestoreDialog(test_client, simple_snapshot_fixture)
     dialog.restore()
-    assert put_mock.call_args.args == test_client._gather_data(simple_snapshot)
+    assert put_mock.call_args.args == test_client._gather_data(simple_snapshot_fixture)
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
-def test_restore_dialog_remove_pv(test_client: Client, simple_snapshot: Snapshot):
-    dialog = RestoreDialog(test_client, simple_snapshot)
+def test_restore_dialog_remove_pv(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot
+):
+    dialog = RestoreDialog(test_client, simple_snapshot_fixture)
     tableWidget = dialog.tableWidget
-    assert tableWidget.rowCount() == len(simple_snapshot.children)
+    assert tableWidget.rowCount() == len(simple_snapshot_fixture.children)
 
     PV_COLUMN = 0
     REMOVE_BUTTON_COLUMN = 2
     item_to_remove = tableWidget.item(1, PV_COLUMN)
     tableWidget.setCurrentCell(1, REMOVE_BUTTON_COLUMN)
     dialog.delete_row()
-    assert tableWidget.rowCount() == len(simple_snapshot.children) - 1
+    assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
     items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
     assert item_to_remove not in items_left

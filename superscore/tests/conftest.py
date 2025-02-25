@@ -14,7 +14,8 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
-from superscore.model import Entry, Nestable, Root
+from superscore.model import (Collection, Entry, Nestable, Parameter, Root,
+                              Setpoint)
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
 from superscore.widgets.window import Window
@@ -29,6 +30,31 @@ from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
 def linac_backend():
     root = linac_data()
     return TestBackend(root.entries)
+
+
+@pytest.fixture(scope='function')
+def linac_with_comparison_snapshot_fixture() -> Root:
+    return linac_with_comparison_snapshot()
+
+
+@pytest.fixture(scope='function')
+def setpoint_with_readback_fixture() -> Setpoint:
+    return setpoint_with_readback()
+
+
+@pytest.fixture(scope='function')
+def parameter_with_readback_fixture() -> Parameter:
+    return parameter_with_readback()
+
+
+@pytest.fixture(scope='function')
+def simple_snapshot_fixture() -> Collection:
+    return simple_snapshot()
+
+
+@pytest.fixture(scope='function')
+def sample_database_fixture() -> Root:
+    return sample_database()
 
 
 class DummyShim(_BaseShim):
@@ -113,7 +139,7 @@ def test_data(request: pytest.FixtureRequest) -> Root:
     Expects `request.param` to return a dictionary with the schema:
     {
         sources: List[StringNameOfFixtureOrCallable]
-}
+    }
 
     Supports fixtures and callables that resolve to:
     * Root

@@ -40,10 +40,10 @@ def test_serialize_snapshot_roundtrip():
     assert deserialized.children[1].children[1] == v2
 
 
-def test_sample_database_roundtrip(sample_database: Root):
-    ser = apischema.serialize(Root, sample_database)
+def test_sample_database_roundtrip(sample_database_fixture: Root):
+    ser = apischema.serialize(Root, sample_database_fixture)
     deser = apischema.deserialize(Root, ser)
-    assert deser == sample_database
+    assert deser == sample_database_fixture
 
 
 class TestEntryValidation:

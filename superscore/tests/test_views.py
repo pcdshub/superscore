@@ -23,13 +23,13 @@ from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
 @pytest.fixture(scope='function')
 def pv_poll_model(
     test_client: Client,
-    parameter_with_readback: Parameter,
+    parameter_with_readback_fixture: Parameter,
     qtbot: QtBot
 ):
     """Minimal LivePVTableModel, containing only Parameters (no stored data)"""
     model = LivePVTableModel(
         client=test_client,
-        entries=[parameter_with_readback],
+        entries=[parameter_with_readback_fixture],
         poll_period=1.0
     )
 
@@ -46,7 +46,7 @@ def pv_poll_model(
 @pytest.fixture(scope="function")
 def pv_table_view(
     test_client: Client,
-    simple_snapshot: Collection,
+    simple_snapshot_fixture: Collection,
     qtbot: QtBot,
 ):
     """
@@ -70,7 +70,7 @@ def pv_table_view(
 
     view = LivePVTableView()
     view.client = test_client
-    view.set_data(simple_snapshot)
+    view.set_data(simple_snapshot_fixture)
 
     qtbot.wait_until(lambda: view.model()._poll_thread.isRunning())
     yield view
@@ -200,19 +200,19 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
 
 def test_fill_uuids_pvs(
     test_client: Client,
-    simple_snapshot: Collection,
+    simple_snapshot_fixture: Collection,
     qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
-    simple_snapshot.swap_to_uuids()
-    assert all(isinstance(c, UUID) for c in simple_snapshot.children)
+    simple_snapshot_fixture.swap_to_uuids()
+    assert all(isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     view = LivePVTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend
     view.client = test_client
-    view.set_data(simple_snapshot)
+    view.set_data(simple_snapshot_fixture)
 
-    assert all(not isinstance(c, UUID) for c in simple_snapshot.children)
+    assert all(not isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     print(view.model()._poll_thread)
     view.model().stop_polling()
     print(view.model()._poll_thread)
@@ -272,8 +272,8 @@ def test_fill_uuids_entry_item(test_client: Client, qtbot: QtBot):
     assert root_item.child(2).child(0).childCount() == 0
 
 
-def test_roottree_setup(sample_database: Root):
-    tree_model = RootTree(base_entry=sample_database)
+def test_roottree_setup(sample_database_fixture: Root):
+    tree_model = RootTree(base_entry=sample_database_fixture)
     root_index = tree_model.index_from_item(tree_model.root_item)
     # Check that the entire tree was created
     assert tree_model.rowCount(root_index) == 4

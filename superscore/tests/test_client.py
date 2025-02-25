@@ -45,8 +45,8 @@ def sscore_cfg(xdg_config_patch: Path):
     os.environ["XDG_CONFIG_HOME"] = xdg_cfg
 
 
-def test_gather_data(test_client, sample_database):
-    snapshot = sample_database.entries[3]
+def test_gather_data(test_client, sample_database_fixture):
+    snapshot = sample_database_fixture.entries[3]
     orig_pv = snapshot.children[0]
     dup_pv = Setpoint(
         uuid=orig_pv.uuid,
@@ -60,10 +60,14 @@ def test_gather_data(test_client, sample_database):
     assert data_list[pvs.index("MY:PREFIX:mtr1.ACCL")] == 2
 
 
-def test_apply(test_client: Client, sample_database: Root, setpoint_with_readback):
+def test_apply(
+    test_client: Client,
+    sample_database_fixture: Root,
+    setpoint_with_readback_fixture: Setpoint
+):
     put_mock = test_client.cl.put
     put_mock.return_value = MockTaskStatus()
-    snap = sample_database.entries[3]
+    snap = sample_database_fixture.entries[3]
     test_client.apply(snap)
     assert put_mock.call_count == 1
     call_args = put_mock.call_args[0]
@@ -75,7 +79,7 @@ def test_apply(test_client: Client, sample_database: Root, setpoint_with_readbac
     assert put_mock.call_count == 3
 
     put_mock.reset_mock()
-    test_client.apply(setpoint_with_readback, sequential=True)
+    test_client.apply(setpoint_with_readback_fixture, sequential=True)
     assert put_mock.call_count == 1
 
 
@@ -84,13 +88,13 @@ def test_apply(test_client: Client, sample_database: Root, setpoint_with_readbac
 def test_snap(
     get_mock,
     test_client: Client,
-    sample_database: Root,
-    parameter_with_readback: Parameter
+    sample_database_fixture: Root,
+    parameter_with_readback_fixture: Parameter
 ):
     # Testing get -> _get_one chain, must not mock control layer
 
-    coll = sample_database.entries[2]
-    coll.children.append(parameter_with_readback)
+    coll = sample_database_fixture.entries[2]
+    coll.children.append(parameter_with_readback_fixture)
 
     get_mock.side_effect = [EpicsData(i) for i in range(5)]
     snapshot = test_client.snap(coll)
@@ -104,9 +108,9 @@ def test_snap(
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
 @setup_test_stack(mock_cl=False)
-def test_snap_exception(get_mock, test_client: Client, sample_database: Root):
+def test_snap_exception(get_mock, test_client: Client, sample_database_fixture: Root):
     # Testing get -> _get_one chain, must not mock control layer
-    coll = sample_database.entries[2]
+    coll = sample_database_fixture.entries[2]
     get_mock.side_effect = [EpicsData(0), EpicsData(1), CommunicationError,
                             EpicsData(3), EpicsData(4)]
     snapshot = test_client.snap(coll)
@@ -115,9 +119,9 @@ def test_snap_exception(get_mock, test_client: Client, sample_database: Root):
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
 @setup_test_stack(mock_cl=False)
-def test_snap_RO(get_mock, test_client: Client, sample_database: Root):
+def test_snap_RO(get_mock, test_client: Client, sample_database_fixture: Root):
     # Testing get -> _get_one chain, must not mock control layer
-    coll: Collection = sample_database.entries[2]
+    coll: Collection = sample_database_fixture.entries[2]
     coll.children.append(
         Parameter(pv_name="RO:PV",
                   abs_tolerance=1,

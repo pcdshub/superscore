@@ -116,7 +116,7 @@ def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, R
     * Roots
     * Entries
     * Callables that return Roots or Entries
-    * strings that search for test data callables
+    * strings that search for test data callables, but critically not fixtures
     """
     for source in sources:
         if isinstance(source, Callable):
