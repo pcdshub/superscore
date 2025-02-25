@@ -9,7 +9,7 @@ import logging
 import os
 from pathlib import Path
 
-from superscore.backends.test import populate_backend
+from superscore.backends.core import populate_backend
 from superscore.bin.ui import main as ui_main
 from superscore.client import Client
 from superscore.model import Readback, Setpoint
