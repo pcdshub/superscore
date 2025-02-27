@@ -36,7 +36,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     action_new_coll: QtWidgets.QAction
 
-    # Diff dispatcher singleton
+    # Diff dispatcher singleton, used to notify when diffs are ready
     diff_dispatcher: DiffDispatcher = DiffDispatcher()
 
     def __init__(self, *args, client: Optional[Client] = None, **kwargs):
