@@ -5,6 +5,8 @@ from pytestqt.qtbot import QtBot
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.tests.conftest import setup_test_stack
+from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.views import EntryItem
 from superscore.widgets.window import Window
 
 
@@ -58,3 +60,23 @@ def test_sample_window(qtbot: QtBot, test_client: Client):
     while index.isValid():
         assert not isinstance(index.internalPointer()._data, UUID)
         index = window.tree_view.indexBelow(index)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_add_collection_refresh(qtbot: QtBot, test_client: Client):
+    window = Window(client=test_client)
+    qtbot.addWidget(window)
+
+    window.open_collection_builder()
+
+    coll_builder_page = window.tab_widget.widget(1)
+    assert isinstance(coll_builder_page, CollectionBuilderPage)
+    orig_entry_item: EntryItem = window.tree_view.model().root_item
+    orig_top_level_entries = orig_entry_item.childCount()
+
+    coll_builder_page.save_collection()
+
+    new_entry_item: EntryItem = window.tree_view.model().root_item
+    new_top_level_entries = new_entry_item.childCount()
+
+    assert new_top_level_entries > orig_top_level_entries
