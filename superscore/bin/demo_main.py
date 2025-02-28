@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 
 from superscore.backends.core import populate_backend
-from superscore.bin.demo import DEMO_CONFIG
-from superscore.bin.ui import main as ui_main
+from superscore.bin.demo_parser import DEMO_CONFIG
+from superscore.bin.ui_parser import main as ui_main
 from superscore.client import Client
 from superscore.model import Readback, Setpoint
 from superscore.tests.ioc import IOCFactory
