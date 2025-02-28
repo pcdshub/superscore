@@ -3,9 +3,10 @@ Base superscore data storage backend interface
 """
 import re
 from collections.abc import Container, Generator
-from typing import NamedTuple, Union
+from typing import Callable, Iterable, NamedTuple, Union
 from uuid import UUID
 
+import superscore.tests.conftest_data
 from superscore.model import Entry, Root
 from superscore.type_hints import AnyEpicsType
 
@@ -106,3 +107,30 @@ class _Backend:
     def root(self) -> Root:
         """Return the Root Entry in this backend"""
         raise NotImplementedError
+
+
+def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
+    """
+    Utility for quickly filling test backends with data. Supports a mix of many
+    types of sources:
+    * Roots
+    * Entries
+    * Callables that return Roots or Entries
+    * strings that search for test data callables, but critically not fixtures
+    """
+    for source in sources:
+        if isinstance(source, Callable):
+            data = source()
+        elif isinstance(source, str):
+            func = getattr(superscore.tests.conftest_data, source, False)
+            data = func()
+        elif isinstance(source, (Root, Entry)):
+            data = source
+        else:
+            raise ValueError(f"Unsupported source type: {type(source)}")
+
+        if isinstance(data, Root):
+            for entry in data.entries:
+                backend.save_entry(entry)
+        else:
+            backend.save_entry(data)
