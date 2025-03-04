@@ -322,6 +322,29 @@ class Client:
         else:
             return self.cl.put(pv_list, data_list)
 
+    def find_origin_collection(self, entry: Union[Collection, Snapshot]) -> Collection:
+        """
+        Return the Collection instance associated with an entry.  The entry can
+        be a Collection or Snapshot.
+
+        Raises
+        ------
+        ValueError
+            If snapshot does not record an origin collection
+        EntryNotFoundError
+            From _Backend.get_entry
+        """
+        if isinstance(entry, Collection):
+            return entry
+        elif isinstance(entry, Snapshot):
+            origin = entry.origin_collection
+            if origin is None:
+                raise ValueError(f"{entry.title} ({entry.uuid}) does not have an origin collection)")
+            elif isinstance(origin, UUID):
+                return self.backend.get_entry(origin)
+            else:
+                return origin
+
     def _gather_data(
         self,
         entry: Union[Entry, UUID],
