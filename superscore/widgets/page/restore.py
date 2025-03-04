@@ -176,13 +176,26 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
             return QtCore.QVariant()
 
     def rowCount(self):
-        pass
+        return len(self.entries)
 
     def columnCount(self):
-        pass
+        return len(self.headers)
 
-    def headerData(self):
-        pass
+    def headerData(
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
+    ) -> str:
+        """
+        Returns the header data for the model.
+        Currently only displays horizontal header data
+        """
+        if role != QtCore.Qt.DisplayRole:
+            return
+
+        if orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
 
     @QtCore.Slot()
     def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
