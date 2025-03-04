@@ -113,7 +113,7 @@ class AiocaShim(_BaseShim):
         enums = getattr(value_ctrl, "enums", None)
 
         return EpicsData(
-            data=value_time,
+            data=+value_time,  # from aioca docs, +AugmentedValue strips augmentation
             status=status,
             severity=severity,
             timestamp=timestamp,
