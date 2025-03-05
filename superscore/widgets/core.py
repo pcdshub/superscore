@@ -148,7 +148,6 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         # Setup the saving/loading
         self.desc_edit.textChanged.connect(self.update_saved_desc)
         self.bridge.description.changed_value.connect(self.apply_new_desc)
-        self.desc_edit.textChanged.connect(self.update_text_height)
 
     def update_saved_desc(self) -> None:
         """
@@ -163,33 +162,6 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         """
         if desc != self.last_desc:
             self.desc_edit.setPlainText(desc)
-
-    def showEvent(self, *args, **kwargs) -> None:
-        """
-        Override showEvent to update the desc height when we are shown.
-        """
-        try:
-            self.update_text_height()
-        except AttributeError:
-            pass
-        return super().showEvent(*args, **kwargs)
-
-    def resizeEvent(self, *args, **kwargs) -> None:
-        """
-        Override resizeEvent to update the desc height when we resize.
-        """
-        try:
-            self.update_text_height()
-        except AttributeError:
-            pass
-        return super().resizeEvent(*args, **kwargs)
-
-    def update_text_height(self) -> None:
-        """
-        When the user edits the desc, make the text box the correct height.
-        """
-        line_count = max(self.desc_edit.document().size().toSize().height(), 1)
-        self.desc_edit.setFixedHeight(line_count * 13 + 12)
 
     def init_tags(self, tag_groups: TagDef) -> None:
         """
