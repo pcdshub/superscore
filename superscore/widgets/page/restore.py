@@ -169,11 +169,11 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
                 case CompareHeader.SECONDARY_TIMESTAMP:
                     return secondary.creation_time
                 case CompareHeader.PRIMARY_OPEN:
-                    return QtCore.QVariant()
+                    return None
                 case CompareHeader.SECONDARY_OPEN:
-                    return QtCore.QVariant()
+                    return None
         else:
-            return QtCore.QVariant()
+            return None
 
     def rowCount(self):
         return len(self.entries)
