@@ -105,9 +105,19 @@ class RestoreDialog(Display, QtWidgets.QWidget):
 
 
 class CompareHeader(HeaderEnum):
-    COMPARISON_VALUE = auto()
-    COMPARISON_TIMESTAMP = auto()
-    COMPARISON_OPEN = auto()
+    PV_NAME = 0
+    PRIMARY_VALUE = auto()
+    SECONDARY_VALUE = auto()
+    PRIMARY_TIMESTAMP = auto()
+    SECONDARY_TIMESTAMP = auto()
+    # TODO: Find another way to represent status and severity
+    #   Potentially as a border color or icon
+    PRIMARY_STATUS = auto()
+    SECONDARY_STATUS = auto()
+    PRIMARY_SEVERITY = auto()
+    SECONDARY_SEVERITY = auto()
+    PRIMARY_OPEN = auto()
+    SECONDARY_OPEN = auto()
 
 
 class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
@@ -121,7 +131,7 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.headers = [h.header_name() for header in (LivePVHeader, CompareHeader) for h in header]
+        self.headers = [h.header_name() for h in CompareHeader]
         self.client = client
         self._primary_data = primary_snapshot
         self._secondary_data = comparison_snapshot
@@ -168,6 +178,14 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
                     return primary.creation_time
                 case CompareHeader.SECONDARY_TIMESTAMP:
                     return secondary.creation_time
+                case CompareHeader.PRIMARY_STATUS:
+                    return primary.status
+                case CompareHeader.SECONDARY_STATUS:
+                    return secondary.status
+                case CompareHeader.PRIMARY_SEVERITY:
+                    return primary.severity
+                case CompareHeader.SECONDARY_SEVERITY:
+                    return secondary.severity
                 case CompareHeader.PRIMARY_OPEN:
                     return None
                 case CompareHeader.SECONDARY_OPEN:
