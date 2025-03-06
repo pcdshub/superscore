@@ -248,7 +248,7 @@ class Client:
 
             entry.children = new_children
 
-    def snap(self, entry: Collection) -> Snapshot:
+    def snap(self, entry: Collection, dest: Optional[Snapshot] = None) -> Snapshot:
         """
         Asyncronously read data for all PVs under ``entry``, and store in a
         Snapshot.  PVs that can't be read will have an exception as their value.
@@ -275,7 +275,7 @@ class Client:
             else:
                 logger.debug(f"Storing {pv} = {value}")
                 data[pv] = value
-        return self._build_snapshot(entry, data)
+        return self._build_snapshot(entry, data, dest=dest)
 
     def apply(
         self,
@@ -397,6 +397,7 @@ class Client:
         self,
         coll: Collection,
         values: Dict[str, EpicsData],
+        dest: Optional[Snapshot] = None,
     ) -> Snapshot:
         """
         Traverse a Collection, assembling a Snapshot using pre-fetched data
@@ -414,11 +415,11 @@ class Client:
         Snapshot
             A Snapshot corresponding to the input Collection
         """
-        snapshot = Snapshot(
+        snapshot = dest or Snapshot(
             title=coll.title,
             tags=coll.tags.copy(),
-            origin_collection=coll
         )
+        snapshot.origin_collection = coll
 
         for child in coll.children:
             if isinstance(child, UUID):
