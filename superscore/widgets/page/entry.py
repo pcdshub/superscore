@@ -141,10 +141,10 @@ class NestablePage(Display, DataWidget, WindowLinker):
             logging.exception(e)
             logging.error("Cannot save snapshot")
         else:
-            dummy_snapshot = Snapshot(tags=origin.tags.copy())
+            dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
             metadata_dialog = QtWidgets.QDialog(parent=self)
             layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(NameDescTagsWidget(data=dummy_snapshot))
+            layout.addWidget(NameDescTagsWidget(data=dest_snapshot))
             buttonBox = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
             )
@@ -152,10 +152,10 @@ class NestablePage(Display, DataWidget, WindowLinker):
             buttonBox.accepted.connect(metadata_dialog.accept)
             buttonBox.rejected.connect(metadata_dialog.reject)
             metadata_dialog.setLayout(layout)
-            metadata_dialog.accepted.connect(partial(self.take_snapshot, dummy_snapshot))
+            metadata_dialog.accepted.connect(partial(self.fill_snapshot, dest_snapshot))
             metadata_dialog.open()
 
-    def take_snapshot(self, dummy_snapshot: Optional[Snapshot] = None) -> None:
+    def fill_snapshot(self, dest_snapshot: Snapshot) -> None:
         # TODO: if data dirty, abort
         try:
             origin = self.find_origin_collection(self.data)
@@ -165,11 +165,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
         else:
             window = self.get_window()
 
-            snapshot = self.client.snap(origin)
-            if dummy_snapshot is not None:
-                snapshot.title = dummy_snapshot.title
-                snapshot.tags = dummy_snapshot.tags
-                snapshot.description = dummy_snapshot.description
+            snapshot = self.client.snap(origin, dest=dest_snapshot)
             self.client.save(snapshot)
             self.refresh_window()
             window.open_restore_page(snapshot=snapshot)
