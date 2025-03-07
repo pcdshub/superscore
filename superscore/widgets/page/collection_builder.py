@@ -121,6 +121,7 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         self.data.description = self.meta_widget.desc_edit.toPlainText()
         # children should have been updated along the way
         self.client.save(self.data)
+        self.refresh_window()
         logger.info(f"Collection saved ({self.data.uuid})")
 
     def check_valid(self, entry: Entry) -> bool:
