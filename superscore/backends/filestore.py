@@ -185,7 +185,7 @@ class FilestoreBackend(_Backend):
                 new_ref = self._entry_cache.get(field_data)
                 if new_ref:
                     new_ref = self.fill_uuids(new_ref)
-                    setattr(entry, field.name)
+                    setattr(entry, field.name, new_ref)
 
         return entry
 
