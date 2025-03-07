@@ -905,6 +905,7 @@ class LivePVTableModel(BaseTableEntryModel):
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
     headers: List[str]
+    entries: List[PVEntry]
     _data_cache: Dict[str, EpicsData]
     _poll_thread: Optional[_PVPollThread]
     _button_cols: List[LivePVHeader] = [LivePVHeader.OPEN, LivePVHeader.REMOVE]
@@ -924,6 +925,7 @@ class LivePVTableModel(BaseTableEntryModel):
         **kwargs
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
+        self._selected_entry: Optional[PVEntry] = None
         self.header_enum = LivePVHeader
         self.headers = [h.header_name() for h in LivePVHeader]
 
@@ -936,7 +938,12 @@ class LivePVTableModel(BaseTableEntryModel):
         self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread = None
 
+        self._linked_readbacks: list[Readback] = []
+
         self.start_polling()
+
+        # set entries again to process readbacks properly
+        self.set_entries(entries)
 
     def start_polling(self) -> None:
         """Start the polling thread"""
@@ -1007,9 +1014,40 @@ class LivePVTableModel(BaseTableEntryModel):
             )
 
     def set_entries(self, entries: list[PVEntry]) -> None:
-        """Set the entries for this table, reset data cache"""
+        """
+        Set the entries for this table, make readback links, reset data cache
+        """
         self.layoutAboutToBeChanged.emit()
-        self.entries = entries
+        # Organize setpoint/readback links
+        new_entries = []
+        skipped_readbacks = []
+        self._linked_readbacks = []
+        for entry in entries:
+            # We may have already added a readback
+            if entry in new_entries:
+                continue
+
+            if (
+                isinstance(entry, Setpoint)
+                and entry.readback is not None
+                and entry.readback in entries
+            ):
+                new_entries.append(entry)
+                # Add readback right after
+                new_entries.append(entry.readback)
+                self._linked_readbacks.append(entry.readback)
+            elif isinstance(entry, Readback):
+                # skip adding and add them to readbacks
+                skipped_readbacks.append(entry)
+            else:
+                new_entries.append(entry)
+
+        for rbv in skipped_readbacks:
+            if rbv not in new_entries:
+                new_entries.append(rbv)
+
+        self.entries = new_entries
+
         self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread.data = self._data_cache
         self.dataChanged.emit(
@@ -1083,11 +1121,29 @@ class LivePVTableModel(BaseTableEntryModel):
         if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
-            elif role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                name_text = getattr(entry, 'pv_name')
-                return name_text
             elif role == CustRoles.DisplayTypeRole:
                 return DisplayType.PV_NAME
+
+            name_text = getattr(entry, 'pv_name')
+            if role == QtCore.Qt.DisplayRole:
+                if entry in self._linked_readbacks:
+                    name_text = "↳" + name_text
+                return name_text
+            elif role == QtCore.Qt.EditRole:
+                # make sure we don't carry vanity return character
+                return name_text
+
+        if role == QtCore.Qt.BackgroundColorRole and index.column() != LivePVHeader.LIVE_VALUE:
+            # highlight current row and linked row rbv pairing exists
+            if (
+                entry == self.selected_entry
+                or (isinstance(self.selected_entry, Setpoint)
+                    and self.selected_entry.readback is entry)
+                or (isinstance(entry, Setpoint)
+                    and self.selected_entry in self._linked_readbacks
+                    and entry.readback is self.selected_entry)
+            ):
+                return QtGui.QColor(59, 134, 255, 30)
 
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole,
                         QtCore.Qt.BackgroundRole, CustRoles.DisplayTypeRole,
@@ -1209,6 +1265,19 @@ class LivePVTableModel(BaseTableEntryModel):
             return "fetching..."
         else:
             return data
+
+    @property
+    def selected_entry(self):
+        return self._selected_entry
+
+    @selected_entry.setter
+    def selected_entry(self, value: Entry):
+        self._selected_entry = value
+
+    def update_selected(self, index: QtCore.QModelIndex):
+        self.layoutAboutToBeChanged.emit()
+        self._selected_entry = self.entries[index.row()]
+        self.layoutChanged.emit()
 
 
 class _PVPollThread(QtCore.QThread):
@@ -1527,6 +1596,22 @@ class LivePVTableView(BaseDataTableView):
             self._model.stop_polling()
             self._model.client = self._client
             self._model.start_polling()
+
+    def maybe_setup_model(self):
+        super().maybe_setup_model()
+        sel_model = self.selectionModel()
+        # Selection model only exists if model is set
+        if sel_model:
+            # Look for "current" index, which has keyboard focus.
+            # "Selection" is not updated unless... other settings are changed
+            sel_model.currentChanged.connect(self.selection_update_slot)
+
+    def selection_update_slot(
+        self,
+        selected: QtCore.QModelIndex,
+        deselected: QtCore.QModelIndex,
+    ) -> None:
+        self._model.update_selected(selected)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
