@@ -1,14 +1,17 @@
 """Largely smoke tests for various pages"""
 
 from unittest.mock import MagicMock, PropertyMock, patch
+from uuid import uuid4
 
 import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
 from superscore.backends.filestore import FilestoreBackend
+from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
+from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
                               Snapshot)
 from superscore.tests.conftest import setup_test_stack
@@ -313,3 +316,19 @@ def test_restore_dialog_remove_pv(
     assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
     items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
     assert item_to_remove not in items_left
+
+
+@setup_test_stack(backend_type=TestBackend)
+def test_find_origin_collection(test_client, collection_page, snapshot_page):
+    test_client.save(collection_page.data)
+    test_client.save(snapshot_page.data)
+
+    assert collection_page.find_origin_collection(collection_page.data) == collection_page.data
+    with pytest.raises(ValueError):
+        snapshot_page.find_origin_collection(snapshot_page.data)
+    snapshot_page.data.origin_collection = uuid4()
+    with pytest.raises(EntryNotFoundError):
+        snapshot_page.find_origin_collection(snapshot_page.data)
+    # set origin_collection
+    snapshot_page.data.origin_collection = collection_page.data.uuid
+    assert snapshot_page.find_origin_collection(snapshot_page.data) == collection_page.data
