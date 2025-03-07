@@ -1,7 +1,8 @@
 """
-`superscore ui` opens up the main application window
+`superscore ui` opens the graphical user interface for superscore
+
+Function components are separated from the arg parser to defer heavy imports
 """
-import argparse
 import sys
 from typing import Optional
 
@@ -12,13 +13,6 @@ from superscore.widgets.window import Window
 
 DEFAULT_WIDTH = 1400
 DEFAULT_HEIGHT = 800
-
-
-def build_arg_parser(argparser=None):
-    if argparser is None:
-        argparser = argparse.ArgumentParser()
-
-    return argparser
 
 
 def main(*args, client: Optional[Client] = None, **kwargs):
