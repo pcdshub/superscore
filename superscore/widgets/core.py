@@ -465,3 +465,10 @@ class WindowLinker:
         window = get_window()
         if window is not None:
             return window.open_page
+
+    def refresh_window(self):
+        """Refresh window ui elements"""
+        # tree view
+        window = get_window()
+        window.tree_view.set_data(self.client.backend.root)
+        window.tree_view.model().refresh_tree()
