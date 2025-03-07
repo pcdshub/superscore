@@ -305,7 +305,7 @@ def linac_data() -> Root:
     all_col_beam_e_meta_pv = Parameter(
         uuid="e4aa8dc8-dbb0-4331-999a-89053758d489",
         pv_name="BEAME",
-        description= "A beam energy PV",
+        description="A beam energy PV",
     )
 
     all_col.meta_pvs.append(all_col_beam_e_meta_pv)
@@ -635,7 +635,7 @@ def linac_data() -> Root:
     all_snapshot_beam_e_meta_pv = Readback(
         uuid="e8af7485-9c62-45c7-9c50-94cbe83c38b0",
         pv_name="BEAME",
-        description= "A beam energy readback PV",
+        description="A beam energy readback PV",
     )
 
     all_snapshot = Snapshot(
