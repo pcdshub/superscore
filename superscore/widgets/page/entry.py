@@ -71,7 +71,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.sub_coll_table_view.data_updated.connect(self.track_changes)
 
         self.save_button.clicked.connect(self.save)
-        self.snapshot_button.clicked.connect(self.prompt_for_snap_metadata)
+        self.snapshot_button.clicked.connect(self.take_snapshot)
         self.snapshot_button.setText("Take new Snapshot")
 
         self.set_editable(self.editable)
@@ -107,6 +107,22 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.sub_pv_table_view._model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)
 
+    def take_snapshot(self) -> Snapshot:
+        """
+        Save a new snapshot for the entry connected to this page. Also opens the
+        new snapshot.
+        """
+        try:
+            origin = self.find_origin_collection(self.data)
+        except (ValueError, EntryNotFoundError) as e:
+            logging.exception(e)
+            logging.error("Cannot save snapshot")
+        else:
+            dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
+            dialog = self.prompt_for_metadata(dest_snapshot)
+            dialog.accepted.connect(partial(self.fill_and_save_snapshot, dest_snapshot))
+            return dest_snapshot
+
     def find_origin_collection(self, entry: Union[Collection, Snapshot]) -> Collection:
         """
         Return the Collection instance associated with an entry.  The entry can
@@ -130,45 +146,29 @@ class NestablePage(Display, DataWidget, WindowLinker):
             else:
                 entry = origin
 
-    def prompt_for_snap_metadata(self) -> None:
-        """
-        Open dialog prompting the user for Snapshot metadata. Creates a new
-        snapshot connected to a NameDescTagsWidget, which stores the user input.
-        """
-        try:
-            origin = self.find_origin_collection(self.data)
-        except (ValueError, EntryNotFoundError) as e:
-            logging.exception(e)
-            logging.error("Cannot save snapshot")
-        else:
-            dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
-            metadata_dialog = QtWidgets.QDialog(parent=self)
-            layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(NameDescTagsWidget(data=dest_snapshot))
-            buttonBox = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
-            )
-            layout.addWidget(buttonBox)
-            buttonBox.accepted.connect(metadata_dialog.accept)
-            buttonBox.rejected.connect(metadata_dialog.reject)
-            metadata_dialog.setLayout(layout)
-            metadata_dialog.accepted.connect(partial(self.fill_snapshot, dest_snapshot))
-            metadata_dialog.open()
+    def prompt_for_metadata(self, dest: Nestable) -> QtWidgets.QDialog:
+        """Open dialog prompting the user to enter metadata for the given entry"""
+        metadata_dialog = QtWidgets.QDialog(parent=self)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(NameDescTagsWidget(data=dest))
+        buttonBox = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(metadata_dialog.accept)
+        buttonBox.rejected.connect(metadata_dialog.reject)
+        metadata_dialog.setLayout(layout)
+        metadata_dialog.open()
+        return metadata_dialog
 
-    def fill_snapshot(self, dest_snapshot: Snapshot) -> None:
+    def fill_and_save_snapshot(self, snapshot: Snapshot) -> None:
+        """"""
         # TODO: if data dirty, abort
-        try:
-            origin = self.find_origin_collection(self.data)
-        except (ValueError, EntryNotFoundError) as e:
-            logging.exception(e)
-            logging.error("Cannot save snapshot")
-        else:
-            window = self.get_window()
-
-            snapshot = self.client.snap(origin, dest=dest_snapshot)
-            self.client.save(snapshot)
-            self.refresh_window()
-            window.open_restore_page(snapshot=snapshot)
+        self.client.snap(snapshot.origin_collection, dest=snapshot)
+        self.client.save(snapshot)
+        window = self.get_window()
+        self.refresh_window()
+        window.open_restore_page(snapshot=snapshot)
 
 
 class CollectionPage(NestablePage):
