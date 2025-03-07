@@ -114,3 +114,5 @@ Thumbs.db
 
 # setuptools-scm _version.py should not be tracked:
 /superscore/_version.py
+
+.vscode/*
