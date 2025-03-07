@@ -120,7 +120,12 @@ class NestablePage(Display, DataWidget, WindowLinker):
         else:
             dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
             dialog = self.prompt_for_metadata(dest_snapshot)
-            dialog.accepted.connect(partial(self.fill_and_save_snapshot, dest_snapshot))
+            dialog.accepted.connect(partial(self.client.snap, dest_snapshot.origin_collection, dest=dest_snapshot))
+            dialog.accepted.connect(partial(self.client.save, dest_snapshot))
+            dialog.accepted.connect(self.refresh_window)
+
+            window = self.get_window()
+            dialog.accepted.connect(partial(window.open_restore_page, snapshot=dest_snapshot))
             return dest_snapshot
 
     def find_origin_collection(self, entry: Union[Collection, Snapshot]) -> Collection:
@@ -160,15 +165,6 @@ class NestablePage(Display, DataWidget, WindowLinker):
         metadata_dialog.setLayout(layout)
         metadata_dialog.open()
         return metadata_dialog
-
-    def fill_and_save_snapshot(self, snapshot: Snapshot) -> None:
-        """"""
-        # TODO: if data dirty, abort
-        self.client.snap(snapshot.origin_collection, dest=snapshot)
-        self.client.save(snapshot)
-        window = self.get_window()
-        self.refresh_window()
-        window.open_restore_page(snapshot=snapshot)
 
 
 class CollectionPage(NestablePage):
