@@ -106,6 +106,31 @@ class RestoreDialog(Display, QtWidgets.QWidget):
         self.tableWidget.removeRow(row)
 
 
+class SnapshotSelectionDialog(QtWidgets.QDialog):
+    def __init__(self, parent: QtCore.QObject, client: Client, exclude_snapshot: Snapshot = None):
+        super().__init__(parent)
+
+        self.selectedSnapshot = None
+
+        if exclude_snapshot:
+            header_text = "Select a snapshot to compare to:"
+        else:
+            header_text = "Select a snapshot:"
+        lbl = QtWidgets.QLabel(header_text)
+
+        self.filtered_view = QtWidgets.QTreeView(self)
+
+        btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        self.buttonBox = QtWidgets.QDialogButtonBox(btns)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(lbl)
+        layout.addWidget(self.buttonBox)
+        self.setLayout(layout)
+
+
 class CompareHeader(HeaderEnum):
     PV_NAME = 0
     PRIMARY_VALUE = auto()
@@ -321,6 +346,10 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotLabel.hide()
         self.secondarySnapshotTitle.hide()
 
+        self.compareDialog = SnapshotSelectionDialog(self, client, data)
+        self.compareDialog.accepted.connect(self.set_comparison)
+        self.compareSnapshotButton.clicked.connect(self.compareDialog.exec_)
+
         self.restoreButton.clicked.connect(self.launch_dialog)
 
     def set_live(self, is_live: bool):
@@ -328,6 +357,17 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotTitle.setText("Live Data")
         self.secondarySnapshotTitle.setVisible(is_live)
         self.compareLiveButton.setChecked(is_live)
+
+    def set_comparison(self):
+        result = self.compareDialog.selectedSnapshot
+        if not isinstance(result, Snapshot):
+            self.secondarySnapshotLabel.hide()
+            self.secondarySnapshotTitle.hide()
+            return
+
+        self.secondarySnapshotTitle.setText(result.title)
+        self.secondarySnapshotLabel.show()
+        self.secondarySnapshotTitle.show()
 
     def launch_dialog(self):
         self.dialog = RestoreDialog(self.client, self.snapshot)
