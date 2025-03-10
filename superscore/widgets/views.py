@@ -1407,6 +1407,9 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
         self.setItemDelegateForColumn(self.remove_column, self.remove_delegate)
         self.remove_delegate.clicked.connect(self.remove_row)
 
+        self.horizontalHeader().setSectionsMovable(True)
+        self.horizontalHeader().setStretchLastSection(True)
+
         # set context menu
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.create_context_menu_at_pos)
