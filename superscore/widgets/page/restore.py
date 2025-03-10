@@ -8,7 +8,8 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Setpoint, Snapshot
+from superscore.model import Entry, Setpoint, Snapshot
+from superscore.compare import EntryDiff
 from superscore.widgets.core import Display
 from superscore.widgets.views import (BaseDataTableView, HeaderEnum,
                                       LivePVHeader, LivePVTableModel,
@@ -135,7 +136,8 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
         self.client = client
         self._primary_data = primary_snapshot
         self._secondary_data = comparison_snapshot
-        self.entries = []
+        self.entries: List[Entry] = []
+        self.diffs: List[EntryDiff] = []
 
     def _collate_pvs(self) -> None:
         self.entries = []
@@ -161,6 +163,13 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
         for secondary in pvs:
             if secondary.uuid not in seen:
                 self.entries.append((None, secondary))
+
+    def _collate_diffs(self) -> None:
+        self.diffs = []
+
+        for l_entry, r_entry in self.entries:
+
+            self.diffs.append(self.client.compare(l_entry, r_entry))
 
     def data(self, index: QtCore.QModelIndex, role: int):
         if role == QtCore.Qt.TextAlignmentRole:
