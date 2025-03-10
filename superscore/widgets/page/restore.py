@@ -2,9 +2,10 @@
 
 import logging
 from enum import auto
+from typing import List, Union
 from functools import partial
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
@@ -199,6 +200,10 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
                     return None
                 case CompareHeader.SECONDARY_OPEN:
                     return None
+        elif role == QtCore.Qt.BackgroundRole:
+            primary, secondary = self.entries[index.row()]
+            if self.is_secondary_column(index) and not self.is_close(primary, secondary):
+                return QtGui.QColor('#ffbbbb')
         else:
             return None
 
@@ -223,6 +228,22 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
 
         if orientation == QtCore.Qt.Horizontal:
             return self.headers[section]
+
+    def is_primary_column(self, index: Union[int, QtCore.QModelIndex]):
+        if isinstance(index, QtCore.QModelIndex):
+            index = index.column()
+        hdr = self.headers[index]
+        return hdr.startswith("Primary")
+
+    def is_secondary_column(self, index: Union[int, QtCore.QModelIndex]):
+        if isinstance(index, QtCore.QModelIndex):
+            index = index.column()
+        hdr = self.headers[index]
+        return hdr.startswith("Secondary")
+
+    def is_close(self, primary: Entry, secondary: Entry):
+        # TODO: Fix this check
+        return primary == secondary
 
     @QtCore.Slot()
     def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
