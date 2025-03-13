@@ -17,7 +17,7 @@ logger = logging.getLogger('superscore')
 
 
 DESCRIPTION = __doc__
-MODULES = ("help", "ui", "demo")
+MODULES = ("ui", "demo")
 
 
 def _try_import(module):
