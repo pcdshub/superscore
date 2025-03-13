@@ -15,8 +15,12 @@ DEFAULT_WIDTH = 1400
 DEFAULT_HEIGHT = 800
 
 
-def main(*args, client: Optional[Client] = None, **kwargs):
+def main(*args, cfg_path: Optional[str] = None, **kwargs):
     app = QApplication(sys.argv)
+    if cfg_path:
+        client = Client.from_config(cfg_path)
+    else:
+        client = None
     main_window = Window(client=client)
 
     primary_screen = app.screens()[0]

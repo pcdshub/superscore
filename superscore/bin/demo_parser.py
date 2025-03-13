@@ -20,6 +20,8 @@ def build_arg_parser(argparser=None):
         type=str,
         help="An alternate file or directory to store the demo database. This "
              "file will be overwritten each run.")
+
+    argparser.description = __doc__
     return argparser
 
 
