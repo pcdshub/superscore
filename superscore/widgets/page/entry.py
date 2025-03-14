@@ -35,6 +35,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
     tree_view: RootTreeView
     sub_coll_table_view: NestableTableView
     sub_pv_table_view: LivePVTableView
+    sub_meta_pv_text: QtWidgets.QTextBrowser
 
     save_button: QtWidgets.QPushButton
     snapshot_button: QtWidgets.QPushButton
@@ -64,6 +65,8 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
         self.sub_pv_table_view.data_updated.connect(self.track_changes)
+
+        self.sub_meta_pv_text.setText("WOWWIE")
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
