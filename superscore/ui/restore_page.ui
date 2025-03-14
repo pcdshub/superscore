@@ -14,7 +14,16 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
-   <item row="0" column="0">
+   <property name="horizontalSpacing">
+    <number>0</number>
+   </property>
+   <item row="1" column="0">
+    <widget class="SnapshotTableView" name="tableView"/>
+   </item>
+   <item row="1" column="1">
+    <widget class="CompareSnapshotTableView" name="compareTableView"/>
+   </item>
+   <item row="0" column="0" colspan="2">
     <widget class="QFrame" name="headerFrame">
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -92,9 +101,6 @@
      </layout>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="SnapshotTableView" name="tableView"/>
-   </item>
   </layout>
  </widget>
  <customwidgets>
@@ -107,6 +113,11 @@
    <class>LiveButton</class>
    <extends>QPushButton</extends>
    <header location="global">superscore.widgets.page.restore</header>
+  </customwidget>
+  <customwidget>
+   <class>CompareSnapshotTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.page.restore</header>
   </customwidget>
  </customwidgets>
  <resources/>
