@@ -14,7 +14,7 @@ from superscore.compare import EntryDiff
 from superscore.widgets.core import Display
 from superscore.widgets.views import (BaseDataTableView, HeaderEnum,
                                       LivePVHeader, LivePVTableModel,
-                                      LivePVTableView)
+                                      LivePVTableView, RootTree)
 
 logger = logging.getLogger(__name__)
 
@@ -110,25 +110,40 @@ class SnapshotSelectionDialog(QtWidgets.QDialog):
     def __init__(self, parent: QtCore.QObject, client: Client, exclude_snapshot: Snapshot = None):
         super().__init__(parent)
 
-        self.selectedSnapshot = None
+        self._selectedSnapshot = None
 
         if exclude_snapshot:
             header_text = "Select a snapshot to compare to:"
         else:
             header_text = "Select a snapshot:"
-        lbl = QtWidgets.QLabel(header_text)
+        header_lbl = QtWidgets.QLabel(header_text)
 
-        self.filtered_view = QtWidgets.QTreeView(self)
+        self.tree_model = RootTree(base_entry=client.backend.root,
+                                   client=client)
+        self.tree_view = QtWidgets.QTreeView(self)
+        self.tree_view.setModel(self.tree_model)
+        self.tree_view.setExpandsOnDoubleClick(False)
+        self.tree_view.doubleClicked.connect(self.accept)
 
         btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        self.buttonBox = QtWidgets.QDialogButtonBox(btns)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
+        buttonBox = QtWidgets.QDialogButtonBox(btns)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(lbl)
-        layout.addWidget(self.buttonBox)
+        layout.addWidget(header_lbl)
+        layout.addWidget(self.tree_view)
+        layout.addWidget(buttonBox)
         self.setLayout(layout)
+
+    @property
+    def selectedSnapshot(self):
+        try:
+            selected_index = self.tree_view.selectedIndexes()[0]
+        except IndexError:
+            return None
+        self._selectedSnapshot = selected_index.internalPointer()._data
+        return self._selectedSnapshot
 
 
 class CompareHeader(HeaderEnum):
