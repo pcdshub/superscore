@@ -331,6 +331,7 @@ class RestorePage(Display, QtWidgets.QWidget):
     restoreButton: QtWidgets.QPushButton
 
     tableView: SnapshotTableView
+    compareTableView: CompareSnapshotTableView
 
     def __init__(
         self,
@@ -342,6 +343,7 @@ class RestorePage(Display, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.client = client
 
+        self.show_compare = False
         self.snapshot = data
         self.tableView.client = self.client
         self.tableView.set_data(data)
@@ -352,19 +354,19 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.tableView.turnOffLive.connect(partial(self.set_live, False))
         self.tableView.set_live(False)
 
-        header = self.tableView.horizontalHeader()
-        header.setSectionResizeMode(header.Stretch)
+        for table in (self.tableView, self.compareTableView):
+            header = table.horizontalHeader()
+            header.setSectionResizeMode(header.Stretch)
 
         self.primarySnapshotLabel.setText("Viewing:")
         self.primarySnapshotTitle.setText(data.title)
         self.secondarySnapshotLabel.setText("Comparing:")
-        self.secondarySnapshotLabel.hide()
-        self.secondarySnapshotTitle.hide()
 
         self.compareDialog = SnapshotSelectionDialog(self, client, data)
-        self.compareDialog.accepted.connect(self.set_comparison)
-        self.compareSnapshotButton.clicked.connect(self.compareDialog.exec_)
+        self.set_comparison()
 
+        self.compareDialog.finished.connect(self.set_comparison)
+        self.compareSnapshotButton.clicked.connect(self.compareDialog.exec_)
         self.restoreButton.clicked.connect(self.launch_dialog)
 
     def set_live(self, is_live: bool):
@@ -373,16 +375,24 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotTitle.setVisible(is_live)
         self.compareLiveButton.setChecked(is_live)
 
-    def set_comparison(self):
+    def set_comparison(self, accepted: bool = False):
         result = self.compareDialog.selectedSnapshot
-        if not isinstance(result, Snapshot):
-            self.secondarySnapshotLabel.hide()
-            self.secondarySnapshotTitle.hide()
-            return
+        self.show_compare = accepted and isinstance(result, Snapshot)
 
-        self.secondarySnapshotTitle.setText(result.title)
-        self.secondarySnapshotLabel.show()
-        self.secondarySnapshotTitle.show()
+        if self.show_compare:
+            self.secondarySnapshotTitle.setText(result.title)
+
+        self.secondarySnapshotLabel.setVisible(self.show_compare)
+        self.secondarySnapshotTitle.setVisible(self.show_compare)
+
+        self.swap_table_views(self.show_compare)
+
+    def swap_table_views(self, show_compare: bool = None):
+        if show_compare is None:
+            show_compare = self.show_compare
+
+        self.tableView.setVisible(not show_compare)
+        self.compareTableView.setVisible(show_compare)
 
     def launch_dialog(self):
         self.dialog = RestoreDialog(self.client, self.snapshot)
