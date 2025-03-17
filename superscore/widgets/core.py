@@ -4,19 +4,18 @@ Core widget classes for qt-based GUIs.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar, List, Optional
+from typing import Any, ClassVar, Collection, Dict, Optional
 from weakref import WeakValueDictionary
 
 from pcdsutils.qt.designer_display import DesignerDisplay
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from superscore.client import Client
-from superscore.qt_helpers import QDataclassBridge, QDataclassList
+from superscore.qt_helpers import QDataclassBridge, QDataclassSet
 from superscore.type_hints import AnyDataclass, OpenPageSlot
 from superscore.utils import SUPERSCORE_SOURCE_PATH
 from superscore.widgets import get_window
-from superscore.widgets.manip_helpers import (FrameOnEditFilter,
-                                              match_line_edit_text_width)
+from superscore.widgets.manip_helpers import match_line_edit_text_width
 
 
 class Display(DesignerDisplay):
@@ -120,12 +119,13 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
     name_frame: QtWidgets.QFrame
     desc_edit: QtWidgets.QPlainTextEdit
     desc_frame: QtWidgets.QFrame
-    tags_content: QtWidgets.QVBoxLayout
-    add_tag_button: QtWidgets.QToolButton
-    tags_frame: QtWidgets.QFrame
+    tags_widget: TagsWidget
     extra_text_label: QtWidgets.QLabel
 
     def __init__(self, data: AnyDataclass, **kwargs):
+
+        tag_strings = kwargs.pop('tag_options', dict())
+
         super().__init__(data=data, **kwargs)
         try:
             self.bridge.title
@@ -142,9 +142,9 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         try:
             self.bridge.tags
         except AttributeError:
-            self.tags_frame.hide()
+            self.tags_widget.hide()
         else:
-            self.init_tags()
+            self.init_tags(tag_strings)
 
     def init_desc(self) -> None:
         """
@@ -200,204 +200,273 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         line_count = max(self.desc_edit.document().size().toSize().height(), 1)
         self.desc_edit.setFixedHeight(line_count * 13 + 12)
 
-    def init_tags(self) -> None:
+    def init_tags(self, tag_strings: dict[int, str]) -> None:
         """
         Set up the various tags widgets appropriately.
         """
-        tags_list = TagsWidget(
-            data_list=self.bridge.tags,
-            layout=QtWidgets.QHBoxLayout(),
-        )
-        self.tags_content.addWidget(tags_list)
+        tag_options = {string: index for index, string in tag_strings.items()}
 
-        def add_tag() -> None:
-            if tags_list.widgets and not tags_list.widgets[-1].line_edit.text().strip():
-                # Don't add another tag if we haven't filled out the last one
+        self.tags_widget.setObjectName("TagsWidget")
+        self.tags_widget.set_tag_strings(tag_strings)
+        self.tags_widget.set_tags(self.bridge.tags)
+
+        def add_tag_to_container(string: str) -> None:
+            tag = tag_options[string]
+            if tag in self.bridge.tags.get():
                 return
+            self.tags_widget.add_tag(tag)
 
-            elem = tags_list.add_item('')
-            elem.line_edit.setFocus()
-
-        self.add_tag_button.clicked.connect(add_tag)
+        self.tags_widget.editor.tag_added.connect(add_tag_to_container)
 
 
 class TagsWidget(QtWidgets.QWidget):
     """
-    A widget used to edit a QDataclassList tags field.
+    A container for TagsElem objects arranged in a flow layout.
 
-    Aims to emulate the look and feel of typical tags fields
-    in online applications.
+    This widget manages a collection of tag elements, allowing the addition
+    and removal of tags. The tags are arranged using a custom FlowLayout that
+    automatically wraps the tags when they reach the edge of the widget.
 
-    Parameters
+    Attributes
     ----------
-    data_list : QDataclassList
-        The dataclass list to edit using this widget.
-    layout : QLayout
-        The layout to use to arrange our labels. This should be an
-        instantiated but not placed layout. This lets us have some
-        flexibility in whether we arrange things horizontally,
-        vertically, etc.
+    widgets : List[TagsElem]
+        List of tag elements currently contained in the widget.
+    tags : QDataclassSet
+        A data structure that holds the underlying data for the tags.
+    flow_layout : FlowLayout
+        The layout that manages the arrangement of the tag elements.
     """
-    widgets: List[TagsElem]
+
+    tagStringsSet = QtCore.Signal(object)
 
     def __init__(
         self,
-        data_list: QDataclassList,
-        layout: QtWidgets.QLayout,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.data_list = data_list
-        self.setLayout(layout)
-        self.widgets = []
-        starting_list = data_list.get()
-        if starting_list is not None:
-            for starting_value in starting_list:
-                self.add_item(starting_value, init=True)
-
-    def add_item(
-        self,
-        starting_value: str,
-        init: bool = False,
-        **kwargs,
-    ) -> TagsElem:
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """
-        Create and add new editable widget element to this widget's layout.
-
-        This can either be an existing string on the dataclass list to keep
-        track of, or it can be used to add a new string to the dataclass list.
-
-        This method will also set up the signals and slots for the new widget.
+        Initialize the TagsWidget.
 
         Parameters
         ----------
-        starting_value : str
-            The starting text value for the new widget element.
-            This should match the text exactly for tracking existing
-            strings.
-        checked : bool, optional
-            This argument is unused, but it will be sent by various button
-            widgets via the "clicked" signal so it must be present.
+        tags : QDataclassSet, optional
+            An object that contains the initial set of tags. It is expected to
+            have a `get()`, `add()`, and `remove()` method.
+        tag_strings : Optional[Dict[int, str]]
+            A map from tag id to tag string
+        *args : Any
+            Additional positional arguments passed to the base QWidget.
+        **kwargs : Any
+            Additional keyword arguments passed to the base QWidget.
+        """
+        super().__init__(*args, **kwargs)
+
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setObjectName("TagsWidgetLayout")
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+        tag_chip_layout = QtWidgets.QHBoxLayout()
+        tag_chip_layout.setObjectName("TagChipLayout")
+        layout.addLayout(tag_chip_layout)
+        label = QtWidgets.QLabel()
+        label.setText("Tags:")
+        tag_chip_layout.addWidget(label)
+        self.flow_layout = FlowLayout(margin=0, spacing=5)
+        self.flow_layout.setObjectName("TagFlowLayout")
+        tag_chip_layout.addLayout(self.flow_layout)
+
+        tag_input_layout = QtWidgets.QHBoxLayout()
+        tag_input_layout.setObjectName("TagsWidgetInputLayout")
+        self.editor = TagEditor()
+        self.tagStringsSet.connect(lambda d: self.editor.set_tag_strings(d.values()))
+        layout.addWidget(self.editor)
+
+        self.tags = set()
+        self.tag_strings = {}
+
+    def add_tag(self, tag_id: int, init: bool = False, **kwargs: Any) -> TagsElem:
+        """
+        Create and add a new editable tag element to the widget's layout.
+
+        This method creates a new TagsElem with the given starting value, sets up
+        its signals, and adds it to the flow layout. If not during initialization,
+        the tag is also appended to the underlying tags.
+
+        Parameters
+        ----------
+        tag_id : int
+            The text value for the new tag element.
         init : bool, optional
-            Whether or not this is the initial initialization of this widget.
-            This will be set to True in __init__ so that we don't mutate
-            the underlying dataclass. False, the default, means that we're
-            adding a new string to the dataclass, which means we should
-            definitely append it.
-        **kwargs : from qt signals
-            Other kwargs sent along with qt signals will be ignored.
+            Flag indicating whether this is part of the initial setup (True) or a new
+            addition (False). Defaults to False.
+        **kwargs : Any
+            Additional keyword arguments passed by Qt signals (ignored).
 
         Returns
         -------
-        strlistelem : StrListElem
-            The widget created by this function call.
+        TagsElem
+            The newly created tag element.
         """
-        new_widget = TagsElem(starting_value, self)
-        self.widgets.append(new_widget)
-        if not init:
-            self.data_list.append(starting_value)
-        self.layout().addWidget(new_widget)
-        return new_widget
+        tag = TagsElem(tag_id, parent=self)
+        if not init and self.tags is not None:
+            self.tags.add(tag_id)
+        self.flow_layout.addWidget(tag)
+        return tag
 
-    def save_item_update(self, item: TagsElem, new_value: str) -> None:
+    def remove_tag(self, tag: TagsElem) -> None:
         """
-        Update the dataclass as appropriate when the user submits a new value.
+        Remove a tag element from the widget and update the underlying tags.
 
         Parameters
         ----------
-        item : StrListElem
-            The widget that the user has edited.
-        new_value : str
-            The value that the user has submitted.
+        tag : TagsElem
+            The tag element to remove.
         """
-        index = self.widgets.index(item)
-        self.data_list.put_to_index(index, new_value)
+        if self.tags is not None:
+            self.tags.remove_value(tag.tag)
+        tag.setParent(None)
+        tag.deleteLater()
 
-    def remove_item(self, item: TagsElem) -> None:
-        """
-        Update the dataclass as appropriate when the user removes a value.
+    def set_tags(self, tags: Optional[QDataclassSet]) -> None:
+        self.tags = tags
+        if self.tags is not None:
+            starting_set = self.tags.get()
+            if starting_set is not None:
+                for starting_value in starting_set:
+                    self.add_tag(starting_value, init=True)
 
-        Parameters
-        ----------
-        item : StrListElem
-            The widget that the user has clicked the delete button for.
-        """
-        index = self.widgets.index(item)
-        self.widgets.remove(item)
-        self.data_list.remove_index(index)
-        item.deleteLater()
+    def set_tag_strings(self, tag_strings: Dict[int, str]) -> None:
+        self.tag_strings = tag_strings
+        self.tagStringsSet.emit(self.tag_strings)
 
 
-class TagsElem(Display, QtWidgets.QWidget):
+class TagsElem(QtWidgets.QWidget):
     """
     A single element for the TagsWidget.
 
-    Has a QLineEdit for changing the text and a delete button.
-    Changes its style to no frame when it has text and is out of focus.
-    Only shows the delete button when the text is empty.
+    This widget represents a tag with a label and a remove button. When the
+    remove button is clicked, the element notifies its parent TagsWidget to
+    remove it.
 
     Parameters
     ----------
     start_text : str
         The starting text for this tag.
-    tags_widget : TagsWidget
-        A reference to the TagsWidget that contains this widget.
+    **kwargs : Any
+        Additional keyword arguments to pass to the base QWidget.
     """
-    filename = 'tags_elem.ui'
-
-    line_edit: QtWidgets.QLineEdit
-    del_button: QtWidgets.QToolButton
-
-    def __init__(self, start_text: str, tags_widget: TagsWidget, **kwargs):
+    def __init__(self, tag: int, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.line_edit.setText(start_text)
-        self.tags_widget = tags_widget
-        edit_filter = FrameOnEditFilter(parent=self)
-        edit_filter.set_no_edit_style(self.line_edit)
-        self.line_edit.installEventFilter(edit_filter)
-        self.on_text_changed(start_text)
-        self.line_edit.textChanged.connect(self.on_text_changed)
-        self.line_edit.textEdited.connect(self.on_text_edited)
-        self.del_button.clicked.connect(self.on_del_clicked)
-        icon = self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarCloseButton)
-        self.del_button.setIcon(icon)
 
-    def on_text_changed(self, text: str) -> None:
-        """
-        Edit our various visual elements when the text changes.
+        self.tag = tag
 
-        This will do all of the following:
-        - make the delete button show only when the text field is empty
-        - adjust the size of the text field to be roughly the size of the
-          string we've inputted
-        """
-        # Show or hide the del button as needed
-        self.del_button.setVisible(not text)
-        # Adjust the width to match the text
-        match_line_edit_text_width(self.line_edit, text=text)
+        self.label: QtWidgets.QLabel = QtWidgets.QLabel(self.parent().tag_strings[tag])
+        self.remove_button: QtWidgets.QToolButton = QtWidgets.QToolButton()
+        self.remove_button.setText("X")
+        self.remove_button.setToolTip("Remove this tag")
 
-    def on_data_changed(self, data: str) -> None:
-        """
-        Change the text displayed here using new data, if needed.
-        """
-        if self.line_edit.text() != data:
-            self.line_edit.setText(data)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(5)
+        layout.addWidget(self.label)
+        layout.addWidget(self.remove_button)
 
-    def on_text_edited(self, text: str) -> None:
-        """
-        Update the dataclass when the user edits the text.
-        """
-        self.tags_widget.save_item_update(
-            item=self,
-            new_value=text,
-        )
+        self.remove_button.clicked.connect(self.remove)
 
-    def on_del_clicked(self, **kwargs) -> None:
+    def remove(self) -> None:
         """
-        Tell the QTagsWidget when our delete button is clicked.
+        Handle the remove button click.
+
+        This slot notifies the parent TagsWidget to remove this tag element and then
+        schedules this widget for deletion.
         """
-        self.tags_widget.remove_item(self)
+        self.parent().remove_tag(self)
+
+
+class TagEditor(QtWidgets.QWidget):
+    """
+    TagEditor widget for managing tags.
+
+    This widget includes an editable combo box and an "Add" button for creating
+    and adding new tags. It uses a completer to suggest predefined tags as the
+    user types.
+
+    Attributes
+    ----------
+    tag_added : QtCore.Signal
+        Signal emitted when a valid tag is added.
+    filename : str
+        The UI file name for the widget.
+    input_line : QtWidgets.QComboBox
+        The combo box widget used for entering and selecting tags.
+    add_button : QtWidgets.QPushButton
+        The button used to trigger the tag addition.
+    layout : QtWidgets.QHBoxLayout
+        The layout managing the arrangement of the widgets.
+    """
+    tag_added = QtCore.Signal(str)
+
+    def __init__(self) -> None:
+        """
+        Initialize the TagEditor widget.
+        """
+        super().__init__()
+
+        self.tag_strings = set()
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.setObjectName("TagEditorLayout")
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+        self.add_button = QtWidgets.QPushButton("Add")
+        self.add_button.clicked.connect(self.add_tag)
+        layout.addWidget(self.add_button)
+
+        self.input_line = QtWidgets.QComboBox()
+        layout.addWidget(self.input_line)
+
+        self.input_line.setEditable(True)
+        font_metrics = QtGui.QFontMetrics(self.input_line.lineEdit().font())
+        placeholder_text = "Add tag..."
+        placeholder_width = font_metrics.horizontalAdvance(placeholder_text)
+        self.input_line.lineEdit().setPlaceholderText(placeholder_text)
+        self.input_line.setMinimumWidth(placeholder_width + 40)
+        self.input_line.lineEdit().clear()
+        self.input_line.lineEdit().returnPressed.connect(self.add_tag)
+
+        layout.addStretch()
+
+    def add_tag(self) -> None:
+        """
+        Handle the add action when the Add button is clicked or Return is pressed.
+
+        Retrieves the current text from the combo box, strips any leading or trailing
+        whitespace, and if the text is in the list of predefined tags, emits the
+        `tag_added` signal.
+        """
+        text = self.input_line.currentText().strip()
+        if text in self.tag_strings:
+            self.tag_added.emit(text)
+
+    def set_tag_strings(self, strings: Collection[str]) -> None:
+        self.tag_strings = strings
+
+        self.input_line.clear()
+        self.input_line.addItems(strings)
+        self.input_line.lineEdit().clear()
+
+        completer = QtWidgets.QCompleter(strings, self.input_line)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        completer.setFilterMode(QtCore.Qt.MatchContains)
+        self.input_line.setCompleter(completer)
 
 
 class QtSingleton(type(QtCore.QObject), type):
@@ -476,3 +545,209 @@ class WindowLinker:
         window = get_window()
         window.tree_view.set_data(self.client.backend.root)
         window.tree_view.model().refresh_tree()
+
+
+class FlowLayout(QtWidgets.QLayout):
+    """
+    A custom layout that arranges child widgets in a flowing manner.
+
+    Widgets are placed horizontally until there is no more space, then the layout
+    wraps them to the next line. This layout is useful for creating a tag cloud,
+    button groups, or any interface where items should wrap automatically.
+    """
+    def __init__(self, margin=0, spacing=-1, **kwargs):
+        """
+        Initialize the FlowLayout.
+
+        Parameters
+        ----------
+        parent : QWidget, optional
+            The parent widget for this layout. Default is None.
+        margin : int, optional
+            The margin to apply around the layout. Default is 0.
+        spacing : int, optional
+            The spacing between items. Default is -1, which means use the default spacing.
+        """
+        super().__init__(**kwargs)
+        if self.parent() is not None:
+            self.setContentsMargins(margin, margin, margin, margin)
+        self.setSpacing(spacing)
+        self.itemList = []
+
+    def addItem(self, item: QtWidgets.QLayoutItem) -> None:
+        """
+        Add an item to the layout.
+
+        Parameters
+        ----------
+        item : QLayoutItem
+            The layout item to add.
+        """
+        self.itemList.append(item)
+
+    def count(self) -> int:
+        """
+        Return the number of items in the layout.
+
+        Returns
+        -------
+        int
+            The count of items currently in the layout.
+        """
+        return len(self.itemList)
+
+    def itemAt(self, index: int) -> QtWidgets.QLayoutItem:
+        """
+        Return the layout item at the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the item.
+
+        Returns
+        -------
+        QLayoutItem or None
+            The layout item if index is valid; otherwise, None.
+        """
+        if 0 <= index < len(self.itemList):
+            return self.itemList[index]
+        return None
+
+    def takeAt(self, index: int) -> QtWidgets.QLayoutItem:
+        """
+        Remove and return the layout item at the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the item to remove.
+
+        Returns
+        -------
+        QLayoutItem or None
+            The removed layout item if index is valid; otherwise, None.
+        """
+        if 0 <= index < len(self.itemList):
+            return self.itemList.pop(index)
+        return None
+
+    def expandingDirections(self) -> QtCore.Qt.Orientations:
+        """
+        Specify the directions in which the layout can expand.
+
+        Returns
+        -------
+        Qt.Orientations
+            A combination of Qt.Horizontal and Qt.Vertical indicating that the layout can expand in both directions.
+        """
+        return QtCore.Qt.Horizontal | QtCore.Qt.Vertical
+
+    def hasHeightForWidth(self) -> bool:
+        """
+        Indicate that this layout has a height-for-width dependency.
+
+        Returns
+        -------
+        bool
+            True, since the layout's height depends on its width.
+        """
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        """
+        Calculate the height of the layout given a specific width.
+
+        Parameters
+        ----------
+        width : int
+            The width to calculate the height for.
+
+        Returns
+        -------
+        int
+            The computed height based on the layout of items.
+        """
+        return self.doLayout(QtCore.QRect(0, 0, width, 0), True)
+
+    def setGeometry(self, rect: QtCore.QRect) -> None:
+        """
+        Set the geometry of the layout and position the child items.
+
+        Parameters
+        ----------
+        rect : QRect
+            The rectangle that defines the area available for the layout.
+        """
+        super().setGeometry(rect)
+        self.doLayout(rect, False)
+
+    def sizeHint(self) -> QtCore.QSize:
+        """
+        Provide a recommended size for the layout.
+
+        Returns
+        -------
+        QSize
+            The recommended size, based on the minimum size of the items.
+        """
+        return self.minimumSize()
+
+    def minimumSize(self) -> QtCore.QSize:
+        """
+        Calculate the minimum size required by the layout.
+
+        Returns
+        -------
+        QSize
+            The minimum size that can contain all layout items with margins.
+        """
+        size = QtCore.QSize()
+        for item in self.itemList:
+            size = size.expandedTo(item.minimumSize())
+        margins = self.contentsMargins()
+        size += QtCore.QSize(margins.left() + margins.right(),
+                             margins.top() + margins.bottom())
+        return size
+
+    def doLayout(self, rect: QtCore.QRect, testOnly: bool) -> int:
+        """
+        Layout the items within the given rectangle.
+
+        Items are arranged horizontally until there is no more space, then they wrap
+        to the next line. This method is used both for setting the geometry and for
+        calculating the required height.
+
+        Parameters
+        ----------
+        rect : QRect
+            The rectangle within which to layout the items.
+        testOnly : bool
+            If True, the layout is calculated but item geometries are not set.
+
+        Returns
+        -------
+        int
+            The total height required by the layout.
+        """
+        x = rect.x()
+        y = rect.y()
+        lineHeight = 0
+
+        for item in self.itemList:
+            widget = item.widget()
+            spaceX = self.spacing() + widget.style().layoutSpacing(
+                QtWidgets.QSizePolicy.PushButton, QtWidgets.QSizePolicy.PushButton, QtCore.Qt.Horizontal)
+            spaceY = self.spacing() + widget.style().layoutSpacing(
+                QtWidgets.QSizePolicy.PushButton, QtWidgets.QSizePolicy.PushButton, QtCore.Qt.Vertical)
+            nextX = x + item.sizeHint().width() + spaceX
+            if nextX - spaceX > rect.right() and lineHeight > 0:
+                x = rect.x()
+                y = y + lineHeight + spaceY
+                nextX = x + item.sizeHint().width() + spaceX
+                lineHeight = 0
+            if not testOnly:
+                item.setGeometry(QtCore.QRect(QtCore.QPoint(x, y), item.sizeHint()))
+            x = nextX
+            lineHeight = max(lineHeight, item.sizeHint().height())
+        return y + lineHeight - rect.y()

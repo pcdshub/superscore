@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 import apischema
 
 from superscore.serialization import as_tagged_union
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, Tag
 from superscore.utils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -214,7 +214,7 @@ class Collection(Nestable, Entry):
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
-    tags: Set[int] = field(default_factory=set)
+    tags: Set[Tag] = field(default_factory=set)
 
     def swap_to_uuids(self) -> List[Entry]:
         # TODO: remove ref_list? copies .children by value, breaks refs?
@@ -244,7 +244,7 @@ class Snapshot(Nestable, Entry):
     children: List[Union[UUID, Readback, Setpoint, Snapshot]] = field(
         default_factory=list
     )
-    tags: Set[int] = field(default_factory=set)
+    tags: Set[Tag] = field(default_factory=set)
     meta_pvs: List[Readback] = field(default_factory=list)
 
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:

@@ -77,7 +77,6 @@ class QDataclassBridge(QObject):
         # 4. A list of dataclasses -> QDataclassList (object)
         origin = get_origin(type_hint)
         args = get_args(type_hint)
-
         if not origin:
             # a raw type, no Union, Optional, etc
             NestedClass = QDataclassValue

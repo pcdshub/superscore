@@ -240,7 +240,7 @@ class FilestoreBackend(_Backend):
         with open(self.path) as fp:
             serialized = json.load(fp)
 
-        return deserialize(Root, serialized)
+        return deserialize(Root, serialized, coerce=True)
 
     @property
     def root(self) -> Root:
