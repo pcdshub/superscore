@@ -1,6 +1,7 @@
 """
 Backend that manipulates Entries in-memory for testing purposes.
 """
+import os
 from copy import deepcopy
 from typing import Dict, List, Optional, Union
 from uuid import UUID
@@ -24,6 +25,7 @@ class TestBackend(_Backend):
 
         self._root = Root(entries=self.data)
         self._fill_entry_cache()
+        self.path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend_config.ini")
 
     def _fill_entry_cache(self) -> None:
         self._entry_cache = {}

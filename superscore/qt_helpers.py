@@ -30,7 +30,7 @@ class QDataclassBridge(QObject):
         others: list[OtherClass]
 
     Would allow you to access:
-    bridge.field.put(3)
+    .field.put(3)
     bridge.field.changed_value.connect(my_slot)
     bridge.others.append(OtherClass(4))
 
@@ -77,7 +77,6 @@ class QDataclassBridge(QObject):
         # 4. A list of dataclasses -> QDataclassList (object)
         origin = get_origin(type_hint)
         args = get_args(type_hint)
-
         if not origin:
             # a raw type, no Union, Optional, etc
             NestedClass = QDataclassValue

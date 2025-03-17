@@ -492,3 +492,48 @@ class Client:
         - references are not cyclical, and type-correct
         """
         raise NotImplementedError
+
+    def fetch_backend_config(
+        self,
+        filename: str = "backend_config.ini"
+    ) -> configparser.ConfigParser:
+        """
+        Attempt to read a config file from the backend's root path.
+        If it does not exist, raise a NotImplementedError indicating
+        the user must provide one.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the configuration file to look for.
+
+        Returns
+        -------
+        config : configparser.ConfigParser
+            The config parser object loaded from disk.
+
+        Raises
+        ------
+        NotImplementedError
+            If the config file does not exist.
+        AttributeError
+            If the backend does not define a 'path' attribute.
+        """
+        if not hasattr(self.backend, "path"):
+            raise AttributeError(
+                "Backend does not define a 'path' attribute. Cannot locate config."
+            )
+
+        root_dir = Path(self.backend.path).parent
+        config_path = root_dir / filename
+
+        if not config_path.exists():
+            raise NotImplementedError(
+                f"No backend config found at {config_path}. Please add one to the root of the backend."
+            )
+
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        logger.debug(f"Loaded existing backend config file at {config_path}")
+
+        return config

@@ -215,11 +215,11 @@ class Nestable:
 class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
     meta_pvs: ClassVar[List[Parameter]] = []
-    all_tags: ClassVar[Set[Tag]] = set()
+    all_tags: ClassVar[List[Tag]] = []
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
-    tags: Set[Tag] = field(default_factory=set)
+    tags: List[Tag] = field(default_factory=list)
 
     def swap_to_uuids(self) -> List[Entry]:
         ref_list = []

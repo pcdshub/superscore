@@ -46,6 +46,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         else:
             self.client = Client.from_config()
 
+        self.backend_config_tags = self.get_backend_config_tags_list()
         self._partial_slots = []
 
         self.setup_ui()
@@ -84,7 +85,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def open_collection_builder(self):
         """open collection builder page"""
-        page = CollectionBuilderPage(client=self.client)
+        page = CollectionBuilderPage(backend_config_tags=self.backend_config_tags, client=self.client)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
         update_slot = WeakPartialMethodSlot(
@@ -173,3 +174,18 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         while self.tab_widget.count() > 0:
             self.remove_tab(0)
         super().closeEvent(a0)
+
+    def get_backend_config_tags_list(self) -> list[str]:
+        """
+        Fetch the backend config and return the list of tags
+        found under the [tags] section.
+        """
+        config = self.client.fetch_backend_config()
+        tags_section = "tags"
+
+        if tags_section in config:
+            tags_list = [value for _, value in config.items(tags_section)]
+        else:
+            tags_list = []
+
+        return tags_list
