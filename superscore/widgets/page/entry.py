@@ -20,8 +20,8 @@ from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
-from superscore.widgets.views import (LivePVTableView, LiveMetaPVTableView, NestableTableView,
-                                      RootTreeView,
+from superscore.widgets.views import (LiveMetaPVTableView, LivePVTableView,
+                                      NestableTableView, RootTreeView,
                                       edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
