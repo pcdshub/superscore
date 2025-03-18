@@ -1528,6 +1528,56 @@ class LivePVTableView(BaseDataTableView):
         self._model.stop_polling(wait_time=5000)
         super().closeEvent(a0)
 
+class LiveMetaPVTableView(LivePVTableView):
+    """
+    table widget for LivePVTableModel. Meant to provide a standard, easy-to-use
+    interface for this table model, with common configuration options exposed
+
+    compatible with list of entries or full entry
+        - updates entry when changes made
+        - maintains order for rebuilding of parent collections
+    Configures delegates, ignoring open page slot if provided
+    """
+    _model: Optional[LivePVTableModel]
+
+    def __init__(self, *args, poll_period: float = 1.0, **kwargs):
+        self._model_cls = LivePVTableModel
+        self.open_column = LivePVHeader.OPEN
+        self.remove_column = LivePVHeader.REMOVE
+        super().__init__(*args, **kwargs)
+
+        self.model_kwargs['poll_period'] = poll_period
+
+        self.value_delegate = ValueDelegate()
+        for col in [LivePVHeader.PV_NAME, LivePVHeader.STORED_VALUE,
+                    LivePVHeader.STORED_STATUS, LivePVHeader.STORED_SEVERITY]:
+            self.setItemDelegateForColumn(col, self.value_delegate)
+
+    def gather_sub_entries(self):
+        if isinstance(self.data, UUID):
+            self.data = self.client.backend.get_entry(self.data)
+
+        if isinstance(self.data, Nestable):
+            # gather sub_nestables
+            self.sub_entries = []
+            for i, child in enumerate(self.data.meta_pvs):
+                if isinstance(child, UUID):
+                    child = self._client.backend.get_entry(child)
+                    self.data.children[i] = child
+                else:
+                    child = child
+
+                if child is None:
+                    raise EntryNotFoundError(f"{child} not found in backend, "
+                                             "cannot fill with real data")
+
+                if not isinstance(child, Nestable) and isinstance(child, Entry):
+                    self.sub_entries.append(child)
+
+        elif isinstance(self.data, (Parameter, Setpoint, Readback)):
+            self.sub_entries = [self.data]
+
+
 
 class NestableHeader(HeaderEnum):
     NAME = 0
