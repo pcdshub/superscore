@@ -632,7 +632,8 @@ def linac_data() -> Root:
             lcls_nc_snapshot,
             facet_snapshot,
             lcls_sc_snapshot,
-        ]
+        ],
+        origin_collection=all_col.uuid,
     )
 
     return Root(entries=[all_col, all_snapshot])

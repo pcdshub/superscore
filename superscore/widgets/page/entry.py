@@ -3,6 +3,7 @@ Widgets for visualizing and editing core model dataclasses
 """
 import logging
 from copy import deepcopy
+from functools import partial
 from typing import Optional, Union
 
 import qtawesome as qta
@@ -10,6 +11,7 @@ from qtpy import QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.control_layers._base_shim import EpicsData
+from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
 from superscore.type_hints import AnyEpicsType
@@ -35,6 +37,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
     sub_pv_table_view: LivePVTableView
 
     save_button: QtWidgets.QPushButton
+    snapshot_button: QtWidgets.QPushButton
 
     data: Nestable
 
@@ -67,6 +70,8 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.sub_coll_table_view.data_updated.connect(self.track_changes)
 
         self.save_button.clicked.connect(self.save)
+        self.snapshot_button.clicked.connect(self.take_snapshot)
+        self.snapshot_button.setText("Take new Snapshot")
 
         self.set_editable(self.editable)
 
@@ -100,6 +105,42 @@ class NestablePage(Display, DataWidget, WindowLinker):
         logger.debug(f"Stopping polling threads for {type(self.data)}")
         self.sub_pv_table_view._model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)
+
+    def take_snapshot(self) -> Optional[Snapshot]:
+        """
+        Save a new snapshot for the entry connected to this page. Also opens the
+        new snapshot.
+        """
+        try:
+            origin = self.client.find_origin_collection(self.data)
+        except (ValueError, EntryNotFoundError):
+            logging.exception("Cannot save snapshot")
+        else:
+            dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
+            dialog = self.metadata_dialog(dest_snapshot)
+            dialog.accepted.connect(partial(self.client.snap, dest_snapshot.origin_collection, dest=dest_snapshot))
+            dialog.accepted.connect(partial(self.client.save, dest_snapshot))
+            dialog.accepted.connect(self.refresh_window)
+
+            window = self.get_window()
+            dialog.accepted.connect(partial(window.open_restore_page, snapshot=dest_snapshot))
+
+            dialog.open()
+            return dest_snapshot
+
+    def metadata_dialog(self, dest: Nestable) -> QtWidgets.QDialog:
+        """Construct dialog prompting the user to enter metadata for the given entry"""
+        metadata_dialog = QtWidgets.QDialog(parent=self)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(NameDescTagsWidget(data=dest))
+        buttonBox = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(metadata_dialog.accept)
+        buttonBox.rejected.connect(metadata_dialog.reject)
+        metadata_dialog.setLayout(layout)
+        return metadata_dialog
 
 
 class CollectionPage(NestablePage):
