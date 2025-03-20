@@ -2,21 +2,19 @@
 
 import logging
 from enum import auto
-from typing import List, Union, Optional, Dict
 from functools import partial
+from typing import Dict, List, Optional, Union
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.errors import EntryNotFoundError
-from superscore.model import Entry, Setpoint, Snapshot, UUID, Nestable, Readback
-from superscore.compare import EntryDiff
+from superscore.model import Entry, Readback, Setpoint, Snapshot
 from superscore.widgets.core import Display
-from superscore.widgets.views import (BaseDataTableView, HeaderEnum,
-                                      LivePVHeader, LivePVTableModel,
-                                      LivePVTableView, RootTree, ButtonDelegate, BaseTableEntryModel)
-from superscore.widgets.page.diff import DiffTableModel
+from superscore.widgets.views import (BaseDataTableView, BaseTableEntryModel,
+                                      HeaderEnum, LivePVHeader,
+                                      LivePVTableModel, LivePVTableView,
+                                      RootTree)
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +159,7 @@ class CompareHeader(HeaderEnum):
     COMPARE_STATUS = auto()
     SEVERITY = auto()
     COMPARE_SEVERITY = auto()
+
 
 class CompareSnapshotTableModel(BaseTableEntryModel):
     _diff_color = QtGui.QColor('#ffbbbb')
@@ -327,7 +326,7 @@ class CompareSnapshotTableView(BaseDataTableView):
             self.maybe_setup_model()
         try:
             self._model.set_comparison_snapshot(secondary)
-        except AttributeError as e:
+        except AttributeError:
             logger.debug(f"{self._model_cls} cannot be initialized")
 
     def maybe_setup_model(self):
