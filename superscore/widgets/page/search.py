@@ -10,8 +10,7 @@ from qtpy import QtCore, QtWidgets
 
 from superscore.backends.core import SearchTerm
 from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
-from superscore.type_hints import OpenPageSlot
-from superscore.widgets import ICON_MAP, get_window
+from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display, WindowLinker
 from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
                                       HeaderEnum)
@@ -218,7 +217,7 @@ class ResultModel(BaseTableEntryModel):
         return QtCore.QVariant()
 
 
-class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
+class ResultFilterProxyModel(QtCore.QSortFilterProxyModel, WindowLinker):
     """
     Filter proxy model specifically for ResultModel.  Enables per-column sorting
     and filtering table contents by name.
@@ -234,12 +233,6 @@ class ResultFilterProxyModel(QtCore.QSortFilterProxyModel):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.name_regexp = QtCore.QRegularExpression()
-
-    @property
-    def open_page_slot(self) -> Optional[OpenPageSlot]:
-        window = get_window()
-        if window is not None:
-            return window.open_page
 
     def filterAcceptsRow(
         self,
