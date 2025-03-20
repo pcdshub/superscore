@@ -2,19 +2,21 @@
 
 import logging
 from enum import auto
-from typing import List, Union
+from typing import List, Union, Optional, Dict
 from functools import partial
 
 from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Entry, Setpoint, Snapshot
+from superscore.errors import EntryNotFoundError
+from superscore.model import Entry, Setpoint, Snapshot, UUID, Nestable, Readback
 from superscore.compare import EntryDiff
 from superscore.widgets.core import Display
 from superscore.widgets.views import (BaseDataTableView, HeaderEnum,
                                       LivePVHeader, LivePVTableModel,
-                                      LivePVTableView, RootTree)
+                                      LivePVTableView, RootTree, ButtonDelegate, BaseTableEntryModel)
+from superscore.widgets.page.diff import DiffTableModel
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ class SnapshotTableView(LivePVTableView):
         self._is_live = start_live
         self.setColumnHidden(LivePVHeader.STORED_SEVERITY, True)
         self.setColumnHidden(LivePVHeader.STORED_STATUS, True)
+        self.setColumnHidden(LivePVHeader.REMOVE, True)
 
     def gather_sub_entries(self) -> None:
         self.sub_entries = self.client._gather_leaves(self.data)
@@ -148,47 +151,55 @@ class SnapshotSelectionDialog(QtWidgets.QDialog):
 
 class CompareHeader(HeaderEnum):
     PV_NAME = 0
-    PRIMARY_VALUE = auto()
-    SECONDARY_VALUE = auto()
-    PRIMARY_TIMESTAMP = auto()
-    SECONDARY_TIMESTAMP = auto()
+    VALUE = auto()
+    COMPARE_VALUE = auto()
+    TIMESTAMP = auto()
+    COMPARE_TIMESTAMP = auto()
     # TODO: Find another way to represent status and severity
     #   Potentially as a border color or icon
-    PRIMARY_STATUS = auto()
-    SECONDARY_STATUS = auto()
-    PRIMARY_SEVERITY = auto()
-    SECONDARY_SEVERITY = auto()
-    PRIMARY_OPEN = auto()
-    SECONDARY_OPEN = auto()
+    STATUS = auto()
+    COMPARE_STATUS = auto()
+    SEVERITY = auto()
+    COMPARE_SEVERITY = auto()
 
-
-class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
+class CompareSnapshotTableModel(BaseTableEntryModel):
+    _diff_color = QtGui.QColor('#ffbbbb')
+    _header_to_field: Dict[CompareHeader, str] = {
+        CompareHeader.PV_NAME: 'pv_name',
+        CompareHeader.VALUE: 'data',
+        CompareHeader.COMPARE_VALUE: 'data',
+        CompareHeader.STATUS: 'status',
+        CompareHeader.COMPARE_STATUS: 'status',
+        CompareHeader.SEVERITY: 'severity',
+        CompareHeader.COMPARE_SEVERITY: 'severity',
+    }
 
     def __init__(
         self,
         *args,
         client: Client,
         primary_snapshot: Snapshot = None,
-        comparison_snapshot: Snapshot = None,
+        secondary_snapshot: Snapshot = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.headers = [h.header_name() for h in CompareHeader]
+        self.header_enum = CompareHeader
         self.client = client
         self._primary_data = primary_snapshot
-        self._secondary_data = comparison_snapshot
+        self._secondary_data = secondary_snapshot
         self.entries: List[Entry] = []
-        self.diffs: List[EntryDiff] = []
 
     def _collate_pvs(self) -> None:
+        self.beginResetModel()
         self.entries = []
         # for each PV in primary snapshot, find partner in secondary snapshot
         pvs = self.client.search(
-            ("entry_type", "eq", Setpoint),
+            ("entry_type", "eq", (Setpoint, Readback)),
             ("ancestor", "eq", self._primary_data.uuid),
         )
         seen = set()
-        for primary in pvs:
+        for primary in tuple(pvs):
             secondary_generator = self.client.search(
                 ("pv_name", "eq", primary.pv_name),
                 ("ancestor", "eq", self._secondary_data.uuid),
@@ -198,59 +209,60 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
             seen.add(secondary.uuid)
         # for each PV in secondary with no partner in primary, add row with 'None' partner
         pvs = self.client.search(
-            ("entry_type", "eq", Setpoint),
+            ("entry_type", "eq", (Setpoint, Readback)),
             ("ancestor", "eq", self._secondary_data.uuid),
         )
         for secondary in pvs:
             if secondary.uuid not in seen:
                 self.entries.append((None, secondary))
-
-    def _collate_diffs(self) -> None:
-        self.diffs = []
-
-        for l_entry, r_entry in self.entries:
-
-            self.diffs.append(self.client.compare(l_entry, r_entry))
+        self.endResetModel()
 
     def data(self, index: QtCore.QModelIndex, role: int):
-        if role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignCenter
-        elif role == QtCore.Qt.DisplayRole:
-            primary, secondary = self.entries[index.row()]
-            match index.column():
-                case CompareHeader.PV_NAME:
-                    return primary.pv_name
-                case CompareHeader.PRIMARY_VALUE:
-                    return primary.data
-                case CompareHeader.SECONDARY_VALUE:
-                    return secondary.data
-                case CompareHeader.PRIMARY_TIMESTAMP:
-                    return primary.creation_time
-                case CompareHeader.SECONDARY_TIMESTAMP:
-                    return secondary.creation_time
-                case CompareHeader.PRIMARY_STATUS:
-                    return primary.status
-                case CompareHeader.SECONDARY_STATUS:
-                    return secondary.status
-                case CompareHeader.PRIMARY_SEVERITY:
-                    return primary.severity
-                case CompareHeader.SECONDARY_SEVERITY:
-                    return secondary.severity
-                case CompareHeader.PRIMARY_OPEN:
-                    return None
-                case CompareHeader.SECONDARY_OPEN:
-                    return None
-        elif role == QtCore.Qt.BackgroundRole:
-            primary, secondary = self.entries[index.row()]
-            if self.is_secondary_column(index) and not self.is_close(primary, secondary):
-                return QtGui.QColor('#ffbbbb')
-        else:
+        if role not in (QtCore.Qt.TextAlignmentRole, QtCore.Qt.DisplayRole,
+                        QtCore.Qt.BackgroundRole, QtCore.Qt.ToolTipRole):
             return None
 
-    def rowCount(self):
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignCenter
+
+        if not self.is_compare_column(index):
+            entry, compare = self.entries[index.row()]
+        elif self.is_compare_column(index):
+            compare, entry = self.entries[index.row()]
+
+        if not entry:
+            return "--"
+
+        column = index.column()
+        if column == CompareHeader.PV_NAME and role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+            return entry.pv_name
+        elif column in (CompareHeader.VALUE, CompareHeader.COMPARE_VALUE):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+                return entry.data
+            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+                return self._diff_color if entry.data != compare.data else None
+        elif column in (CompareHeader.TIMESTAMP, CompareHeader.COMPARE_TIMESTAMP):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+                return entry.creation_time.strftime('%Y/%m/%d %H:%M')
+            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+                return self._diff_color if entry.creation_time != compare.creation_time else None
+        elif column in (CompareHeader.STATUS, CompareHeader.COMPARE_STATUS):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+                status = getattr(entry, 'status', '--')
+                return getattr(status, 'name', status)
+            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+                return self._diff_color if entry.status != compare.status else None
+        elif column in (CompareHeader.SEVERITY, CompareHeader.COMPARE_SEVERITY):
+            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+                severity = getattr(entry, 'severity', '--')
+                return getattr(severity, 'name', severity)
+            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+                return self._diff_color if entry.severity != compare.severity else None
+
+    def rowCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
         return len(self.entries)
 
-    def columnCount(self):
+    def columnCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
         return len(self.headers)
 
     def headerData(
@@ -269,21 +281,11 @@ class CompareSnapshotTableModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal:
             return self.headers[section]
 
-    def is_primary_column(self, index: Union[int, QtCore.QModelIndex]):
+    def is_compare_column(self, index: Union[int, QtCore.QModelIndex]):
         if isinstance(index, QtCore.QModelIndex):
             index = index.column()
         hdr = self.headers[index]
-        return hdr.startswith("Primary")
-
-    def is_secondary_column(self, index: Union[int, QtCore.QModelIndex]):
-        if isinstance(index, QtCore.QModelIndex):
-            index = index.column()
-        hdr = self.headers[index]
-        return hdr.startswith("Secondary")
-
-    def is_close(self, primary: Entry, secondary: Entry):
-        # TODO: Fix this check
-        return primary == secondary
+        return hdr.startswith("Compare")
 
     @QtCore.Slot()
     def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
@@ -296,12 +298,56 @@ class CompareSnapshotTableView(BaseDataTableView):
     setCompareSnapshot = QtCore.Signal(Snapshot)
 
     def __init__(self, *args, **kwargs):
-        pass
+        super().__init__(*args, **kwargs)
+        self._model_cls = CompareSnapshotTableModel
+        self._primary = None
+        self._secondary = None
 
-    def gather_sub_entries(self):
-        model = self.model()
-        model._collate_pvs()
-        self.sub_entries = model.entries
+    def setup_ui(self):
+        """initialize basic ui elements for this table"""
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.create_context_menu_at_pos)
+
+    def set_primary(self, primary: Snapshot):
+        """Set the data for this view, re-setup ui"""
+        if not isinstance(primary, Snapshot):
+            raise ValueError(
+                f"Attempted to set an incompatable data type ({type(primary)})"
+            )
+        self._primary = primary
+        self.maybe_setup_model()
+
+    def set_secondary(self, secondary: Snapshot):
+        """Set the data for this view, re-setup ui"""
+        if not isinstance(secondary, Snapshot):
+            raise ValueError(
+                f"Attempted to set an incompatable data type ({type(secondary)})"
+            )
+        if self._model is None:
+            self.maybe_setup_model()
+        try:
+            self._model.set_comparison_snapshot(secondary)
+        except AttributeError as e:
+            logger.debug(f"{self._model_cls} cannot be initialized")
+
+    def maybe_setup_model(self):
+        if self.client is None:
+            logger.debug("Client not set, cannot initialize model")
+            return
+
+        if self._primary is None:
+            logger.debug("data not set, cannot initialize model")
+            return
+
+        if self._model is None:
+            self._model = self._model_cls(
+                client=self.client,
+                primary_snapshot=self._primary,
+                **self.model_kwargs
+            )
+            self.setModel(self._model)
+        else:
+            self._model.set_comparison_snapshot(self._secondary)
 
 
 class LiveButton(QtWidgets.QPushButton):
@@ -347,7 +393,8 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.snapshot = data
         self.tableView.client = self.client
         self.tableView.set_data(data)
-        self.tableView.hideColumn(LivePVHeader.REMOVE)
+        self.compareTableView.client = self.client
+        self.compareTableView.set_primary(data)
 
         self.compareLiveButton.clicked.connect(self.tableView.toggle_live)
         self.tableView.turnOnLive.connect(partial(self.set_live, True))
@@ -381,6 +428,7 @@ class RestorePage(Display, QtWidgets.QWidget):
 
         if self.show_compare:
             self.secondarySnapshotTitle.setText(result.title)
+            self.compareTableView.set_secondary(result)
 
         self.secondarySnapshotLabel.setVisible(self.show_compare)
         self.secondarySnapshotTitle.setVisible(self.show_compare)
