@@ -83,7 +83,55 @@
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
-      <widget class="LivePVTableView" name="sub_pv_table_view"/>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="sub_pv_table_tab">
+        <attribute name="title">
+         <string>Content PVs</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="LivePVTableView" name="sub_pv_table_view"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="sub_meta_pv_table_tab">
+        <attribute name="title">
+         <string>Meta PVs</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="LiveMetaPVTableView" name="sub_meta_pv_table_view"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
       <widget class="NestableTableView" name="sub_coll_table_view"/>
      </widget>
     </widget>
@@ -100,6 +148,11 @@
  <customwidgets>
   <customwidget>
    <class>LivePVTableView</class>
+   <extends>QTableView</extends>
+   <header>superscore.widgets.views</header>
+  </customwidget>
+  <customwidget>
+   <class>LiveMetaPVTableView</class>
    <extends>QTableView</extends>
    <header>superscore.widgets.views</header>
   </customwidget>
