@@ -20,8 +20,9 @@ from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
-from superscore.widgets.views import (LiveMetaPVTableView, LivePVTableView,
-                                      NestableTableView, RootTreeView,
+from superscore.widgets.views import (LiveMetaPVTableView, LivePVHeader,
+                                      LivePVTableView, NestableTableView,
+                                      RootTreeView,
                                       edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,11 @@ class NestablePage(Display, DataWidget, WindowLinker):
 
         self.sub_meta_pv_table_view.client = self.client
         self.sub_meta_pv_table_view.set_data(self.data)
+
+        # Hide undesired columns in meta pv table.
+        self.sub_meta_pv_table_view.setColumnHidden(LivePVHeader.LIVE_VALUE, True)
+        self.sub_meta_pv_table_view.setColumnHidden(LivePVHeader.LIVE_STATUS, True)
+        self.sub_meta_pv_table_view.setColumnHidden(LivePVHeader.LIVE_SEVERITY, True)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)

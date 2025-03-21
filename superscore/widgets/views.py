@@ -1528,6 +1528,7 @@ class LivePVTableView(BaseDataTableView):
         self._model.stop_polling(wait_time=5000)
         super().closeEvent(a0)
 
+
 class LiveMetaPVTableView(LivePVTableView):
     """
     table widget for LivePVTableModel. Meant to provide a standard, easy-to-use
@@ -1577,6 +1578,18 @@ class LiveMetaPVTableView(LivePVTableView):
         elif isinstance(self.data, (Parameter, Setpoint, Readback)):
             self.sub_entries = [self.data]
 
+    def remove_row(self, index: QtCore.QModelIndex) -> None:
+        print(f"Trying to remove metapv row {index.row()}")
+        print(f"Type: {type(self._model)}")
+        entry = self.data.meta_pvs[index.row()]
+        print(entry)
+
+        if isinstance(self.data, list):
+            self.data.remove(entry)
+        elif isinstance(self.data, Nestable):
+            self.data.meta_pvs.remove(entry)
+        # edit data held by widget
+        self.data_updated.emit()
 
 
 class NestableHeader(HeaderEnum):
