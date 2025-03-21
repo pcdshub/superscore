@@ -31,11 +31,38 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0,0,0,0,0">
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0,0,0,0,0,0">
       <item row="0" column="6">
        <widget class="QPushButton" name="compareSnapshotButton">
         <property name="text">
          <string>Compare to Snapshot</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="5">
+       <widget class="LiveButton" name="compareLiveButton">
+        <property name="text">
+         <string>Compare to Live</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <spacer name="headerSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="8">
+       <widget class="QPushButton" name="restoreButton">
+        <property name="text">
+         <string>Restore</string>
         </property>
        </widget>
       </item>
@@ -71,30 +98,10 @@
         </item>
        </layout>
       </item>
-      <item row="0" column="5">
-       <widget class="LiveButton" name="compareLiveButton">
-        <property name="text">
-         <string>Compare to Live</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="4">
-       <spacer name="headerSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
       <item row="0" column="7">
-       <widget class="QPushButton" name="restoreButton">
+       <widget class="QPushButton" name="removeComparisonButton">
         <property name="text">
-         <string>Restore</string>
+         <string>Remove Comparison</string>
         </property>
        </widget>
       </item>

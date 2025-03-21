@@ -177,16 +177,16 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         self,
         *args,
         client: Client,
-        primary_snapshot: Snapshot = None,
-        secondary_snapshot: Snapshot = None,
+        main_snapshot: Snapshot = None,
+        comparison_snapshot: Snapshot = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.headers = [h.header_name() for h in CompareHeader]
         self.header_enum = CompareHeader
         self.client = client
-        self._primary_data = primary_snapshot
-        self._secondary_data = secondary_snapshot
+        self._main_data = main_snapshot
+        self._comparison_data = comparison_snapshot
         self.entries: List[Entry] = []
 
     def _collate_pvs(self) -> None:
@@ -195,13 +195,13 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         # for each PV in primary snapshot, find partner in secondary snapshot
         pvs = self.client.search(
             ("entry_type", "eq", (Setpoint, Readback)),
-            ("ancestor", "eq", self._primary_data.uuid),
+            ("ancestor", "eq", self._main_data.uuid),
         )
         seen = set()
         for primary in tuple(pvs):
             secondary_generator = self.client.search(
                 ("pv_name", "eq", primary.pv_name),
-                ("ancestor", "eq", self._secondary_data.uuid),
+                ("ancestor", "eq", self._comparison_data.uuid),
             )
             secondary = tuple(secondary_generator)[0]  # assumes at most one match
             self.entries.append((primary, secondary))
@@ -209,7 +209,7 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         # for each PV in secondary with no partner in primary, add row with 'None' partner
         pvs = self.client.search(
             ("entry_type", "eq", (Setpoint, Readback)),
-            ("ancestor", "eq", self._secondary_data.uuid),
+            ("ancestor", "eq", self._comparison_data.uuid),
         )
         for secondary in pvs:
             if secondary.uuid not in seen:
@@ -217,6 +217,25 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         self.endResetModel()
 
     def data(self, index: QtCore.QModelIndex, role: int):
+        """
+        Returns the data stored under the given role for the item
+        referred to by the index.
+
+        Accepted DataRoles are TextAlignment, DisplayRole, BackgroundRole,
+        and ToolTipRole
+
+        Parameters
+        ----------
+        index : QtCore.QModelIndex
+            An index referring to a cell of the TableView
+        role : int
+            The requested data role.
+
+        Returns
+        -------
+        Any
+            the requested data
+        """
         if role not in (QtCore.Qt.TextAlignmentRole, QtCore.Qt.DisplayRole,
                         QtCore.Qt.BackgroundRole, QtCore.Qt.ToolTipRole):
             return None
@@ -288,7 +307,7 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
 
     @QtCore.Slot()
     def set_comparison_snapshot(self, comparison_snapshot: Snapshot) -> None:
-        self._secondary_data = comparison_snapshot
+        self._comparison_data = comparison_snapshot
         self._collate_pvs()
 
 
@@ -299,7 +318,7 @@ class CompareSnapshotTableView(BaseDataTableView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._model_cls = CompareSnapshotTableModel
-        self._primary = None
+        self._main_snapshot = None
         self._secondary = None
 
     def setup_ui(self):
@@ -313,7 +332,7 @@ class CompareSnapshotTableView(BaseDataTableView):
             raise ValueError(
                 f"Attempted to set an incompatable data type ({type(primary)})"
             )
-        self._primary = primary
+        self._main_snapshot = primary
         self.maybe_setup_model()
 
     def set_secondary(self, secondary: Snapshot):
@@ -334,14 +353,14 @@ class CompareSnapshotTableView(BaseDataTableView):
             logger.debug("Client not set, cannot initialize model")
             return
 
-        if self._primary is None:
+        if self._main_snapshot is None:
             logger.debug("data not set, cannot initialize model")
             return
 
         if self._model is None:
             self._model = self._model_cls(
                 client=self.client,
-                primary_snapshot=self._primary,
+                main_snapshot=self._main_snapshot,
                 **self.model_kwargs
             )
             self.setModel(self._model)
@@ -373,6 +392,7 @@ class RestorePage(Display, QtWidgets.QWidget):
     secondarySnapshotTitle: QtWidgets.QLabel
     compareLiveButton: QtWidgets.QPushButton
     compareSnapshotButton: QtWidgets.QPushButton
+    removeComparisonButton: QtWidgets.QPushButton
     restoreButton: QtWidgets.QPushButton
 
     tableView: SnapshotTableView
@@ -413,6 +433,7 @@ class RestorePage(Display, QtWidgets.QWidget):
 
         self.compareDialog.finished.connect(self.set_comparison)
         self.compareSnapshotButton.clicked.connect(self.compareDialog.exec_)
+        self.removeComparisonButton.clicked.connect(self.set_comparison)
         self.restoreButton.clicked.connect(self.launch_dialog)
 
     def set_live(self, is_live: bool):
@@ -432,14 +453,22 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotLabel.setVisible(self.show_compare)
         self.secondarySnapshotTitle.setVisible(self.show_compare)
 
-        self.swap_table_views(self.show_compare)
+        self.swap_table_views()
+        self.swap_compare_buttons()
 
     def swap_table_views(self, show_compare: bool = None):
-        if show_compare is None:
-            show_compare = self.show_compare
+        if show_compare is not None:
+            self.show_compare = show_compare
 
-        self.tableView.setVisible(not show_compare)
-        self.compareTableView.setVisible(show_compare)
+        self.tableView.setVisible(not self.show_compare)
+        self.compareTableView.setVisible(self.show_compare)
+
+    def swap_compare_buttons(self, show_compare: bool = None):
+        if show_compare is not None:
+            self.show_compare = show_compare
+
+        self.removeComparisonButton.setVisible(self.show_compare)
+        self.compareLiveButton.setVisible(not self.show_compare)
 
     def launch_dialog(self):
         self.dialog = RestoreDialog(self.client, self.snapshot)
