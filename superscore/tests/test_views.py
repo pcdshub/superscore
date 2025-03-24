@@ -14,6 +14,7 @@ from superscore.control_layers import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Root, Severity,
                               Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
+from superscore.widgets.page.restore import CompareSnapshotTableModel
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
                                       NestableTableView, RootTree,
@@ -333,3 +334,12 @@ def test_root_tree_fetchmore(test_client: Client):
     assert model.canFetchMore(child_index)
     model.fetchMore(child_index)
     assert not model.canFetchMore(child_index)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_compare_snapshot_model(test_client: Client, qtmodeltester, simple_snapshot_fixture: Collection):
+    print(type(test_client), type(qtmodeltester), type(simple_snapshot_fixture))
+    compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
+    compare_model.set_comparison_snapshot(simple_snapshot_fixture)
+
+    qtmodeltester.check(compare_model, force_py=True)
