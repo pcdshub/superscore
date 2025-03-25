@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-import superscore.bin.demo as demo_main
+import superscore.bin.demo_main as demo_main
 import superscore.bin.main as ss_main
 from superscore.tests.ioc.ioc_factory import TempIOC
 

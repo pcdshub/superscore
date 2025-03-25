@@ -248,7 +248,7 @@ class Client:
 
             entry.children = new_children
 
-    def snap(self, entry: Collection) -> Snapshot:
+    def snap(self, entry: Collection, dest: Optional[Snapshot] = None) -> Snapshot:
         """
         Asyncronously read data for all PVs under ``entry``, and store in a
         Snapshot.  PVs that can't be read will have an exception as their value.
@@ -275,7 +275,7 @@ class Client:
             else:
                 logger.debug(f"Storing {pv} = {value}")
                 data[pv] = value
-        return self._build_snapshot(entry, data)
+        return self._build_snapshot(entry, data, dest=dest)
 
     def apply(
         self,
@@ -321,6 +321,29 @@ class Client:
                 status_list.append(status)
         else:
             return self.cl.put(pv_list, data_list)
+
+    def find_origin_collection(self, entry: Union[Collection, Snapshot]) -> Collection:
+        """
+        Return the Collection instance associated with an entry.  The entry can
+        be a Collection or Snapshot.
+
+        Raises
+        ------
+        ValueError
+            If snapshot does not record an origin collection
+        EntryNotFoundError
+            From _Backend.get_entry
+        """
+        if isinstance(entry, Collection):
+            return entry
+        elif isinstance(entry, Snapshot):
+            origin = entry.origin_collection
+            if origin is None:
+                raise ValueError(f"{entry.title} ({entry.uuid}) does not have an origin collection)")
+            elif isinstance(origin, UUID):
+                return self.backend.get_entry(origin)
+            else:
+                return origin
 
     def _gather_data(
         self,
@@ -397,6 +420,7 @@ class Client:
         self,
         coll: Collection,
         values: Dict[str, EpicsData],
+        dest: Optional[Snapshot] = None,
     ) -> Snapshot:
         """
         Traverse a Collection, assembling a Snapshot using pre-fetched data
@@ -414,15 +438,15 @@ class Client:
         Snapshot
             A Snapshot corresponding to the input Collection
         """
-        snapshot = Snapshot(
+        snapshot = dest or Snapshot(
             title=coll.title,
             tags=coll.tags.copy(),
-            origin_collection=coll
         )
+        snapshot.origin_collection = coll
 
         for child in coll.children:
             if isinstance(child, UUID):
-                child = self.backend.get(child)
+                child = self.backend.get_entry(child)
             if isinstance(child, Parameter):
                 if child.readback is not None:
                     edata = self._value_or_default(

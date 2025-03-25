@@ -17,7 +17,7 @@ logger = logging.getLogger('superscore')
 
 
 DESCRIPTION = __doc__
-MODULES = ("help", "ui", "demo")
+MODULES = ("ui", "demo")
 
 
 def _try_import(module):
@@ -26,13 +26,25 @@ def _try_import(module):
 
 
 def _build_commands():
+    """
+    Search for *_parser submodules to gather and build subcommands.
+    Each submodule should have two functions:
+    * `build_arg_parser`: takes an argparser instance and adds any necessary
+                          arguments
+    * `main`: imports the main routine from a different submodule and runs it
+
+    This separation ensures that heavier imports can be deferred until necessary,
+    and argparse details (help text, argument descriptions) are returned quickly.
+
+    Also builds up the the argparse description whenever a subcommand is added.
+    """
     global DESCRIPTION
     result = {}
     unavailable = []
 
     for module in sorted(MODULES):
         try:
-            mod = _try_import(module)
+            mod = _try_import(module + "_parser")
         except Exception as ex:
             unavailable.append((module, ex))
         else:
@@ -47,6 +59,9 @@ def _build_commands():
             )
 
     return result
+
+
+COMMANDS = _build_commands()
 
 
 def main():
@@ -71,7 +86,6 @@ def main():
     )
 
     subparsers = top_parser.add_subparsers(help='Possible subcommands')
-    COMMANDS = _build_commands()
     for command_name, (build_func, main) in COMMANDS.items():
         sub = subparsers.add_parser(command_name)
         build_func(sub)

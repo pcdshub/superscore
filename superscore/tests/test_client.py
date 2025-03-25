@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from unittest.mock import patch
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -10,9 +10,9 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.errors import CommunicationError
+from superscore.errors import CommunicationError, EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
-                              Root, Setpoint)
+                              Root, Setpoint, Snapshot)
 from superscore.tests.conftest import (MockTaskStatus, nest_depth,
                                        setup_test_stack)
 
@@ -267,3 +267,20 @@ def test_search_caching(test_client: Client):
 
 def test_parametrized_filestore_empty(test_client: Client):
     assert len(list(test_client.search())) == 0
+
+
+@setup_test_stack(backend_type=TestBackend)
+def test_find_origin_collection(test_client):
+    collection = Collection()
+    snapshot = Snapshot()
+    test_client.save(collection)
+    test_client.save(snapshot)
+
+    assert test_client.find_origin_collection(collection) == collection
+    with pytest.raises(ValueError):
+        test_client.find_origin_collection(snapshot)
+    snapshot.origin_collection = uuid4()
+    with pytest.raises(EntryNotFoundError):
+        test_client.find_origin_collection(snapshot)
+    snapshot.origin_collection = collection.uuid
+    assert test_client.find_origin_collection(snapshot) == collection
