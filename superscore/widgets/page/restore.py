@@ -190,6 +190,7 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         self.entries: List[Entry] = []
 
     def _collate_pvs(self) -> None:
+        """Get all PVs for the snapshots to be compared."""
         self.beginResetModel()
         self.entries = []
         # for each PV in primary snapshot, find partner in secondary snapshot
@@ -201,11 +202,17 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         for primary in tuple(pvs):
             secondary_generator = self.client.search(
                 ("pv_name", "eq", primary.pv_name),
+                ("entry_type", "eq", type(primary)),
                 ("ancestor", "eq", self._comparison_data.uuid),
             )
-            secondary = tuple(secondary_generator)[0]  # assumes at most one match
+            try:
+                secondary = tuple(secondary_generator)[0]  # assumes at most one match
+            except IndexError:
+                secondary = None
+
             self.entries.append((primary, secondary))
-            seen.add(secondary.uuid)
+            if secondary:
+                seen.add(secondary.uuid)
         # for each PV in secondary with no partner in primary, add row with 'None' partner
         pvs = self.client.search(
             ("entry_type", "eq", (Setpoint, Readback)),
