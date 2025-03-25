@@ -38,12 +38,13 @@ def add_open_page_to_menu(
     entry: Entry,
 ) -> None:
     window = get_window()
+    if window is None:
+        logger.debug("No window instance found")
+        return
     open_action = menu.addAction(
         f'&Open Detailed {type(entry).__name__} page'
     )
-    # WeakPartialMethodSlot may not be needed, menus are transient
-    # TODO: refactor to not require passing open_page_slot, maybe with window
-    # singleton eventually
+    # WeakPartialMethodSlot may not be needed, menus are transients
     open_action.triggered.connect(partial(window.open_page, entry))
 
 
@@ -694,8 +695,9 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
         """
         menu = QtWidgets.QMenu(self)
 
-        if self.context_menu_options[MenuOption.OPEN_PAGE] and self.open_page_slot:
-            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry, self.open_page_slot)
+        # checking if window exists to attach open_page_slot to
+        if self.context_menu_options[MenuOption.OPEN_PAGE]:
+            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry)
 
         menu.addSeparator()
 
@@ -1446,8 +1448,8 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
         Overload/replace this method if you would like to change this behavior
         """
         menu = QtWidgets.QMenu(self)
-        if self.context_menu_options[MenuOption.OPEN_PAGE] and self.open_page_slot:
-            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry, self.open_page_slot)
+        if self.context_menu_options[MenuOption.OPEN_PAGE]:
+            MENU_OPT_ADDER_MAP[MenuOption.OPEN_PAGE](menu, entry)
 
         menu.addSeparator()
 
