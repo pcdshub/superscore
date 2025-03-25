@@ -236,45 +236,53 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
         Any
             the requested data
         """
-        if role not in (QtCore.Qt.TextAlignmentRole, QtCore.Qt.DisplayRole,
-                        QtCore.Qt.BackgroundRole, QtCore.Qt.ToolTipRole):
-            return None
-
         if role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
+        elif role not in (QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundRole,
+                          QtCore.Qt.ToolTipRole):
+            return None
 
         if not self.is_compare_column(index):
             entry, compare = self.entries[index.row()]
         elif self.is_compare_column(index):
             compare, entry = self.entries[index.row()]
 
-        if not entry:
-            return "--"
-
         column = index.column()
-        if column == CompareHeader.PV_NAME and role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
-            return entry.pv_name
-        elif column in (CompareHeader.VALUE, CompareHeader.COMPARE_VALUE):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+        color_requested = (role == QtCore.Qt.BackgroundRole
+                           and self.is_compare_column(index))
+
+        if ((role == QtCore.Qt.ToolTipRole) or (column == CompareHeader.PV_NAME
+                                                and role == QtCore.Qt.DisplayRole)):
+            try:
+                return entry.pv_name
+            except AttributeError:
+                return compare.pv_name
+        elif not entry:
+            return "--"
+        elif color_requested and not compare:
+            return None
+
+        if column in (CompareHeader.VALUE, CompareHeader.COMPARE_VALUE):
+            if role == QtCore.Qt.DisplayRole:
                 return entry.data
-            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+            elif color_requested:
                 return self._diff_color if entry.data != compare.data else None
         elif column in (CompareHeader.TIMESTAMP, CompareHeader.COMPARE_TIMESTAMP):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+            if role == QtCore.Qt.DisplayRole:
                 return entry.creation_time.strftime('%Y/%m/%d %H:%M')
-            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+            elif color_requested:
                 return self._diff_color if entry.creation_time != compare.creation_time else None
         elif column in (CompareHeader.STATUS, CompareHeader.COMPARE_STATUS):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+            if role == QtCore.Qt.DisplayRole:
                 status = getattr(entry, 'status', '--')
                 return getattr(status, 'name', status)
-            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+            elif color_requested:
                 return self._diff_color if entry.status != compare.status else None
         elif column in (CompareHeader.SEVERITY, CompareHeader.COMPARE_SEVERITY):
-            if role in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
+            if role == QtCore.Qt.DisplayRole:
                 severity = getattr(entry, 'severity', '--')
                 return getattr(severity, 'name', severity)
-            elif role == QtCore.Qt.BackgroundRole and self.is_compare_column(index):
+            elif color_requested:
                 return self._diff_color if entry.severity != compare.severity else None
 
     def rowCount(self, parent_index: Optional[QtCore.QModelIndex] = None):

@@ -338,7 +338,6 @@ def test_root_tree_fetchmore(test_client: Client):
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
 def test_compare_snapshot_model(test_client: Client, qtmodeltester, simple_snapshot_fixture: Collection):
-    print(type(test_client), type(qtmodeltester), type(simple_snapshot_fixture))
     compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
     compare_model.set_comparison_snapshot(simple_snapshot_fixture)
 
