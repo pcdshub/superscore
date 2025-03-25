@@ -1,35 +1,20 @@
 """
-`superscore demo` launches the UI along with a backend and an IOC
-exposing PVs from a selected fixture. Select options in demo.cfg
-"""
+`superscore demo` opens the graphical user interface for superscore with a demo
+database pre-loaded
 
-import argparse
+Function components are separated from the arg parser to defer heavy imports
+"""
 import configparser
-import logging
 import os
 from pathlib import Path
 
 from superscore.backends.core import populate_backend
-from superscore.bin.ui import main as ui_main
+from superscore.bin.demo_parser import DEMO_CONFIG
+from superscore.bin.ui_parser import main as ui_main
 from superscore.client import Client
 from superscore.model import Readback, Setpoint
 from superscore.tests.ioc import IOCFactory
 from superscore.utils import build_abs_path
-
-logger = logging.getLogger(__name__)
-
-DEMO_CONFIG = Path(__file__).parent.parent / "tests" / "demo.cfg"
-
-
-def build_arg_parser(argparser=None):
-    if argparser is None:
-        argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        "--db-path",
-        type=str,
-        help="An alternate file or directory to store the demo database. This "
-             "file will be overwritten each run.")
-    return argparser
 
 
 def main(*args, db_path=None, **kwargs):
