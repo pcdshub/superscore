@@ -840,6 +840,9 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         QtCore.Qt.ItemFlag
             the ItemFlag corresponding to the cell
         """
+        if not index.isValid():
+            return QtCore.Qt.NoItemFlags
+
         if index.column() not in self._editable_cols:
             return QtCore.Qt.ItemIsEnabled
 
@@ -1085,6 +1088,14 @@ class LivePVTableModel(BaseTableEntryModel):
                 return name_text
             elif role == CustRoles.DisplayTypeRole:
                 return DisplayType.PV_NAME
+
+        if role == QtCore.Qt.ToolTipRole and index.column() == LivePVHeader.PV_NAME:
+            tooltip = entry.pv_name
+            if entry.severity is not Severity.NO_ALARM:
+                tooltip += f'\n{entry.severity.name}'
+            if entry.status is not Status.NO_ALARM:
+                tooltip += f'\n{entry.status.name}'
+            return tooltip
 
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole,
                         QtCore.Qt.BackgroundRole, CustRoles.DisplayTypeRole,
