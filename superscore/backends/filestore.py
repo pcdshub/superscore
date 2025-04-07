@@ -1,5 +1,5 @@
 """
-Backend for configurations backed by files
+Backend for configurations backed by a single file
 """
 
 import contextlib
@@ -46,8 +46,6 @@ class FilestoreBackend(_Backend):
         if cfg_path is not None:
             cfg_dir = os.path.dirname(cfg_path)
             self.path = build_abs_path(cfg_dir, path)
-        else:
-            self.path = path
 
     def _load_or_initialize(self) -> Dict[str, Any]:
         """
