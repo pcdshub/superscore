@@ -222,6 +222,7 @@ class Collection(Nestable, Entry):
     tags: Set[Tag] = field(default_factory=set)
 
     def swap_to_uuids(self) -> List[Entry]:
+        # TODO: remove ref_list? copies .children by value, breaks refs?
         ref_list = []
 
         new_children = []
