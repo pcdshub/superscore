@@ -21,8 +21,6 @@ def main(*args, db_path=None, **kwargs):
     parser.read(DEMO_CONFIG)
     if db_path is not None:
         db_path = Path(db_path)
-        if db_path.is_dir():
-            db_path /= 'superscore_demo.json'
         parser.set('backend', 'path', build_abs_path(Path.cwd(), db_path))
     client = Client.from_parsed_config(parser)
     # start with clean demo database
