@@ -31,6 +31,6 @@ def main(*args, db_path=None, **kwargs):
     source_names = parser.get("demo", "fixtures").split()
     populate_backend(client.backend, source_names)
     # IOCFactory needs the Entries with data
-    filled = [entry for entry in client.search() if isinstance(entry, (Setpoint, Readback))]
+    filled = list(client.search(("entry_type", "eq", (Setpoint, Readback))))
     with IOCFactory.from_entries(filled, client)(prefix=''):
         ui_main(*args, client=client, **kwargs)
