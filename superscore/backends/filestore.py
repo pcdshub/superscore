@@ -338,3 +338,7 @@ class FilestoreBackend(_Backend):
         db = self._load_or_initialize()
         yield db
         self.store()
+
+    def reset(self) -> None:
+        with self._load_and_store_context():
+            self._entry_cache = {}

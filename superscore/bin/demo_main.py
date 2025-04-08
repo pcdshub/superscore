@@ -5,7 +5,6 @@ database pre-loaded
 Function components are separated from the arg parser to defer heavy imports
 """
 import configparser
-import os
 from pathlib import Path
 
 from superscore.backends.core import populate_backend
@@ -27,10 +26,7 @@ def main(*args, db_path=None, **kwargs):
         parser.set('backend', 'path', build_abs_path(Path.cwd(), db_path))
     client = Client.from_parsed_config(parser)
     # start with clean demo database
-    try:
-        os.remove(client.backend.path)
-    except FileNotFoundError:
-        pass
+    client.backend.reset()
     # write data from the sources to the backend
     source_names = parser.get("demo", "fixtures").split()
     populate_backend(client.backend, source_names)
