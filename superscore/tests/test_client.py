@@ -207,7 +207,7 @@ def test_fill_depth(fill_depth: int):
         child_coll = Collection(title=f"collection {i}")
         prev_coll.children.append(child_coll)
         prev_coll = child_coll
-    bknd = TestBackend([deep_coll])
+    bknd = TestBackend(Root(entries=[deep_coll]))
     client = Client(backend=bknd)
 
     assert nest_depth(deep_coll) == 20

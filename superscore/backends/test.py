@@ -2,7 +2,7 @@
 Backend that manipulates Entries in-memory for testing purposes.
 """
 from copy import deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Dict, Union
 from uuid import UUID
 
 from superscore.backends.core import SearchTermType, _Backend
@@ -16,18 +16,17 @@ class TestBackend(_Backend):
     __test__ = False  # Tell pytest this isn't a test case
     _entry_cache: Dict[UUID, Entry] = {}
 
-    def __init__(self, data: Optional[List[Entry]] = None):
-        if data is None:
-            self.data = []
-        else:
-            self.data = data
+    def __init__(
+        self,
+        root: Root = None
+    ):
+        self._root = root if root else Root()
 
-        self._root = Root(entries=self.data)
         self._fill_entry_cache()
 
     def _fill_entry_cache(self) -> None:
         self._entry_cache = {}
-        stack = deepcopy(self.data)
+        stack = deepcopy(self._root.entries)
         while len(stack) > 0:
             entry = stack.pop()
             uuid = entry.uuid
@@ -42,7 +41,7 @@ class TestBackend(_Backend):
             self.get_entry(entry.uuid)
             raise EntryExistsError(f"Entry {entry.uuid} already exists")
         except EntryNotFoundError:
-            self.data.append(entry)
+            self._root.entries.append(entry)
             self._fill_entry_cache()
 
     def get_entry(self, uuid: Union[UUID, str]) -> Entry:
@@ -59,7 +58,7 @@ class TestBackend(_Backend):
         original.__dict__ = entry.__dict__
 
     def delete_entry(self, to_delete: Entry) -> None:
-        stack = [self.data.copy()]
+        stack = [self._root.entries.copy()]
         # remove from nested children
         while len(stack) > 0:
             children = stack.pop()
@@ -74,8 +73,8 @@ class TestBackend(_Backend):
             stack.extend([entry.children for entry in children if isinstance(entry, Nestable)])
 
         # Remove from top level if necessary
-        if to_delete in self.data:
-            self.data.remove(to_delete)
+        if to_delete in self._root.entries:
+            self._root.entries.remove(to_delete)
 
         self._fill_entry_cache()
 
@@ -99,3 +98,9 @@ class TestBackend(_Backend):
                         conditions.append(False)
             if all(conditions):
                 yield entry
+
+    def get_tags(self) -> dict[int, str]:
+        return self._root.all_tags
+
+    def set_tags(self, tags: dict[int, str]) -> None:
+        self._root.all_tags = tags

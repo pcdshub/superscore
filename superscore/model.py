@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum, auto
-from typing import ClassVar, List, Optional, Set, Union
+from typing import ClassVar, Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
 import apischema
@@ -211,7 +211,6 @@ class Nestable:
 class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
     meta_pvs: ClassVar[List[Parameter]] = []
-    all_tags: ClassVar[Set] = set()
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
@@ -277,3 +276,4 @@ class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
     meta_id: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
+    all_tags: Dict[int, str] = field(default_factory=dict)

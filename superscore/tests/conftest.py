@@ -30,7 +30,7 @@ from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
 @pytest.fixture(scope='function')
 def linac_backend():
     root = linac_data()
-    return TestBackend(root.entries)
+    return TestBackend(root)
 
 
 @pytest.fixture(scope='function')
