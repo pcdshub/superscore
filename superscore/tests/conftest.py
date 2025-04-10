@@ -181,6 +181,7 @@ def test_data(request: pytest.FixtureRequest) -> Root:
         if isinstance(data, Root):
             for entry in data.entries:
                 new_root.entries.append(entry)
+            new_root.all_tags.update(data.all_tags)
         elif isinstance(data, Entry):
             new_root.entries.append(data)
 
@@ -243,6 +244,7 @@ def test_backend(
 
     for entry in test_data.entries:
         backend.save_entry(entry)
+        backend.set_tags(test_data.all_tags)
 
     return backend
 
