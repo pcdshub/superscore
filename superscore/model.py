@@ -100,6 +100,7 @@ class Parameter(Entry):
     pv_name: str = ""
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
+    tags: Set[Tag] = field(default_factory=set)
     readback: Optional[Parameter] = None
     read_only: bool = False
 
@@ -115,6 +116,7 @@ class Setpoint(Entry):
     data: Optional[AnyEpicsType] = None
     status: Status = Status.UDF
     severity: Severity = Severity.INVALID
+    tags: Set[Tag] = field(default_factory=set)
     readback: Optional[Readback] = None
 
     @classmethod
@@ -128,6 +130,7 @@ class Setpoint(Entry):
 
         return cls(
             pv_name=origin.pv_name,
+            tags=origin.tags,
             data=data,
             status=status,
             severity=severity,
@@ -158,6 +161,7 @@ class Readback(Entry):
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
     timeout: Optional[float] = None
+    tags: Set[Tag] = field(default_factory=set)
 
     @classmethod
     def from_parameter(
@@ -171,6 +175,7 @@ class Readback(Entry):
 
         return cls(
             pv_name=origin.pv_name,
+            tags=origin.tags,
             data=data,
             status=status,
             severity=severity,

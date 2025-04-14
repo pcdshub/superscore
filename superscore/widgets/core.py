@@ -262,8 +262,8 @@ class TagsWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
 
         self.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
+            QtWidgets.QSizePolicy.Fixed,
+            QtWidgets.QSizePolicy.Fixed
         )
 
         layout = QtWidgets.QVBoxLayout()

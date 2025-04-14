@@ -223,6 +223,9 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
         self.refresh_button.clicked.connect(self.get_edata)
         self.get_edata()
 
+        self.meta_widget = NameDescTagsWidget(data=self.data, tag_options=self.client.backend.get_tags())
+        insert_widget(self.meta_widget, self.meta_placeholder)
+
         self.save_button.clicked.connect(self.save)
 
         try:
