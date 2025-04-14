@@ -1,4 +1,3 @@
-from enum import IntEnum, auto
 from uuid import UUID
 
 import pytest
@@ -154,22 +153,21 @@ def test_tag_search(test_backend: _Backend):
     ))
     assert len(results) == entry_count
 
-    class Tag(IntEnum):
-        T1 = auto()
-        T2 = auto()
+    smaller_tag_set = {0}
+    bigger_tag_set = {0, 1}
 
-    results[0].tags = {Tag.T1}
-    results[1].tags = {Tag.T1, Tag.T2}
+    results[0].tags = smaller_tag_set
+    results[1].tags = bigger_tag_set
     test_backend.update_entry(results[0])
     test_backend.update_entry(results[1])
 
     results = list(test_backend.search(
-        SearchTerm('tags', 'gt', {Tag.T1})
+        SearchTerm('tags', 'gt', smaller_tag_set)
     ))
     assert len(results) == 2
 
     results = list(test_backend.search(
-        SearchTerm('tags', 'gt', {Tag.T1, Tag.T2})
+        SearchTerm('tags', 'gt', bigger_tag_set)
     ))
     assert len(results) == 1
 
