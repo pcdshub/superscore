@@ -173,3 +173,45 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         while self.tab_widget.count() > 0:
             self.remove_tab(0)
         super().closeEvent(a0)
+
+
+class NavigationPanel(QtWidgets.QWidget):
+
+    sigViewSnapshots = QtCore.Signal()
+    sigBrowsePVs = QtCore.Signal()
+    sigConfigureTags = QtCore.Signal()
+    sigSave = QtCore.Signal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.setLayout(QtWidgets.QVBoxLayout())
+
+        view_snapshots_button = QtWidgets.QPushButton()
+        view_snapshots_button.setIcon(qta.icon("ph.stack"))
+        view_snapshots_button.setText("View Snapshots")
+        view_snapshots_button.setFlat(True)
+        view_snapshots_button.clicked.connect(self.sigViewSnapshots.emit)
+        self.layout().addWidget(view_snapshots_button)
+
+        browse_pvs_button = QtWidgets.QPushButton()
+        browse_pvs_button.setIcon(qta.icon("ph.database"))
+        browse_pvs_button.setText("Browse PVs")
+        browse_pvs_button.setFlat(True)
+        browse_pvs_button.clicked.connect(self.sigBrowsePVs.emit)
+        self.layout().addWidget(browse_pvs_button)
+
+        configure_tags_button = QtWidgets.QPushButton()
+        configure_tags_button.setIcon(qta.icon("ph.tag"))
+        configure_tags_button.setText("Configure Tags")
+        configure_tags_button.setFlat(True)
+        configure_tags_button.clicked.connect(self.sigConfigureTags.emit)
+        self.layout().addWidget(configure_tags_button)
+
+        self.layout().addStretch()
+
+        save_button = QtWidgets.QPushButton()
+        save_button.setIcon(qta.icon("ph.instagram-logo"))
+        save_button.setText("Save Snapshot")
+        save_button.clicked.connect(self.sigSave.emit)
+        self.layout().addWidget(save_button)
