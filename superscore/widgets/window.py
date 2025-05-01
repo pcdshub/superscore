@@ -21,6 +21,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.pv_table import PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
 from superscore.widgets.views import DiffDispatcher
 
@@ -48,6 +49,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
+        self.snapshot_table.doubleClicked.connect(self.open_snapshot)
         self.snapshot_table.setStyleSheet(
             "QTableView::item {"
             "    border: 0px;"  # required to enforce padding on left side of cell
@@ -71,6 +73,21 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def open_snapshot_table(self):
         self.centralWidget().replaceWidget(1, self.snapshot_table)
+
+    def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
+        snapshot = self.snapshot_table.model()._data[index.row()]
+        pv_table = QtWidgets.QTableView()
+        pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
+        header_view = pv_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setSectionResizeMode(3, header_view.Stretch)
+        header_view.setSectionResizeMode(4, header_view.Stretch)
+        header_view.setSectionResizeMode(5, header_view.Stretch)
+        header_view.setSectionResizeMode(6, header_view.Stretch)
+        header_view.setSectionResizeMode(7, header_view.Stretch)
+
+        self.centralWidget().replaceWidget(1, pv_table)
+        self.centralWidget().setStretchFactor(1, 1)
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
