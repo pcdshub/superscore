@@ -21,6 +21,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.snapshot_table import SnapshotTableModel
 from superscore.widgets.views import DiffDispatcher
 
 logger = logging.getLogger(__name__)
@@ -43,18 +44,33 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def setup_ui(self) -> None:
         navigation_panel = NavigationPanel()
+        navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
+
+        self.snapshot_table = QtWidgets.QTableView()
+        self.snapshot_table.setModel(SnapshotTableModel(self.client))
+        self.snapshot_table.setStyleSheet(
+            "QTableView::item {"
+            "    border: 0px;"  # required to enforce padding on left side of cell
+            "    padding: 5px;"
+            "}"
+        )
+        header_view = self.snapshot_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setSectionResizeMode(1, header_view.Stretch)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.setChildrenCollapsible(False)
         splitter.addWidget(navigation_panel)
-        splitter.addWidget(QtWidgets.QFrame())
+        splitter.addWidget(self.snapshot_table)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setChildrenCollapsible(False)
-
         self.setCentralWidget(splitter)
 
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
+
+    def open_snapshot_table(self):
+        self.centralWidget().replaceWidget(1, self.snapshot_table)
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
