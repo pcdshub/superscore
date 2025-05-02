@@ -78,6 +78,8 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         snapshot = self.snapshot_table.model()._data[index.row()]
         pv_table = QtWidgets.QTableView()
         pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
+        pv_table.destroyed.connect(pv_table.model().close)
+        pv_table.setShowGrid(False)
         header_view = pv_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setSectionResizeMode(3, header_view.Stretch)
@@ -189,6 +191,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         return menu
 
     def closeEvent(self, a0: QCloseEvent) -> None:
+        try:
+            self.centralWidget().widget(1).model().stop_polling(wait_time=5000)
+            self.centralWidget().widget(1).close()
+        except AttributeError:
+            pass
         super().closeEvent(a0)
 
 
