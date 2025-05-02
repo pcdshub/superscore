@@ -1,8 +1,10 @@
 from uuid import UUID
 
-from qtpy import QtCore
+from qtpy import QtCore, QtGui
 
+import superscore.color
 from superscore.model import Readback, Setpoint
+from superscore.widgets.views import LivePVTableModel
 
 HEADER = [
     "Severity",
@@ -16,16 +18,30 @@ HEADER = [
 ]
 
 
-class PVTableModel(QtCore.QAbstractTableModel):
-    """A table model for representing PV data within a Snapshot"""
+# Must be added outside class def to avoid processing as an enum member
+PV_HEADER._strings = {
+    PV_HEADER.CHECKBOX: "",
+    PV_HEADER.SEVERITY: "",
+    PV_HEADER.DEVICE: "Device",
+    PV_HEADER.PV: "PV Name",
+    PV_HEADER.SETPOINT: "Saved Value",
+    PV_HEADER.LIVE_SETPOINT: "Live Value",
+    PV_HEADER.READBACK: "Saved Readback",
+    PV_HEADER.LIVE_READBACK: "Live Readback",
+    PV_HEADER.CONFIG: "CON",
+}
+
+
+class PVTableModel(LivePVTableModel):
+    """A table model for representing PV data within a Snapshot. Includes live data."""
 
     def __init__(self, snapshot_id: UUID, client, parent=None):
-        super().__init__(parent)
         self.client = client
         self._data = list(self.client.search(
             ("ancestor", "eq", snapshot_id),
             ("entry_type", "eq", (Setpoint, Readback)),
         ))
+        super().__init__(client=client, entries=self._data, parent=parent)
 
     def rowCount(self, parent=None):
         return len(self._data)
@@ -50,11 +66,11 @@ class PVTableModel(QtCore.QAbstractTableModel):
                 elif column == 3:
                     return entry.data
                 elif column == 4:
-                    return None
+                    return self._get_live_data_field(entry, 'data')
                 elif column == 5:
                     return entry.readback.data if entry.readback else None
                 elif column == 6:
-                    return None
+                    return self._get_live_data_field(entry.readback, 'data') if entry.readback else None
                 elif column == 7:
                     return None
                 else:
@@ -73,11 +89,20 @@ class PVTableModel(QtCore.QAbstractTableModel):
                 elif column == 5:
                     return entry.data
                 elif column == 6:
-                    return None
+                    return self._get_live_data_field(entry, 'data')
                 elif column == 7:
                     return None
                 else:
                     return None
+        elif role == QtCore.Qt.ForegroundRole and (index.column() == 4 or index.column() == 6):
+            return QtGui.QColor(superscore.color.BLUE)
+        elif role == QtCore.Qt.BackgroundRole and index.column() == 4:
+            stored_data = getattr(entry, 'data', None)
+            is_close = self.is_close(entry, stored_data)
+            if stored_data is not None and not is_close:
+                return QtGui.QColor(superscore.color.RED)
+            else:
+                return None
         elif role == QtCore.Qt.TextAlignmentRole and index.column() > 2:
             return QtCore.Qt.AlignCenter
         else:
