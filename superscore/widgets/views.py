@@ -1207,6 +1207,10 @@ class LivePVTableModel(BaseTableEntryModel):
         else:
             return data
 
+    def close(self) -> None:
+        logger.debug("Stopping pv_model polling")
+        self.stop_polling(wait_time=5000)
+
 
 class _PVPollThread(QtCore.QThread):
     """
