@@ -9,6 +9,7 @@ import apischema
 import pytest
 
 from superscore.backends.core import _Backend
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -235,6 +236,8 @@ def test_backend(
         if backend_cls is FilestoreBackend:
             tmp_fp = tmp_path / 'tmp_filestore.json'
             backend = backend_cls(path=tmp_fp)
+        elif backend_cls is DirectoryBackend:
+            backend = backend_cls(path=tmp_path)
         else:
             backend = backend_cls()
 
