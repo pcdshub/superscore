@@ -215,7 +215,7 @@ class Collection(Nestable, Entry):
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
-    tags: Set = field(default_factory=set)
+    tags: Set[int] = field(default_factory=set)
 
     def swap_to_uuids(self) -> List[Entry]:
         # TODO: remove ref_list? copies .children by value, breaks refs?
@@ -245,7 +245,7 @@ class Snapshot(Nestable, Entry):
     children: List[Union[UUID, Readback, Setpoint, Snapshot]] = field(
         default_factory=list
     )
-    tags: Set = field(default_factory=set)
+    tags: Set[int] = field(default_factory=set)
     meta_pvs: List[Readback] = field(default_factory=list)
 
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
