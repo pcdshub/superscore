@@ -33,4 +33,4 @@ def main(*args, db_path=None, **kwargs):
     # IOCFactory needs the Entries with data
     filled = list(client.search(("entry_type", "eq", (Setpoint, Readback))))
     with IOCFactory.from_entries(filled, client)(prefix=''):
-        ui_main(*args, client=client, **kwargs)
+        ui_main(cfg_path=DEMO_CONFIG)
