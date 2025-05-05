@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Flag, IntEnum, auto
+from enum import IntEnum, auto
 from typing import ClassVar, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
@@ -49,10 +49,6 @@ class Status(IntEnum):
     SIMM = auto()
     READ_ACCESS = auto()
     WRITE_ACCESS = auto()
-
-
-class Tag(Flag):
-    pass
 
 
 @as_tagged_union
@@ -215,11 +211,11 @@ class Nestable:
 class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
     meta_pvs: ClassVar[List[Parameter]] = []
-    all_tags: ClassVar[Set[Tag]] = set()
+    all_tags: ClassVar[Set] = set()
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
-    tags: Set[Tag] = field(default_factory=set)
+    tags: Set = field(default_factory=set)
 
     def swap_to_uuids(self) -> List[Entry]:
         # TODO: remove ref_list? copies .children by value, breaks refs?
@@ -249,7 +245,7 @@ class Snapshot(Nestable, Entry):
     children: List[Union[UUID, Readback, Setpoint, Snapshot]] = field(
         default_factory=list
     )
-    tags: Set[Tag] = field(default_factory=set)
+    tags: Set = field(default_factory=set)
     meta_pvs: List[Readback] = field(default_factory=list)
 
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:

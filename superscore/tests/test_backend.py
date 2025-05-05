@@ -1,4 +1,4 @@
-from enum import Flag, auto
+from enum import IntEnum, auto
 from uuid import UUID
 
 import pytest
@@ -152,7 +152,7 @@ def test_tag_search(test_backend: _Backend):
     ))
     assert len(results) == 2  # only the Collection and Snapshot have .tags
 
-    class Tag(Flag):
+    class Tag(IntEnum):
         T1 = auto()
         T2 = auto()
 
