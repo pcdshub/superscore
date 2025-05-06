@@ -173,8 +173,8 @@ def test_client_diff(
     assert len(expected_diffs) == len(diff.diffs)
     for found_diff, expected_diff in zip(diff.diffs, expected_diffs):
         if isinstance(found_diff.original_value, Entry):
-            assert type(found_diff.original_value) == expected_diff.original_value
-            assert type(found_diff.new_value) == expected_diff.new_value
+            assert type(found_diff.original_value) is expected_diff.original_value
+            assert type(found_diff.new_value) is expected_diff.new_value
         else:
             assert found_diff.original_value == expected_diff.original_value
             assert found_diff.new_value == expected_diff.new_value
