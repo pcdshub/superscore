@@ -342,3 +342,17 @@ def test_compare_snapshot_model(test_client: Client, qtmodeltester, simple_snaps
     compare_model.set_comparison_snapshot(simple_snapshot_fixture)
 
     qtmodeltester.check(compare_model, force_py=True)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_compare_snapshot_model_data(test_client: Client, simple_snapshot_fixture: Collection, simple_comparison_snapshot_fixture: Collection):
+    test_client.backend.save_entry(simple_snapshot_fixture)
+    test_client.backend.save_entry(simple_comparison_snapshot_fixture)
+
+    compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
+    compare_model.set_comparison_snapshot(simple_comparison_snapshot_fixture)
+
+    print(compare_model.entries)
+
+    assert compare_model.rowCount() == (len(simple_snapshot_fixture.children) + 1)
+    assert compare_model.data(compare_model.index(0, 0), QtCore.Qt.DisplayRole) == "MY:INT"

@@ -780,6 +780,14 @@ def simple_snapshot() -> Collection:
     return snap
 
 
+def simple_comparison_snapshot() -> Collection:
+    snap = simple_snapshot()
+    snap.children.pop(0)
+    snap.children[0].data = 1
+    snap.children.append(Setpoint(pv_name="MY:NEW:ENUM"))
+    return snap
+
+
 def sample_database() -> Root:
     """
     A sample superscore database, including all the Entry types.
@@ -808,7 +816,7 @@ def sample_database() -> Root:
     for fld, data in zip(['ACCL', 'VELO', 'PREC'], [2, 2, 6]):  # Defaults[1, 1, 3]
         sub_param = Parameter(
             description=f'motor field {fld}',
-            pv_name=f'MY:PREFIX:mtr1.{fld}'
+            pv_name=f'MY:PREFIX:mtr1.{fld}'  # noqa: E231  # flake8 bug
         )
         sub_value = Setpoint.from_parameter(
             origin=sub_param,
