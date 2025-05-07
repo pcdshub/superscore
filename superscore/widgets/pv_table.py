@@ -4,6 +4,7 @@ from qtpy import QtCore, QtGui
 
 import superscore.color
 from superscore.model import Readback, Setpoint
+from superscore.widgets import SEVERITY_ICONS
 from superscore.widgets.views import LivePVTableModel
 
 HEADER = [
@@ -54,8 +55,8 @@ class PVTableModel(LivePVTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ):
+        entry = self._data[index.row()]
         if role == QtCore.Qt.DisplayRole:
-            entry = self._data[index.row()]
             if isinstance(entry, Setpoint):
                 if (column := index.column()) == 0:
                     return None
@@ -94,6 +95,11 @@ class PVTableModel(LivePVTableModel):
                     return None
                 else:
                     return None
+        elif role == QtCore.Qt.DecorationRole and index.column() == 0:
+            icon = SEVERITY_ICONS[entry.severity]
+            if icon is None:
+                icon = SEVERITY_ICONS[entry.status]
+            return icon
         elif role == QtCore.Qt.ForegroundRole and (index.column() == 4 or index.column() == 6):
             return QtGui.QColor(superscore.color.BLUE)
         elif role == QtCore.Qt.BackgroundRole and index.column() == 4:
