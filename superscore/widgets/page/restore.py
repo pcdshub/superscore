@@ -265,7 +265,7 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
             except AttributeError:
                 return compare.pv_name
         elif not entry:
-            return "--"
+            return "--" if role == QtCore.Qt.DisplayRole else None
         elif color_requested and not compare:
             return None
 
