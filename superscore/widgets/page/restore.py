@@ -1,10 +1,10 @@
 """Page for inspecting, comparing, and restoring Snapshot values"""
-
 import logging
 from enum import auto
 from functools import partial
 from typing import Dict, List, Optional, Union
 
+import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
@@ -280,7 +280,8 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
             if role == QtCore.Qt.DisplayRole:
                 return entry.data
             elif color_requested:
-                return self._diff_color if entry.data != compare.data else None
+                is_close = np.isclose(entry.data, compare.data)
+                return self._diff_color if not is_close else None
         elif column in (CompareHeader.STATUS, CompareHeader.COMPARE_STATUS):
             if role == QtCore.Qt.DisplayRole:
                 status = getattr(entry, 'status', '--')
