@@ -707,6 +707,7 @@ def linac_with_comparison_snapshot() -> Root:
     lasr_in10_value = lasr_in10_snapshot.children[0]
     lasr_in10_value.uuid = UUID('21bf36a2-002c-49fe-a7c3-eade33d62dfd')
     lasr_in10_value.data = 640.68
+    lasr_in10_value.status = Status.CALC
 
     vac_li10_value = vac_li10_snapshot.children[0]
     vac_li10_value.uuid = UUID('732cb745-482f-40a7-b83c-d7f2d4ed2305')

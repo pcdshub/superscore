@@ -1,3 +1,9 @@
+import qtawesome as qta
+
+import superscore.color
+from superscore.model import Severity, Status
+
+
 def _get_icon_map():
     # do not pollute namespace
     from superscore.model import (Collection, Parameter, Readback, Setpoint,
@@ -16,6 +22,49 @@ def _get_icon_map():
 
 
 ICON_MAP = _get_icon_map()
+
+
+class SeverityIcons:
+    cache = {}
+    scale = 1.5
+
+    def __getitem__(self, key):
+        try:
+            return self.cache[key]
+        except KeyError:
+            if key == Severity.NO_ALARM or key == Status.NO_ALARM:
+                icon = None
+            elif key == Severity.MINOR:
+                icon = qta.icon(
+                    "ph.warning-fill",
+                    color=superscore.color.YELLOW,
+                    scale_factor=self.scale,
+                )
+            elif key == Severity.MAJOR:
+                icon = qta.icon(
+                    "ph.x-square-fill",
+                    color=superscore.color.RED,
+                    scale_factor=self.scale,
+                )
+            elif key == Severity.INVALID:
+                icon = qta.icon(
+                    "ph.question-fill",
+                    color=superscore.color.MAGENTA,
+                    scale_factor=self.scale,
+                )
+            elif isinstance(key, Status):  # not Status.NO_ALARM
+                icon = qta.icon(
+                    "mdi.disc",
+                    color=superscore.color.GREY,
+                    scale_factor=self.scale,
+                )
+            else:
+                raise
+            self.cache[key] = icon
+            return icon
+
+
+SEVERITY_ICONS = SeverityIcons()
 
 
 def get_window():
