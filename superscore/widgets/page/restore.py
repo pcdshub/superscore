@@ -280,8 +280,11 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
             if role == QtCore.Qt.DisplayRole:
                 return entry.data
             elif color_requested:
-                is_close = np.isclose(entry.data, compare.data)
-                return self._diff_color if not is_close else None
+                try:
+                    equivalent = np.isclose(entry.data, compare.data)
+                except TypeError:
+                    equivalent = entry.data == compare.data
+                return self._diff_color if not equivalent else None
         elif column in (CompareHeader.STATUS, CompareHeader.COMPARE_STATUS):
             if role == QtCore.Qt.DisplayRole:
                 status = getattr(entry, 'status', '--')
