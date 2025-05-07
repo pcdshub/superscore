@@ -9,7 +9,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.model import Entry, Readback, Setpoint, Snapshot
+from superscore.model import Entry, Nestable, Readback, Setpoint, Snapshot
 from superscore.widgets.core import Display
 from superscore.widgets.views import (BaseDataTableView, BaseTableEntryModel,
                                       HeaderEnum, LivePVHeader,
@@ -107,24 +107,32 @@ class RestoreDialog(Display, QtWidgets.QWidget):
         self.tableWidget.removeRow(row)
 
 
-class SnapshotSelectionDialog(QtWidgets.QDialog):
-    def __init__(self, parent: QtCore.QObject, client: Client, exclude_snapshot: Snapshot = None):
+class EntryFromTreeSelectionDialog(QtWidgets.QDialog):
+    def __init__(self, parent: QtCore.QObject, client: Client, main_entry: Entry = None):
         super().__init__(parent)
 
-        self._selectedSnapshot = None
+        self.setWindowTitle("Select an entry")
+        if main_entry:
+            if isinstance(main_entry, Nestable):
+                entry_name = getattr(main_entry, 'title', 'root')
+            else:
+                entry_name = getattr(main_entry, 'pv_name', '<no pv>')
 
-        if exclude_snapshot:
-            header_text = "Select a snapshot to compare to:"
+            header_text = f"Main Entry:\n    {entry_name}\n\n" \
+                          "Select an entry to compare to:"
         else:
-            header_text = "Select a snapshot:"
+            header_text = "Select an entry:"
         header_lbl = QtWidgets.QLabel(header_text)
 
-        self.tree_model = RootTree(base_entry=client.backend.root,
-                                   client=client)
+        tree_model = RootTree(base_entry=client.backend.root,
+                              client=client)
         self.tree_view = QtWidgets.QTreeView(self)
-        self.tree_view.setModel(self.tree_model)
+        self.tree_view.setModel(tree_model)
         self.tree_view.setExpandsOnDoubleClick(False)
         self.tree_view.doubleClicked.connect(self.accept)
+
+        hdr = self.tree_view.header()
+        hdr.setSectionResizeMode(hdr.ResizeToContents)
 
         btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         buttonBox = QtWidgets.QDialogButtonBox(btns)
@@ -137,14 +145,15 @@ class SnapshotSelectionDialog(QtWidgets.QDialog):
         layout.addWidget(buttonBox)
         self.setLayout(layout)
 
+        self.resize(450, 300)
+
     @property
-    def selectedSnapshot(self):
+    def selected_entry(self):
         try:
             selected_index = self.tree_view.selectedIndexes()[0]
         except IndexError:
             return None
-        self._selectedSnapshot = selected_index.internalPointer()._data
-        return self._selectedSnapshot
+        return selected_index.internalPointer()._data
 
 
 class CompareHeader(HeaderEnum):
@@ -436,7 +445,7 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.primarySnapshotTitle.setText(data.title)
         self.secondarySnapshotLabel.setText("Comparing:")
 
-        self.compareDialog = SnapshotSelectionDialog(self, client, data)
+        self.compareDialog = EntryFromTreeSelectionDialog(self, client, data)
         self.set_comparison()
 
         self.compareDialog.finished.connect(self.set_comparison)
@@ -451,7 +460,7 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.compareLiveButton.setChecked(is_live)
 
     def set_comparison(self, accepted: bool = False):
-        result = self.compareDialog.selectedSnapshot
+        result = self.compareDialog.selected_entry
         self.show_compare = accepted and isinstance(result, Snapshot)
 
         if self.show_compare:
