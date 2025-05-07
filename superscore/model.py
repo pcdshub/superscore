@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Flag, IntEnum, auto
+from enum import Enum, Flag, auto
 from typing import ClassVar, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 _root_uuid = _root_uuid = UUID("a28cd77d-cc92-46cc-90cb-758f0f36f041")
 
 
-class Severity(IntEnum):
+class Severity(Enum):
     NO_ALARM = 0
     MINOR = auto()
     MAJOR = auto()
     INVALID = auto()
 
 
-class Status(IntEnum):
+class Status(Enum):
     NO_ALARM = 0
     READ = auto()
     WRITE = auto()
