@@ -151,8 +151,6 @@ class CompareHeader(HeaderEnum):
     PV_NAME = 0
     VALUE = auto()
     COMPARE_VALUE = auto()
-    TIMESTAMP = auto()
-    COMPARE_TIMESTAMP = auto()
     # TODO: Find another way to represent status and severity
     #   Potentially as a border color or icon
     STATUS = auto()
@@ -274,11 +272,6 @@ class CompareSnapshotTableModel(BaseTableEntryModel):
                 return entry.data
             elif color_requested:
                 return self._diff_color if entry.data != compare.data else None
-        elif column in (CompareHeader.TIMESTAMP, CompareHeader.COMPARE_TIMESTAMP):
-            if role == QtCore.Qt.DisplayRole:
-                return entry.creation_time.strftime('%Y/%m/%d %H:%M')
-            elif color_requested:
-                return self._diff_color if entry.creation_time != compare.creation_time else None
         elif column in (CompareHeader.STATUS, CompareHeader.COMPARE_STATUS):
             if role == QtCore.Qt.DisplayRole:
                 status = getattr(entry, 'status', '--')

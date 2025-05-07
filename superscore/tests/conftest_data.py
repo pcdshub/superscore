@@ -816,7 +816,7 @@ def sample_database() -> Root:
     for fld, data in zip(['ACCL', 'VELO', 'PREC'], [2, 2, 6]):  # Defaults[1, 1, 3]
         sub_param = Parameter(
             description=f'motor field {fld}',
-            pv_name=f'MY:PREFIX:mtr1.{fld}'  # noqa: E231  # flake8 bug
+            pv_name=f'MY:PREFIX:mtr1.{fld}'
         )
         sub_value = Setpoint.from_parameter(
             origin=sub_param,
