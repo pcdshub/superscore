@@ -21,7 +21,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
-from superscore.widgets.pv_table import PVTableModel
+from superscore.widgets.pv_table import PV_HEADER, PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
 from superscore.widgets.views import DiffDispatcher
 
@@ -84,12 +84,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         pv_table.setShowGrid(False)
         pv_table.verticalHeader().hide()
         header_view = pv_table.horizontalHeader()
-        header_view.setSectionResizeMode(header_view.ResizeToContents)
-        header_view.setSectionResizeMode(3, header_view.Stretch)
-        header_view.setSectionResizeMode(4, header_view.Stretch)
-        header_view.setSectionResizeMode(5, header_view.Stretch)
-        header_view.setSectionResizeMode(6, header_view.Stretch)
-        header_view.setSectionResizeMode(7, header_view.Stretch)
+        header_view.setSectionResizeMode(header_view.Stretch)
+        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
 
         self.centralWidget().replaceWidget(1, pv_table)
         self.centralWidget().setStretchFactor(1, 1)
