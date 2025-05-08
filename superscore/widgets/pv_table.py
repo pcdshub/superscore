@@ -10,7 +10,8 @@ from superscore.widgets.views import LivePVTableModel
 
 
 class PV_HEADER(Enum):
-    SEVERITY = 0
+    CHECKBOX = 0
+    SEVERITY = auto()
     DEVICE = auto()
     PV = auto()
     SETPOINT = auto()
@@ -25,6 +26,7 @@ class PV_HEADER(Enum):
 
 # Must be added outside class def to avoid processing as an enum member
 PV_HEADER._strings = {
+    PV_HEADER.CHECKBOX: "",
     PV_HEADER.SEVERITY: "",
     PV_HEADER.DEVICE: "Device",
     PV_HEADER.PV: "PV Name",
@@ -51,7 +53,10 @@ PV_HEADER._strings = {
 
 
 class PVTableModel(LivePVTableModel):
-    """A table model for representing PV data within a Snapshot. Includes live data."""
+    """
+    A table model for representing PV data within a Snapshot. Includes live data and checkboxes
+    for selecting rows.
+    """
 
     def __init__(self, snapshot_id: UUID, client, parent=None):
         self.client = client
@@ -59,6 +64,7 @@ class PVTableModel(LivePVTableModel):
             ("ancestor", "eq", snapshot_id),
             ("entry_type", "eq", (Setpoint, Readback)),
         ))
+        self._checked = set()
         super().__init__(client=client, entries=self._data, parent=parent)
 
     def rowCount(self, parent=None):
@@ -66,6 +72,23 @@ class PVTableModel(LivePVTableModel):
 
     def columnCount(self, parent=None):
         return len(PV_HEADER)
+
+    def headerData(
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
+    ):
+        if orientation == QtCore.Qt.Horizontal:
+            if role == QtCore.Qt.DisplayRole:
+                return PV_HEADER(section).display_string()
+
+    def flags(self, index) -> QtCore.Qt.ItemFlags:
+        column = PV_HEADER(index.column())
+        if column == PV_HEADER.CHECKBOX:
+            return QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+        else:
+            return super().flags(index)
 
     def data(
         self,
@@ -76,7 +99,9 @@ class PVTableModel(LivePVTableModel):
         column = PV_HEADER(index.column())
         if role == QtCore.Qt.DisplayRole:
             if isinstance(entry, Setpoint):
-                if column == PV_HEADER.SEVERITY:
+                if column == PV_HEADER.CHECKBOX:
+                    pass
+                elif column == PV_HEADER.SEVERITY:
                     return None
                 elif column == PV_HEADER.DEVICE:
                     return None
@@ -113,6 +138,8 @@ class PVTableModel(LivePVTableModel):
                     return None
                 else:
                     return None
+        elif role == QtCore.Qt.CheckStateRole and column == PV_HEADER.CHECKBOX:
+            return index.row() in self._checked
         elif role == QtCore.Qt.DecorationRole and column == PV_HEADER.SEVERITY:
             icon = SEVERITY_ICONS[entry.severity]
             if icon is None:
@@ -132,12 +159,11 @@ class PVTableModel(LivePVTableModel):
         else:
             return None
 
-    def headerData(
-        self,
-        section: int,
-        orientation: QtCore.Qt.Orientation,
-        role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
-    ):
-        if orientation == QtCore.Qt.Horizontal:
-            if role == QtCore.Qt.DisplayRole:
-                return PV_HEADER(section).display_string()
+    def setData(self, index, value, role) -> bool:
+        if role == QtCore.Qt.CheckStateRole and PV_HEADER(index.column()) == PV_HEADER.CHECKBOX:
+            try:
+                self._checked.remove(index.row())
+            except KeyError:
+                self._checked.add(index.row())
+            self.dataChanged.emit(index, index)
+        return True
