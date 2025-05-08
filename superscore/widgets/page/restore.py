@@ -450,11 +450,11 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotLabel.setText("Comparing:")
 
         self.compareDialog = EntryFromTreeSelectionDialog(self, client, data)
-        self.set_comparison()
+        self.refresh_comparison_visibility()
 
-        self.compareDialog.finished.connect(self.set_comparison)
+        self.compareDialog.finished.connect(self.set_comparison_snapshot)
         self.compareSnapshotButton.clicked.connect(self.compareDialog.exec_)
-        self.removeComparisonButton.clicked.connect(self.set_comparison)
+        self.removeComparisonButton.clicked.connect(self.refresh_comparison_visibility)
         self.restoreButton.clicked.connect(self.launch_dialog)
 
     def set_live(self, is_live: bool):
@@ -463,31 +463,56 @@ class RestorePage(Display, QtWidgets.QWidget):
         self.secondarySnapshotTitle.setVisible(is_live)
         self.compareLiveButton.setChecked(is_live)
 
-    def set_comparison(self, accepted: bool = False):
-        result = self.compareDialog.selected_entry
-        self.show_compare = accepted and isinstance(result, Snapshot)
+    @QtCore.Slot(int)
+    def set_comparison_snapshot(self, result: QtWidgets.QDialog.DialogCode):
+        """Slot for setting the comparison snapshot from the dialog. If an entry
+        is chosen, check if it is a snapshot. If it is not, show a warning dialog.
+        If it is, set the comparison snapshot and show the comparison widgets.
 
-        if self.show_compare:
-            self.secondarySnapshotTitle.setText(result.title)
-            self.compareTableView.set_secondary(result)
+        Parameters
+        ----------
+        result : QtWidgets.QDialog.DialogCode
+            Dialog result code from the snapshot selection dialog (e.g. Accepted
+            or Rejected).
+        """
+        # If dialog was cancelled or closed, do nothing
+        if result == QtWidgets.QDialog.Rejected:
+            return
 
+        # Get the selected entry from the dialog
+        selected_entry = self.compareDialog.selected_entry
+        selected_is_snapshot = isinstance(selected_entry, Snapshot)
+        if not selected_is_snapshot:
+            # TODO: Add a warning dialog
+            print("Selected entry is not a Snapshot")
+            return
+
+        # Show comparison widgets if an entry was selected and it is a Snapshot
+        self.secondarySnapshotTitle.setText(selected_entry.title)
+        self.compareTableView.set_secondary(selected_entry)
+        self.refresh_comparison_visibility(True)
+
+    @QtCore.Slot()
+    @QtCore.Slot(bool)
+    def refresh_comparison_visibility(self, show_compare: bool = False):
+        """Set the comparison flag and refresh the UI"""
+        self.show_compare = show_compare
+        self.refresh_label_visibility()
+        self.refresh_table_visibility()
+        self.refresh_button_visibility()
+
+    def refresh_label_visibility(self):
+        """Hide or show the comparison snapshot labels"""
         self.secondarySnapshotLabel.setVisible(self.show_compare)
         self.secondarySnapshotTitle.setVisible(self.show_compare)
 
-        self.swap_table_views()
-        self.swap_compare_buttons()
-
-    def swap_table_views(self, show_compare: bool = None):
-        if show_compare is not None:
-            self.show_compare = show_compare
-
+    def refresh_table_visibility(self):
+        """Hide or show the standard table and comparison table"""
         self.tableView.setVisible(not self.show_compare)
         self.compareTableView.setVisible(self.show_compare)
 
-    def swap_compare_buttons(self, show_compare: bool = None):
-        if show_compare is not None:
-            self.show_compare = show_compare
-
+    def refresh_button_visibility(self):
+        """Hide or show the comparison buttons"""
         self.removeComparisonButton.setVisible(self.show_compare)
         self.compareLiveButton.setVisible(not self.show_compare)
 
