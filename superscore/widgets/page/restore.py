@@ -483,8 +483,13 @@ class RestorePage(Display, QtWidgets.QWidget):
         selected_entry = self.compareDialog.selected_entry
         selected_is_snapshot = isinstance(selected_entry, Snapshot)
         if not selected_is_snapshot:
-            # TODO: Add a warning dialog
-            print("Selected entry is not a Snapshot")
+            # Need to use QueuedConnection to process QDialog close event
+            # before showing the warning dialog
+            self.metaObject().invokeMethod(
+                self,
+                "show_warning",
+                QtCore.Qt.QueuedConnection,
+            )
             return
 
         # Show comparison widgets if an entry was selected and it is a Snapshot
@@ -515,6 +520,16 @@ class RestorePage(Display, QtWidgets.QWidget):
         """Hide or show the comparison buttons"""
         self.removeComparisonButton.setVisible(self.show_compare)
         self.compareLiveButton.setVisible(not self.show_compare)
+
+    @QtCore.Slot()
+    def show_warning(self):
+        """Show a warning dialog if the selected entry is not a Snapshot. This
+        has to be a separate slot to allow QDialog close events to process."""
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Invalid Selection",
+            "Please select a Snapshot to compare to.",
+        )
 
     def launch_dialog(self):
         self.dialog = RestoreDialog(self.client, self.snapshot)
