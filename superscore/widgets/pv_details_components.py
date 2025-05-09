@@ -2,7 +2,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
-from qtpy.QtCore import Qt, Signal
+from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator, QFont
 from qtpy.QtWidgets import (QApplication, QBoxLayout, QDialog, QGridLayout,
                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -116,13 +116,11 @@ class PVDetailsPopup(QWidget):
 
 class PVDetailsPopupEditable(QDialog):
     """Editable popup for creating or editing PVs."""
-
-    pv_details_submitted = Signal(PVDetails)
-
     def __init__(self, initial_data: PVDetails = None) -> None:
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setWindowModality(Qt.ApplicationModal)
+        self.setMinimumWidth(300)
         self.pv_details = None
 
         layout = QVBoxLayout(self)
