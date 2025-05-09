@@ -1,6 +1,7 @@
 name: PCDS Standard Testing
 
 on:
+  push:
   pull_request:
   release:
     types:
