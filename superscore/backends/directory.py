@@ -7,7 +7,7 @@ import logging
 import os
 from functools import cache
 from typing import Container, Generator, Optional, Union
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from apischema import deserialize, serialize
 
@@ -158,22 +158,6 @@ class DirectoryBackend(_Backend):
                 json.dump(serialize(Root, Root()), f, indent=2)
         except Exception as e:
             logger.debug("Failed to initialize db", exc_info=e)
-
-    def _temp_path(self) -> str:
-        """
-        Return a temporary path to write the json file to during "store".
-        Includes a hash for uniqueness
-        (in the cases where multiple temp files are written at once).
-        """
-        directory = os.path.dirname(self.path)
-        filename = (
-            f"_{str(uuid4())[:8]}"
-            f"_{os.path.basename(self.path)}"
-        )
-        return os.path.join(directory, filename)
-
-    def fill_uuids(self, entry: Entry) -> Entry:
-        pass
 
     def _find_entry_path(self, uuid: Union[UUID, str]) -> str:
         uuid = str(uuid)
