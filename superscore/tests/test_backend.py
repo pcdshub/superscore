@@ -1,9 +1,9 @@
-from enum import Flag, auto
 from uuid import UUID
 
 import pytest
 
 from superscore.backends.core import SearchTerm, _Backend
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.errors import (BackendError, EntryExistsError,
@@ -52,7 +52,7 @@ class TestTestBackend:
             linac_backend.delete_entry(unsynced)
 
 
-@setup_test_stack(backend_type=[FilestoreBackend, TestBackend])
+@setup_test_stack(backend_type=[FilestoreBackend, DirectoryBackend, TestBackend])
 def test_save_entry(test_backend: _Backend):
     new_entry = Parameter()
 
@@ -66,7 +66,7 @@ def test_save_entry(test_backend: _Backend):
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_delete_entry(test_backend: _Backend):
     entry = test_backend.root.entries[0]
@@ -77,7 +77,7 @@ def test_delete_entry(test_backend: _Backend):
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_search_entry(test_backend: _Backend):
     # Given an entry we know is in the backend
@@ -124,7 +124,7 @@ def test_search_entry(test_backend: _Backend):
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_fuzzy_search(test_backend: _Backend):
     results = list(test_backend.search(
@@ -144,36 +144,36 @@ def test_fuzzy_search(test_backend: _Backend):
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_tag_search(test_backend: _Backend):
+    entry_count = len(list(test_backend.search()))
     results = list(test_backend.search(
         SearchTerm('tags', 'gt', set())
     ))
-    assert len(results) == 2  # only the Collection and Snapshot have .tags
+    assert len(results) == entry_count
 
-    class Tag(Flag):
-        T1 = auto()
-        T2 = auto()
+    smaller_tag_set = {0}
+    bigger_tag_set = {0, 1}
 
-    results[0].tags = {Tag.T1}
-    results[1].tags = {Tag.T1, Tag.T2}
+    results[0].tags = smaller_tag_set
+    results[1].tags = bigger_tag_set
     test_backend.update_entry(results[0])
     test_backend.update_entry(results[1])
 
     results = list(test_backend.search(
-        SearchTerm('tags', 'gt', {Tag.T1})
+        SearchTerm('tags', 'gt', smaller_tag_set)
     ))
     assert len(results) == 2
 
     results = list(test_backend.search(
-        SearchTerm('tags', 'gt', {Tag.T1, Tag.T2})
+        SearchTerm('tags', 'gt', bigger_tag_set)
     ))
     assert len(results) == 1
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_search_error(test_backend: _Backend):
     with pytest.raises(TypeError):
@@ -189,7 +189,7 @@ def test_search_error(test_backend: _Backend):
 
 
 @setup_test_stack(
-    sources=["db/filestore.json"], backend_type=[FilestoreBackend, TestBackend]
+    sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend, TestBackend]
 )
 def test_update_entry(test_backend: _Backend):
     # grab an entry from the database and modify it.
@@ -215,7 +215,7 @@ def test_update_entry(test_backend: _Backend):
 
 # TODO: Assess if _gather_reachable should be upstreamed to _Backend
 @setup_test_stack(
-    sources=["linac_data"], backend_type=FilestoreBackend,
+    sources=["linac_data"], backend_type=[FilestoreBackend, DirectoryBackend]
 )
 def test_gather_reachable(test_backend: _Backend):
     # top-level snapshot
@@ -228,3 +228,15 @@ def test_gather_reachable(test_backend: _Backend):
     reachable = test_backend._gather_reachable(entry)
     assert len(reachable) == 3
     assert UUID("927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4") in reachable
+
+
+@setup_test_stack(
+    sources=["linac_data"], backend_type=[TestBackend, FilestoreBackend],
+)
+def test_tags(test_backend: _Backend):
+    default_tags = {0: "SXR", 1: "HXR"}
+    assert test_backend.get_tags() == default_tags
+
+    new_tags = {0: "SXR-2", 1: "HXR", 2: "BSYD"}
+    test_backend.set_tags(new_tags)
+    assert test_backend.get_tags() == new_tags

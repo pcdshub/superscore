@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from superscore.widgets.core import DataWidget
 
 AnyEpicsType = Union[int, str, float, bool]
+Tag = int
 
 
 class AnyDataclass(Protocol):

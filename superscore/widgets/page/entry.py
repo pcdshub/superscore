@@ -54,7 +54,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.setup_ui()
 
     def setup_ui(self):
-        self.meta_widget = NameDescTagsWidget(data=self.data)
+        self.meta_widget = NameDescTagsWidget(data=self.data, tag_options=self.client.backend.get_tags())
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         # show tree view
@@ -132,7 +132,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
         """Construct dialog prompting the user to enter metadata for the given entry"""
         metadata_dialog = QtWidgets.QDialog(parent=self)
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(NameDescTagsWidget(data=dest))
+        layout.addWidget(NameDescTagsWidget(data=dest, tag_options=self.client.backend.get_tags()))
         buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
         )
@@ -222,6 +222,9 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
         self.refresh_button.setIcon(qta.icon('ei.refresh'))
         self.refresh_button.clicked.connect(self.get_edata)
         self.get_edata()
+
+        self.meta_widget = NameDescTagsWidget(data=self.data, tag_options=self.client.backend.get_tags())
+        insert_widget(self.meta_widget, self.meta_placeholder)
 
         self.save_button.clicked.connect(self.save)
 

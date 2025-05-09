@@ -9,6 +9,7 @@ import apischema
 import pytest
 
 from superscore.backends.core import _Backend
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -29,7 +30,7 @@ from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
 @pytest.fixture(scope='function')
 def linac_backend():
     root = linac_data()
-    return TestBackend(root.entries)
+    return TestBackend(root)
 
 
 @pytest.fixture(scope='function')
@@ -180,6 +181,7 @@ def test_data(request: pytest.FixtureRequest) -> Root:
         if isinstance(data, Root):
             for entry in data.entries:
                 new_root.entries.append(entry)
+            new_root.all_tags.update(data.all_tags)
         elif isinstance(data, Entry):
             new_root.entries.append(data)
 
@@ -235,11 +237,14 @@ def test_backend(
         if backend_cls is FilestoreBackend:
             tmp_fp = tmp_path / 'tmp_filestore.json'
             backend = backend_cls(path=tmp_fp)
+        elif backend_cls is DirectoryBackend:
+            backend = backend_cls(path=tmp_path)
         else:
             backend = backend_cls()
 
     for entry in test_data.entries:
         backend.save_entry(entry)
+        backend.set_tags(test_data.all_tags)
 
     return backend
 
