@@ -18,6 +18,9 @@ def _get_backend(backend: str) -> _Backend:
     if backend == 'test':
         from .test import TestBackend
         return TestBackend
+    if backend == 'directory':
+        from .directory import DirectoryBackend
+        return DirectoryBackend
 
     raise ValueError(f"Unknown backend {backend}")
 
@@ -34,6 +37,11 @@ def _init_backends() -> Dict[str, _Backend]:
         backends['test'] = _get_backend('test')
     except ImportError as ex:
         logger.debug(f"Test Backend unavailable: {ex}")
+
+    try:
+        backends['directory'] = _get_backend('directory')
+    except ImportError as ex:
+        logger.debug(f"Directory Backend unavailable: {ex}")
 
     return backends
 
