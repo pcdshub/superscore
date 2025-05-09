@@ -15,26 +15,19 @@ from qtpy.QtGui import QCloseEvent
 from superscore.client import Client
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
-from superscore.widgets.core import DataWidget, Display, QtSingleton
+from superscore.widgets.core import DataWidget, QtSingleton
 from superscore.widgets.page import PAGE_MAP
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
-from superscore.widgets.views import DiffDispatcher, RootTreeView
+from superscore.widgets.views import DiffDispatcher
 
 logger = logging.getLogger(__name__)
 
 
-class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
+class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
     """Main superscore window"""
-
-    filename = 'main_window.ui'
-
-    tree_view: RootTreeView
-    tab_widget: QtWidgets.QTabWidget
-
-    action_new_coll: QtWidgets.QAction
 
     # Diff dispatcher singleton, used to notify when diffs are ready
     diff_dispatcher: DiffDispatcher = DiffDispatcher()
@@ -45,27 +38,20 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.client = client
         else:
             self.client = Client.from_config()
-
         self._partial_slots = []
-
         self.setup_ui()
-        self.open_search_page()
 
     def setup_ui(self) -> None:
-        tab_bar = self.tab_widget.tabBar()
-        # always use scroll area and never truncate file names
-        tab_bar.setUsesScrollButtons(True)
-        tab_bar.setElideMode(QtCore.Qt.ElideNone)
-        self.tab_widget.tabCloseRequested.connect(self.remove_tab)
+        navigation_panel = NavigationPanel()
 
-        # setup tree view
-        self.tree_view.client = self.client
-        self.tree_view.set_data(self.client.backend.root)
-        # override context menu
-        self.tree_view.create_context_menu = self._window_context_menu
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.addWidget(navigation_panel)
+        splitter.addWidget(QtWidgets.QFrame())
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setChildrenCollapsible(False)
 
-        # setup actions
-        self.action_new_coll.triggered.connect(self.open_collection_builder)
+        self.setCentralWidget(splitter)
 
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
@@ -170,6 +156,46 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         return menu
 
     def closeEvent(self, a0: QCloseEvent) -> None:
-        while self.tab_widget.count() > 0:
-            self.remove_tab(0)
         super().closeEvent(a0)
+
+
+class NavigationPanel(QtWidgets.QWidget):
+
+    sigViewSnapshots = QtCore.Signal()
+    sigBrowsePVs = QtCore.Signal()
+    sigConfigureTags = QtCore.Signal()
+    sigSave = QtCore.Signal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.setLayout(QtWidgets.QVBoxLayout())
+
+        view_snapshots_button = QtWidgets.QPushButton()
+        view_snapshots_button.setIcon(qta.icon("ph.stack"))
+        view_snapshots_button.setText("View Snapshots")
+        view_snapshots_button.setFlat(True)
+        view_snapshots_button.clicked.connect(self.sigViewSnapshots.emit)
+        self.layout().addWidget(view_snapshots_button)
+
+        browse_pvs_button = QtWidgets.QPushButton()
+        browse_pvs_button.setIcon(qta.icon("ph.database"))
+        browse_pvs_button.setText("Browse PVs")
+        browse_pvs_button.setFlat(True)
+        browse_pvs_button.clicked.connect(self.sigBrowsePVs.emit)
+        self.layout().addWidget(browse_pvs_button)
+
+        configure_tags_button = QtWidgets.QPushButton()
+        configure_tags_button.setIcon(qta.icon("ph.tag"))
+        configure_tags_button.setText("Configure Tags")
+        configure_tags_button.setFlat(True)
+        configure_tags_button.clicked.connect(self.sigConfigureTags.emit)
+        self.layout().addWidget(configure_tags_button)
+
+        self.layout().addStretch()
+
+        save_button = QtWidgets.QPushButton()
+        save_button.setIcon(qta.icon("ph.instagram-logo"))
+        save_button.setText("Save Snapshot")
+        save_button.clicked.connect(self.sigSave.emit)
+        self.layout().addWidget(save_button)
