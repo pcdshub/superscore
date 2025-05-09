@@ -302,6 +302,14 @@ def linac_data() -> Root:
         ]
     )
 
+    all_col_beam_e_meta_pv = Parameter(
+        uuid="e4aa8dc8-dbb0-4331-999a-89053758d489",
+        pv_name="BEAME",
+        description="A beam energy PV",
+    )
+
+    all_col.meta_pvs.append(all_col_beam_e_meta_pv)
+
     lasr_gunb_value1 = Setpoint(
         uuid="927ef6cb-e45f-4175-aa5f-6c6eec1f3ae4",
         pv_name=lasr_gunb_pv1.pv_name,
@@ -624,6 +632,12 @@ def linac_data() -> Root:
         ]
     )
 
+    all_snapshot_beam_e_meta_pv = Readback(
+        uuid="e8af7485-9c62-45c7-9c50-94cbe83c38b0",
+        pv_name="BEAME",
+        description="A beam energy readback PV",
+    )
+
     all_snapshot = Snapshot(
         uuid="06282731-33ea-4270-ba14-098872e627dc",
         description=all_col.description,
@@ -634,6 +648,7 @@ def linac_data() -> Root:
             lcls_sc_snapshot,
         ],
         origin_collection=all_col.uuid,
+        meta_pvs=[all_snapshot_beam_e_meta_pv],
     )
 
     return Root(entries=[all_col, all_snapshot])
