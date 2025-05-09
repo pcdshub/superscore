@@ -23,7 +23,12 @@ RADIX_DEPTH = 3
 
 
 class DirectoryBackend(_Backend):
-    """"""
+    """
+    Backend that stores each Entry as an individual file. Files are distributed into directories
+    according to the UUID of their Entry, to keep the number of files in each directory
+    reasonably small.
+    """
+
     def __init__(
         self,
         path: str,
