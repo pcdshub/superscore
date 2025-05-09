@@ -21,6 +21,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.pv_table import PV_HEADER, PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
 from superscore.widgets.views import DiffDispatcher
 
@@ -48,6 +49,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
+        self.snapshot_table.doubleClicked.connect(self.open_snapshot)
         self.snapshot_table.setStyleSheet(
             "QTableView::item {"
             "    border: 0px;"  # required to enforce padding on left side of cell
@@ -71,7 +73,25 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
 
     def open_snapshot_table(self):
-        self.centralWidget().replaceWidget(1, self.snapshot_table)
+        if self.centralWidget().widget(1) != self.snapshot_table:
+            self.centralWidget().replaceWidget(1, self.snapshot_table)
+
+    def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
+        snapshot = self.snapshot_table.model()._data[index.row()]
+        pv_table = QtWidgets.QTableView()
+        pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
+        pv_table.destroyed.connect(pv_table.model().close)
+        pv_table.setShowGrid(False)
+        pv_table.verticalHeader().hide()
+        header_view = pv_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.Stretch)
+        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+
+        self.centralWidget().replaceWidget(1, pv_table)
+        self.centralWidget().setStretchFactor(1, 1)
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
@@ -173,6 +193,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         return menu
 
     def closeEvent(self, a0: QCloseEvent) -> None:
+        try:
+            self.centralWidget().widget(1).model().stop_polling(wait_time=5000)
+            self.centralWidget().widget(1).close()
+        except AttributeError:
+            pass
         super().closeEvent(a0)
 
 
