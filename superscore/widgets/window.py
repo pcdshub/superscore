@@ -107,6 +107,10 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.centralWidget().replaceWidget(1, self.snapshot_table)
 
     def open_pv_browser(self):
+        """Open the PV Browser Page if it is not already open."""
+        curr_widget = self.centralWidget().widget(1)
+        if curr_widget is self.pv_browser_page:
+            return
         self.centralWidget().replaceWidget(1, self.pv_browser_page)
         self.centralWidget().setStretchFactor(1, 1)
 
