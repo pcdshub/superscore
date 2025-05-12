@@ -5,7 +5,6 @@ database pre-loaded
 Function components are separated from the arg parser to defer heavy imports
 """
 import configparser
-import os
 from pathlib import Path
 
 from superscore.backends.core import populate_backend
@@ -22,19 +21,14 @@ def main(*args, db_path=None, **kwargs):
     parser.read(DEMO_CONFIG)
     if db_path is not None:
         db_path = Path(db_path)
-        if db_path.is_dir():
-            db_path /= 'superscore_demo.json'
         parser.set('backend', 'path', build_abs_path(Path.cwd(), db_path))
     client = Client.from_parsed_config(parser)
     # start with clean demo database
-    try:
-        os.remove(client.backend.path)
-    except FileNotFoundError:
-        pass
+    client.backend.reset()
     # write data from the sources to the backend
     source_names = parser.get("demo", "fixtures").split()
     populate_backend(client.backend, source_names)
     # IOCFactory needs the Entries with data
-    filled = [entry for entry in client.search() if isinstance(entry, (Setpoint, Readback))]
+    filled = list(client.search(("entry_type", "eq", (Setpoint, Readback))))
     with IOCFactory.from_entries(filled, client)(prefix=''):
-        ui_main(*args, client=client, **kwargs)
+        ui_main(cfg_path=DEMO_CONFIG)
