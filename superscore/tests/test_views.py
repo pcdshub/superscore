@@ -6,14 +6,16 @@ from uuid import UUID, uuid4
 import apischema
 import pytest
 from pytestqt.qtbot import QtBot
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
+from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Root, Severity,
                               Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
+from superscore.widgets.page.restore import CompareSnapshotTableModel
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
                                       NestableTableView, RootTree,
@@ -333,3 +335,66 @@ def test_root_tree_fetchmore(test_client: Client):
     assert model.canFetchMore(child_index)
     model.fetchMore(child_index)
     assert not model.canFetchMore(child_index)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_compare_snapshot_model(test_client: Client, qtmodeltester, simple_snapshot_fixture: Collection):
+    compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
+    compare_model.set_comparison_snapshot(simple_snapshot_fixture)
+
+    qtmodeltester.check(compare_model, force_py=True)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_compare_snapshot_model_data(test_client: Client, simple_snapshot_fixture: Collection, simple_comparison_snapshot_fixture: Collection):
+    # Setup the test backend and model
+    test_client.backend.save_entry(simple_snapshot_fixture)
+    test_client.backend.save_entry(simple_comparison_snapshot_fixture)
+
+    compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
+    compare_model.set_comparison_snapshot(simple_comparison_snapshot_fixture)
+
+    # Check that the model has the correct number of rows
+    assert compare_model.rowCount() == (len(simple_snapshot_fixture.children) + 1)
+
+    # Setup the data expected from the model
+    expected_data = [["MY:FLOAT", None, "--"],
+                     ["MY:INT", None, 1],
+                     ["MY:ENUM", None, None],
+                     ["MY:NEW:ENUM", "--", None]]
+
+    # Check that the model data matches the expected data
+    actual_data = []
+    for row, expected in enumerate(expected_data):
+        actual_row = []
+        for col in range(len(expected)):
+            index = compare_model.index(row, col)
+            actual_row.append(compare_model.data(index, QtCore.Qt.DisplayRole))
+        actual_data.append(actual_row)
+    assert actual_data == expected_data
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_compare_snapshot_model_color(test_client: Client, simple_snapshot_fixture: Collection, simple_comparison_snapshot_fixture: Collection):
+    # Setup the test backend and model
+    test_client.backend.save_entry(simple_snapshot_fixture)
+    test_client.backend.save_entry(simple_comparison_snapshot_fixture)
+
+    compare_model = CompareSnapshotTableModel(client=test_client, main_snapshot=simple_snapshot_fixture)
+    compare_model.set_comparison_snapshot(simple_comparison_snapshot_fixture)
+
+    # Setup the expected background color for each cell
+    expected_color = [[None, None, None],
+                      [None, None, QtGui.QColor('#ffbbbb')],
+                      [None, None, None],
+                      [None, None, None]]
+
+    # Compare the actual background color with the expected color for each cell
+    actual_color = []
+    for row, expected in enumerate(expected_color):
+        actual_row = []
+        for col in range(len(expected)):
+            index = compare_model.index(row, col)
+            actual_row.append(compare_model.data(index, QtCore.Qt.BackgroundRole))
+        actual_color.append(actual_row)
+    assert actual_color == expected_color
