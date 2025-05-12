@@ -53,8 +53,6 @@ class DirectoryBackend(_Backend):
         return deserialize(Entry, serialized)
 
     def save_entry(self, entry: Entry, top_level: bool = True) -> None:
-        if top_level:
-            self.add_to_root(entry)
         children = entry.swap_to_uuids()
         for child in children:
             if isinstance(child, Entry):
@@ -62,6 +60,9 @@ class DirectoryBackend(_Backend):
                     self.save_entry(child, top_level=False)
                 except FileExistsError:
                     self.update_entry(child)
+
+        if top_level:
+            self.add_to_root(entry)
 
         serialized = serialize(Entry, entry)
         path = self._find_entry_path(entry.uuid)
