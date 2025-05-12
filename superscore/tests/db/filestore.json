@@ -63,7 +63,7 @@
             "read_only": false
           }
         ],
-        "tags": []
+        "tags": {}
       }
     },
     {
@@ -111,7 +111,7 @@
             "timeout": null
           }
         ],
-        "tags": [],
+        "tags": {},
         "meta_pvs": []
       }
     }

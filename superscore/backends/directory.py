@@ -15,6 +15,7 @@ from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
+from superscore.type_hints import TagDef
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class DirectoryBackend(_Backend):
                 serialized = json.load(f)
         except FileNotFoundError as e:
             raise EntryNotFoundError(e)
-        return deserialize(Entry, serialized)
+        return deserialize(Entry, serialized, coerce=True)
 
     def save_entry(self, entry: Entry, top_level: bool = True) -> None:
         children = entry.swap_to_uuids()
@@ -171,12 +172,12 @@ class DirectoryBackend(_Backend):
         internal_path = os.path.join(*segments[:RADIX_DEPTH])
         return os.path.join(self.path, internal_path, f"{uuid}.json")
 
-    def get_tags(self) -> dict[int, str]:
-        return self.root.all_tags
+    def get_tags(self) -> TagDef:
+        return self.root.tag_groups
 
-    def set_tags(self, tags: dict[int, str]) -> None:
+    def set_tags(self, tags: TagDef) -> None:
         root = self.root
-        root.all_tags = tags
+        root.tag_groups = tags
         serialized = serialize(Root, root)
         with open(os.path.join(self.path, "root.json"), 'w') as f:
             json.dump(serialized, f, indent=2)

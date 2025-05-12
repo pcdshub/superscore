@@ -636,9 +636,18 @@ def linac_data() -> Root:
         origin_collection=all_col.uuid,
     )
 
-    tags = {0: "SXR", 1: "HXR"}
+    tags = {
+        0: [
+            "Dest",
+            "Which endpoint the beam is directed towards",
+            {
+                0: "SXR",
+                1: "HXR",
+            }
+        ],
+    }
 
-    return Root(entries=[all_col, all_snapshot], all_tags=tags)
+    return Root(entries=[all_col, all_snapshot], tag_groups=tags)
 
 
 def linac_with_comparison_snapshot() -> Root:
