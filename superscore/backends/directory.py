@@ -141,7 +141,7 @@ class DirectoryBackend(_Backend):
     def root(self) -> Root:
         with open(os.path.join(self.path, "root.json"), 'r') as f:
             serialized = json.load(f)
-        return deserialize(Root, serialized)
+        return deserialize(Root, serialized, coerce=True)
 
     def add_to_root(self, entry: Entry):
         root = self.root
@@ -169,6 +169,16 @@ class DirectoryBackend(_Backend):
         segments = list(uuid.replace('-', ''))
         internal_path = os.path.join(*segments[:RADIX_DEPTH])
         return os.path.join(self.path, internal_path, f"{uuid}.json")
+
+    def get_tags(self) -> dict[int, str]:
+        return self.root.all_tags
+
+    def set_tags(self, tags: dict[int, str]) -> None:
+        root = self.root
+        root.all_tags = tags
+        serialized = serialize(Root, root)
+        with open(os.path.join(self.path, "root.json"), 'w') as f:
+            json.dump(serialized, f, indent=2)
 
     def reset(self) -> None:
         for entry in self.search():

@@ -30,7 +30,7 @@ from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
 @pytest.fixture(scope='function')
 def linac_backend():
     root = linac_data()
-    return TestBackend(root.entries)
+    return TestBackend(root)
 
 
 @pytest.fixture(scope='function')
@@ -181,6 +181,7 @@ def test_data(request: pytest.FixtureRequest) -> Root:
         if isinstance(data, Root):
             for entry in data.entries:
                 new_root.entries.append(entry)
+            new_root.all_tags.update(data.all_tags)
         elif isinstance(data, Entry):
             new_root.entries.append(data)
 
@@ -243,6 +244,7 @@ def test_backend(
 
     for entry in test_data.entries:
         backend.save_entry(entry)
+        backend.set_tags(test_data.all_tags)
 
     return backend
 

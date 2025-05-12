@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class CollectionBuilderPage(Display, DataWidget, WindowLinker):
     filename = 'collection_builder_page.ui'
     data: Collection
-
     meta_placeholder: QtWidgets.QWidget
     meta_widget: NameDescTagsWidget
 
@@ -50,7 +49,9 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
     ):
         if data is None:
             data = Collection()
+
         super().__init__(*args, data=data, **kwargs)
+
         self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
@@ -58,7 +59,7 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         self.setup_ui()
 
     def setup_ui(self):
-        self.meta_widget = NameDescTagsWidget(data=self.data)
+        self.meta_widget = NameDescTagsWidget(data=self.data, tag_options=self.client.backend.get_tags())
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         self.bridge.title.updated.connect(self._update_title)
