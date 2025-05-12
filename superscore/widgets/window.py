@@ -109,10 +109,6 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         header_view.setStretchLastSection(True)
         pv_browser_layout.addWidget(self.pv_browser_table)
 
-    def open_snapshot_table(self):
-        if self.centralWidget().widget(1) != self.snapshot_table:
-            self.centralWidget().replaceWidget(1, self.snapshot_table)
-
     def open_pv_browser_page(self) -> None:
         """Open the PV Browser Page if it is not already open."""
         curr_widget = self.centralWidget().widget(1)
@@ -120,6 +116,10 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             return
         self.centralWidget().replaceWidget(1, self.pv_browser_page)
         self.centralWidget().setStretchFactor(1, 1)
+
+    def open_snapshot_table(self):
+        if self.centralWidget().widget(1) != self.snapshot_table:
+            self.centralWidget().replaceWidget(1, self.snapshot_table)
 
     def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
         snapshot = self.snapshot_table.model()._data[index.row()]
