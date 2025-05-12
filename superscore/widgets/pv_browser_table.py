@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from typing import Any
 
 from qtpy import QtCore
 
@@ -32,10 +33,10 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
             ("entry_type", "eq", Parameter),
         ))
 
-    def rowCount(self, parent=None):
+    def rowCount(self, parent=None) -> int:
         return len(self._data)
 
-    def columnCount(self, parent=None):
+    def columnCount(self, parent=None) -> int:
         return len(PV_BROWSER_HEADER)
 
     def headerData(
@@ -43,16 +44,17 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
         section: int,
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
-    ):
+    ) -> Any:
         if orientation == QtCore.Qt.Horizontal:
             if role == QtCore.Qt.DisplayRole:
                 return PV_BROWSER_HEADER(section).display_string()
+        return None
 
     def data(
         self,
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
-    ):
+    ) -> Any:
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
             return None
 

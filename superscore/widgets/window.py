@@ -106,7 +106,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         if self.centralWidget().widget(1) != self.snapshot_table:
             self.centralWidget().replaceWidget(1, self.snapshot_table)
 
-    def open_pv_browser(self):
+    def open_pv_browser(self) -> None:
         """Open the PV Browser Page if it is not already open."""
         curr_widget = self.centralWidget().widget(1)
         if curr_widget is self.pv_browser_page:
