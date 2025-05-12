@@ -5,11 +5,13 @@ from qtpy import QtCore
 
 from superscore.model import Parameter
 
+NO_DATA = "--"
+
 
 class PV_BROWSER_HEADER(Enum):
     DEVICE = 0
     PV = auto()
-    DES = auto()
+    READBACK = auto()
     TAGS = auto()
 
     def display_string(self) -> str:
@@ -20,7 +22,7 @@ class PV_BROWSER_HEADER(Enum):
 PV_BROWSER_HEADER._strings = {
     PV_BROWSER_HEADER.DEVICE: "Device",
     PV_BROWSER_HEADER.PV: "PV Name",
-    PV_BROWSER_HEADER.DES: "DES",
+    PV_BROWSER_HEADER.READBACK: "Readback",
     PV_BROWSER_HEADER.TAGS: "Tags",
 }
 
@@ -55,6 +57,9 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ) -> Any:
+        if role == QtCore.Qt.TextAlignmentRole and index.data() == NO_DATA:
+            return QtCore.Qt.AlignCenter
+
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
             return None
 
@@ -64,8 +69,8 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
             return None
         elif column == PV_BROWSER_HEADER.PV:
             return entry.pv_name
-        elif column == PV_BROWSER_HEADER.DES:
-            return None
+        elif column == PV_BROWSER_HEADER.READBACK:
+            return entry.readback.pv_name if entry.readback else NO_DATA
         elif column == PV_BROWSER_HEADER.TAGS:
             return None
         return None
