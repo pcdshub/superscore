@@ -48,7 +48,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
     def setup_ui(self) -> None:
         navigation_panel = NavigationPanel()
         navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
-        navigation_panel.sigBrowsePVs.connect(self.open_pv_browser)
+        navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
 
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
@@ -64,7 +64,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setSectionResizeMode(1, header_view.Stretch)
 
-        self.init_pv_browser()
+        self.init_pv_browser_page()
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitter.setChildrenCollapsible(False)
@@ -77,7 +77,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
 
-    def init_pv_browser(self) -> QtWidgets.QWidget:
+    def init_pv_browser_page(self) -> QtWidgets.QWidget:
         """Initialize the PV browser page with the PV browser table."""
         pv_browser_model = PVBrowserTableModel(self.client)
         pv_browser_filter = PVBrowserFilterProxyModel()
@@ -101,19 +101,19 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
 
-        self.pv_browse_table = QtWidgets.QTableView()
-        self.pv_browse_table.setModel(pv_browser_filter)
-        self.pv_browse_table.verticalHeader().hide()
-        header_view = self.pv_browse_table.horizontalHeader()
+        self.pv_browser_table = QtWidgets.QTableView()
+        self.pv_browser_table.setModel(pv_browser_filter)
+        self.pv_browser_table.verticalHeader().hide()
+        header_view = self.pv_browser_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setStretchLastSection(True)
-        pv_browser_layout.addWidget(self.pv_browse_table)
+        pv_browser_layout.addWidget(self.pv_browser_table)
 
     def open_snapshot_table(self):
         if self.centralWidget().widget(1) != self.snapshot_table:
             self.centralWidget().replaceWidget(1, self.snapshot_table)
 
-    def open_pv_browser(self) -> None:
+    def open_pv_browser_page(self) -> None:
         """Open the PV Browser Page if it is not already open."""
         curr_widget = self.centralWidget().widget(1)
         if curr_widget is self.pv_browser_page:
