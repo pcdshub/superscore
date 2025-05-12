@@ -69,3 +69,20 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
         elif column == PV_BROWSER_HEADER.TAGS:
             return None
         return None
+
+
+class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
+    def __init__(self, parent=None, tags=None):
+        super().__init__(parent=parent)
+        self.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.setFilterKeyColumn(PV_BROWSER_HEADER.PV.value)
+
+        self.tags = tags
+
+    def setTags(self, tags) -> None:
+        self.tags = tags
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:
+        # TODO: Implement filtering logic based on tags
+        return super().filterAcceptsRow(source_row, source_parent)
