@@ -88,7 +88,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         pv_browser_layout.setContentsMargins(0, 11, 0, 0)
         self.pv_browser_page.setLayout(pv_browser_layout)
 
-        search_bar = QtWidgets.QLineEdit()
+        search_bar = QtWidgets.QLineEdit(self.pv_browser_page)
         search_bar.setClearButtonEnabled(True)
         search_bar.addAction(
             qta.icon("fa5s.search"),
@@ -101,7 +101,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
 
-        self.pv_browser_table = QtWidgets.QTableView()
+        self.pv_browser_table = QtWidgets.QTableView(self.pv_browser_page)
         self.pv_browser_table.setModel(pv_browser_filter)
         self.pv_browser_table.verticalHeader().hide()
         header_view = self.pv_browser_table.horizontalHeader()

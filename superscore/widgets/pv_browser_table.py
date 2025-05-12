@@ -35,10 +35,10 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
             ("entry_type", "eq", Parameter),
         ))
 
-    def rowCount(self, parent=None) -> int:
+    def rowCount(self, _=QtCore.QModelIndex()) -> int:
         return len(self._data)
 
-    def columnCount(self, parent=None) -> int:
+    def columnCount(self, _=QtCore.QModelIndex()) -> int:
         return len(PV_BROWSER_HEADER)
 
     def headerData(
@@ -57,22 +57,24 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ) -> Any:
-        if role == QtCore.Qt.TextAlignmentRole and index.data() == NO_DATA:
+        if not index.isValid():
+            return None
+        elif role == QtCore.Qt.TextAlignmentRole and index.data() == NO_DATA:
             return QtCore.Qt.AlignCenter
-
-        if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole):
-            return None
-
-        entry = self._data[index.row()]
-        column = PV_BROWSER_HEADER(index.column())
-        if column == PV_BROWSER_HEADER.DEVICE:
-            return None
-        elif column == PV_BROWSER_HEADER.PV:
+        elif role == QtCore.Qt.ToolTipRole:
+            entry = self._data[index.row()]
             return entry.pv_name
-        elif column == PV_BROWSER_HEADER.READBACK:
-            return entry.readback.pv_name if entry.readback else NO_DATA
-        elif column == PV_BROWSER_HEADER.TAGS:
-            return None
+        elif role == QtCore.Qt.DisplayRole:
+            entry = self._data[index.row()]
+            column = PV_BROWSER_HEADER(index.column())
+            if column == PV_BROWSER_HEADER.DEVICE:
+                return None
+            elif column == PV_BROWSER_HEADER.PV:
+                return entry.pv_name
+            elif column == PV_BROWSER_HEADER.READBACK:
+                return entry.readback.pv_name if entry.readback else NO_DATA
+            elif column == PV_BROWSER_HEADER.TAGS:
+                return None
         return None
 
 
