@@ -12,6 +12,7 @@ from qtpy.QtWidgets import (QApplication, QBoxLayout, QDialog, QGridLayout,
 @dataclass
 class PVDetails:
     """Class to represent the details of a PV (Process Variable). Used to populate the PV details popups."""
+
     pv_name: str
     readback_name: str
     description: str
@@ -21,9 +22,10 @@ class PVDetails:
 
 
 class PVDetailsTitleBar(QWidget):
+    """Title bar for the PV details popup. Allows dragging and closing the popup."""
+
     def __init__(self, text: str, parent: QWidget):
         super().__init__(parent)
-        self.parent_widget = parent
         self.drag_position = None
 
         self.setContentsMargins(0, 0, 0, 0)
@@ -42,12 +44,8 @@ class PVDetailsTitleBar(QWidget):
         close_button = QPushButton("✕")
         close_button.setFixedSize(24, 24)
         close_button.setStyleSheet("border: none;")
-        close_button.clicked.connect(self.close_popup)
+        close_button.clicked.connect(self.parent().close)
         layout.addWidget(close_button)
-
-    def close_popup(self) -> None:
-        if self.parent_widget:
-            self.parent_widget.close()
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
@@ -63,8 +61,22 @@ class PVDetailsTitleBar(QWidget):
 class PVDetailsRow(QBoxLayout):
     """A row in the PV details popup."""
 
-    def __init__(self, label: str, content: QWidget = None, indent: int = 0,
-                 direction: QBoxLayout.Direction = QBoxLayout.LeftToRight, parent: QWidget = None) -> None:
+    def __init__(
+        self,
+        label: str,
+        content: QWidget = None,
+        indent: int = 0,
+        direction: QBoxLayout.Direction = QBoxLayout.LeftToRight,
+        parent: QWidget = None,
+    ) -> None:
+        """Initialize a row with a label and optional content.
+
+        :param label: The label text for the row.
+        :param content: The content widget to display in the row.
+        :param indent: The indentation level for the row.
+        :param direction: The layout direction (horizontal or vertical).
+        :param parent: The parent widget for the layout.
+        """
         super().__init__(direction, parent)
         self.tab_width = 20
 
@@ -79,7 +91,7 @@ class PVDetailsRow(QBoxLayout):
         self.addWidget(label_widget)
 
         if content:
-            if hasattr(content, 'setFont'):
+            if hasattr(content, "setFont"):
                 content_font = QFont()
                 content_font.setPointSize(12)
                 content.setStyleSheet("color: #222222;")
@@ -100,7 +112,9 @@ class PVDetailsPopup(QWidget):
         layout.addWidget(title_widget)
 
         layout.addLayout(PVDetailsRow("PV Name", QLabel(pv_details.pv_name), direction=QBoxLayout.TopToBottom))
-        layout.addLayout(PVDetailsRow("Readback Name", QLabel(pv_details.readback_name), direction=QBoxLayout.TopToBottom))
+        layout.addLayout(
+            PVDetailsRow("Readback Name", QLabel(pv_details.readback_name), direction=QBoxLayout.TopToBottom)
+        )
 
         description = QLabel(pv_details.description)
         description.setWordWrap(True)
@@ -116,6 +130,7 @@ class PVDetailsPopup(QWidget):
 
 class PVDetailsPopupEditable(QDialog):
     """Editable popup for creating or editing PVs."""
+
     def __init__(self, initial_data: PVDetails = None) -> None:
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
@@ -199,7 +214,7 @@ class PVDetailsPopupEditable(QDialog):
                 description=self.description_input.text(),
                 tolerance_abs=float(self.tolerance_abs_input.text() or 0),
                 tolerance_rel=float(self.tolerance_rel_input.text() or 0),
-                tags=None
+                tags=None,
             )
             self.accept()
         except ValueError as e:
@@ -215,7 +230,7 @@ if __name__ == "__main__":
         description="This will be the description of the PV",
         tolerance_abs=0.1,
         tolerance_rel=0.01,
-        tags=None
+        tags=None,
     )
 
     # Show read-only popup first
