@@ -147,6 +147,7 @@ def test_page_smoke(page: str, request: pytest.FixtureRequest):
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_apply_filter(test_client, search_page: SearchPage):
+    search_page.start_dt_edit.setDate(QtCore.QDate(2024, 5, 10))
     search_page.apply_filter_button.clicked.emit()
     assert search_page.results_table_view.model().rowCount() == 6
 
