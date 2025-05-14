@@ -141,3 +141,19 @@ class PermissionManager(QObject):
         if self.is_admin():
             return self._admin_token
         return None
+
+    def set_admin_mode(self, enabled: bool = True) -> None:
+        """
+        Directly set admin mode.
+
+        Parameters
+        ----------
+        enabled : bool, optional
+            Whether to enable admin mode, by default True
+        """
+        if enabled and not self._is_admin:
+            self._admin_token = "launch_flag_token"
+            self._is_admin = True
+            self.admin_status_changed.emit(True)
+        elif not enabled and self._is_admin:
+            self.admin_logout()
