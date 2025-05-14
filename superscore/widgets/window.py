@@ -21,6 +21,8 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
+                                                 PVBrowserTableModel)
 from superscore.widgets.pv_table import PV_HEADER, PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
 from superscore.widgets.views import DiffDispatcher
@@ -46,6 +48,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
     def setup_ui(self) -> None:
         navigation_panel = NavigationPanel()
         navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
+        navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
 
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
@@ -61,6 +64,8 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setSectionResizeMode(1, header_view.Stretch)
 
+        self.init_pv_browser_page()
+
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitter.setChildrenCollapsible(False)
         splitter.addWidget(navigation_panel)
@@ -71,6 +76,46 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
+
+    def init_pv_browser_page(self) -> QtWidgets.QWidget:
+        """Initialize the PV browser page with the PV browser table."""
+        pv_browser_model = PVBrowserTableModel(self.client)
+        pv_browser_filter = PVBrowserFilterProxyModel()
+        pv_browser_filter.setSourceModel(pv_browser_model)
+
+        self.pv_browser_page = QtWidgets.QWidget()
+        pv_browser_layout = QtWidgets.QVBoxLayout()
+        pv_browser_layout.setContentsMargins(0, 11, 0, 0)
+        self.pv_browser_page.setLayout(pv_browser_layout)
+
+        search_bar = QtWidgets.QLineEdit(self.pv_browser_page)
+        search_bar.setClearButtonEnabled(True)
+        search_bar.addAction(
+            qta.icon("fa5s.search"),
+            QtWidgets.QLineEdit.LeadingPosition,
+        )
+        search_bar.textChanged.connect(pv_browser_filter.setFilterFixedString)
+        search_bar_lyt = QtWidgets.QHBoxLayout()
+        spacer = QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        search_bar_lyt.addWidget(search_bar)
+        search_bar_lyt.addSpacerItem(spacer)
+        pv_browser_layout.addLayout(search_bar_lyt)
+
+        self.pv_browser_table = QtWidgets.QTableView(self.pv_browser_page)
+        self.pv_browser_table.setModel(pv_browser_filter)
+        self.pv_browser_table.verticalHeader().hide()
+        header_view = self.pv_browser_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setStretchLastSection(True)
+        pv_browser_layout.addWidget(self.pv_browser_table)
+
+    def open_pv_browser_page(self) -> None:
+        """Open the PV Browser Page if it is not already open."""
+        curr_widget = self.centralWidget().widget(1)
+        if curr_widget is self.pv_browser_page:
+            return
+        self.centralWidget().replaceWidget(1, self.pv_browser_page)
+        self.centralWidget().setStretchFactor(1, 1)
 
     def open_snapshot_table(self):
         if self.centralWidget().widget(1) != self.snapshot_table:

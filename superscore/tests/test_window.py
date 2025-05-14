@@ -2,10 +2,12 @@ from uuid import UUID
 
 import pytest
 from pytestqt.qtbot import QtBot
+from qtpy import QtWidgets
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.tests.conftest import setup_test_stack
+from superscore.widgets.pv_browser_table import PVBrowserTableModel
 from superscore.widgets.window import Window
 
 
@@ -51,3 +53,28 @@ def test_take_snapshot(qtbot, test_client):
     snapshot_page.children()[-1].done(1)
     search_result = tuple(test_client.search(("uuid", 'eq', new_snapshot.uuid)))
     assert new_snapshot == search_result[0]
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_pv_browser_model(test_client):
+    pv_browser_model = PVBrowserTableModel(client=test_client)
+
+    assert pv_browser_model.rowCount() == 4
+    assert pv_browser_model.columnCount() == 4
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_pv_browser_search(qtbot, test_client):
+    window = Window(client=test_client)
+    qtbot.addWidget(window)
+
+    pv_browser_filter = window.pv_browser_table.model()
+    search_bar = window.pv_browser_page.findChild(QtWidgets.QLineEdit)
+    assert isinstance(search_bar, QtWidgets.QLineEdit)
+
+    assert pv_browser_filter.rowCount() == 4
+
+    search_bar.setText("PREFIX")
+    assert pv_browser_filter.rowCount() == 3
+    search_bar.setText("test_str")
+    assert pv_browser_filter.rowCount() == 0
