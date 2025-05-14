@@ -6,7 +6,8 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.model import Collection
-from superscore.widgets.core import DataWidget, TagsWidget
+from superscore.widgets import TagsWidget
+from superscore.widgets.core import DataWidget
 
 
 @pytest.mark.parametrize(

@@ -3,6 +3,15 @@ import qtawesome as qta
 import superscore.color
 from superscore.model import Severity, Status
 
+from .flow_layout import FlowLayout
+from .tag import TagChip, TagsWidget
+
+__all__ = [
+    "FlowLayout",
+    "TagChip",
+    "TagsWidget",
+]
+
 
 def _get_icon_map():
     # do not pollute namespace
