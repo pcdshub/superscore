@@ -5,14 +5,14 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum, Flag, auto
-from typing import ClassVar, List, Optional, Set, Union
+from enum import Enum, auto
+from typing import ClassVar, Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
 import apischema
 
 from superscore.serialization import as_tagged_union
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, Tag
 from superscore.utils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -49,10 +49,6 @@ class Status(Enum):
     SIMM = auto()
     READ_ACCESS = auto()
     WRITE_ACCESS = auto()
-
-
-class Tag(Flag):
-    pass
 
 
 @as_tagged_union
@@ -104,6 +100,7 @@ class Parameter(Entry):
     pv_name: str = ""
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
+    tags: Set[Tag] = field(default_factory=set)
     readback: Optional[Parameter] = None
     read_only: bool = False
 
@@ -119,6 +116,7 @@ class Setpoint(Entry):
     data: Optional[AnyEpicsType] = None
     status: Status = Status.UDF
     severity: Severity = Severity.INVALID
+    tags: Set[Tag] = field(default_factory=set)
     readback: Optional[Readback] = None
 
     @classmethod
@@ -132,6 +130,7 @@ class Setpoint(Entry):
 
         return cls(
             pv_name=origin.pv_name,
+            tags=origin.tags,
             data=data,
             status=status,
             severity=severity,
@@ -162,6 +161,7 @@ class Readback(Entry):
     abs_tolerance: Optional[float] = None
     rel_tolerance: Optional[float] = None
     timeout: Optional[float] = None
+    tags: Set[Tag] = field(default_factory=set)
 
     @classmethod
     def from_parameter(
@@ -175,6 +175,7 @@ class Readback(Entry):
 
         return cls(
             pv_name=origin.pv_name,
+            tags=origin.tags,
             data=data,
             status=status,
             severity=severity,
@@ -215,13 +216,13 @@ class Nestable:
 class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
     meta_pvs: ClassVar[List[Parameter]] = []
-    all_tags: ClassVar[Set[Tag]] = set()
 
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
     tags: Set[Tag] = field(default_factory=set)
 
     def swap_to_uuids(self) -> List[Entry]:
+        # TODO: remove ref_list? copies .children by value, breaks refs?
         ref_list = []
 
         new_children = []
@@ -280,3 +281,4 @@ class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
     meta_id: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
+    all_tags: Dict[int, str] = field(default_factory=dict)

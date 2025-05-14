@@ -1,5 +1,5 @@
 """
-Backend for configurations backed by files
+Backend for configurations backed by a single file
 """
 
 import contextlib
@@ -46,8 +46,6 @@ class FilestoreBackend(_Backend):
         if cfg_path is not None:
             cfg_dir = os.path.dirname(cfg_path)
             self.path = build_abs_path(cfg_dir, path)
-        else:
-            self.path = path
 
     def _load_or_initialize(self) -> Dict[str, Any]:
         """
@@ -146,6 +144,7 @@ class FilestoreBackend(_Backend):
                 new_children.append(self.fill_uuids(new_child))
 
         new_root.entries = new_children
+        new_root.all_tags = self._root.all_tags
         return new_root
 
     def fill_uuids(self, entry: Entry) -> Entry:
@@ -241,7 +240,7 @@ class FilestoreBackend(_Backend):
         with open(self.path) as fp:
             serialized = json.load(fp)
 
-        return deserialize(Root, serialized)
+        return deserialize(Root, serialized, coerce=True)
 
     @property
     def root(self) -> Root:
@@ -338,3 +337,16 @@ class FilestoreBackend(_Backend):
         db = self._load_or_initialize()
         yield db
         self.store()
+
+    def get_tags(self) -> dict[int, str]:
+        with self._load_and_store_context():
+            tags = self._root.all_tags
+        return tags
+
+    def set_tags(self, tags: dict[int, str]) -> None:
+        with self._load_and_store_context():
+            self._root.all_tags = tags
+
+    def reset(self) -> None:
+        with self._load_and_store_context():
+            self._entry_cache = {}

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import (Any, ClassVar, Dict, List, Optional, Type, Union, get_args,
-                    get_origin, get_type_hints)
+from typing import (Any, ClassVar, Dict, List, Optional, Set, Type, Union,
+                    get_args, get_origin, get_type_hints)
 
 from qtpy.QtCore import QObject
 from qtpy.QtCore import Signal as QSignal
@@ -77,7 +77,6 @@ class QDataclassBridge(QObject):
         # 4. A list of dataclasses -> QDataclassList (object)
         origin = get_origin(type_hint)
         args = get_args(type_hint)
-
         if not origin:
             # a raw type, no Union, Optional, etc
             NestedClass = QDataclassValue
@@ -90,6 +89,9 @@ class QDataclassBridge(QObject):
             # Make sure we have list manipulation methods
             # Sequence resolved as from collections.abc (even if defined from typing)
             NestedClass = QDataclassList
+            dtype = args[0]
+        elif origin is set:
+            NestedClass = QDataclassSet
             dtype = args[0]
         elif (origin is Union) and (type(None) in args):
             # Optional, need to allow NoneType to be emitted by changed_value signal
@@ -314,4 +316,77 @@ class QDataclassList(QDataclassElem):
         self.get()[index] = new_value
         self.changed_value.emit(new_value)
         self.changed_index.emit(index)
+        self.updated.emit()
+
+
+class QDataclassSet(QDataclassElem):
+    """
+    A set of values in the QDataclassBridge.
+    """
+    added_value: QSignal
+    removed_value: QSignal
+
+    _registry = {}
+
+    @classmethod
+    def of_type(
+        cls,
+        data_type: type,
+        optional: bool = False,
+    ) -> Type[QDataclassList]:
+        """
+        Create a QDataclass with a specific QSignal
+
+        Parameters
+        ----------
+        data_type : any primitive type
+        """
+        try:
+            return cls._registry[data_type]
+        except KeyError:
+            pass
+
+        new_class = type(
+            f'QDataclassSetFor{data_type.__name__}',
+            (cls, QObject),
+            {
+                'updated': QSignal(),
+                'added_value': QSignal(data_type),
+                'removed_value': QSignal(data_type),
+            },
+        )
+        cls._registry[data_type] = new_class
+        return new_class
+
+    def get(self) -> Set:
+        """
+        Return the current set of values.
+        """
+        return getattr(self.data, self.attr)
+
+    def put(self, values: Set) -> None:
+        """
+        Replace the current set of values.
+        """
+        setattr(self.data, self.attr, values)
+        self.updated.emit()
+
+    def add(self, new_value: Any) -> None:
+        """
+        Add a new value to the set and update consumers.
+        """
+        data = self.get()
+        if data is None:
+            data = set()
+            setattr(self.data, self.attr, data)
+        data.add(new_value)
+        self.added_value.emit(new_value)
+        self.updated.emit()
+
+    def remove_value(self, removal: Any) -> None:
+        """
+        Remove a value from the list by value and update consumers.
+        """
+        self.get().discard(removal)
+        self.removed_value.emit(removal)
         self.updated.emit()

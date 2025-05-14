@@ -636,7 +636,9 @@ def linac_data() -> Root:
         origin_collection=all_col.uuid,
     )
 
-    return Root(entries=[all_col, all_snapshot])
+    tags = {0: "SXR", 1: "HXR"}
+
+    return Root(entries=[all_col, all_snapshot], all_tags=tags)
 
 
 def linac_with_comparison_snapshot() -> Root:
