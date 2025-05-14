@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import ClassVar, List, Optional, Union
+from typing import Iterable, List, Optional, Union
 from uuid import UUID, uuid4
 
 import apischema
@@ -215,8 +215,6 @@ class Nestable:
 @dataclass
 class Collection(Nestable, Entry):
     """Nestable group of Parameters and Collections"""
-    meta_pvs: ClassVar[List[Parameter]] = []
-
     title: str = ""
     children: List[Union[UUID, Parameter, Collection]] = field(default_factory=list)
     tags: TagSet = field(default_factory=dict)
@@ -282,3 +280,4 @@ class Root:
     meta_id: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
     tag_groups: TagDef = field(default_factory=dict)
+    meta_pvs: Iterable[Parameter] = field(default_factory=list)

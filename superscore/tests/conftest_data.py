@@ -647,7 +647,86 @@ def linac_data() -> Root:
         ],
     }
 
-    return Root(entries=[all_col, all_snapshot], tag_groups=tags)
+    hxr_pulse = Parameter(
+        uuid="653cf3f8-56d1-4409-b8d2-a31be09a9a20",
+        pv_name="DEST:HXR:PLSI",
+        description="HXR Pulse Intensity",
+        creation_time=now,
+        read_only=True,
+    )
+
+    sxr_pulse = Parameter(
+        uuid="3ed979c7-50ed-402f-9b6e-f3e5ebc1a18c",
+        pv_name="DEST:SXR:PLSI",
+        description="SXR Pulse Intensity",
+        creation_time=now,
+        read_only=True,
+    )
+
+    hxr_edes = Parameter(
+        uuid="006cbc48-5ead-4da7-9b3c-d4f4792c3bad",
+        pv_name="DEST:HXR:EDES",
+        description="HXR Energy Target",
+        creation_time=now,
+        read_only=True,
+    )
+
+    sxr_edes = Parameter(
+        uuid="51179e2b-53e1-417a-b6a9-4f20605d19bb",
+        pv_name="DEST:SXR:EDES",
+        description="SXR Energy Target",
+        creation_time=now,
+        read_only=True,
+    )
+
+    hxr_pulse_readback = Readback(
+        uuid="40451e72-575a-4069-a953-2d21af45c95f",
+        pv_name=hxr_pulse.pv_name,
+        description=hxr_pulse.description,
+        data=9.829,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
+    )
+
+    sxr_pulse_readback = Readback(
+        uuid="60819a50-db1b-415c-acf3-c57a2df6e5fe",
+        pv_name=sxr_pulse.pv_name,
+        description=sxr_pulse.description,
+        data=3.5,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
+    )
+
+    hxr_edes_readback = Readback(
+        uuid="8df5c8f7-9dc9-4555-9b17-d089551dafcc",
+        pv_name=hxr_edes.pv_name,
+        description=hxr_edes.description,
+        data=9.829,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
+    )
+
+    sxr_edes_readback = Readback(
+        uuid="61d3311b-fb72-40b7-bfac-9746e787abc9",
+        pv_name=sxr_edes.pv_name,
+        description=sxr_edes.description,
+        data=3.5,
+        status=Status.NO_ALARM,
+        severity=Severity.NO_ALARM,
+    )
+
+    all_snapshot.meta_pvs = [
+        hxr_pulse_readback,
+        sxr_pulse_readback,
+        hxr_edes_readback,
+        sxr_edes_readback
+    ]
+
+    return Root(
+        entries=[all_col, all_snapshot],
+        tag_groups=tags,
+        meta_pvs=[hxr_pulse, hxr_edes, sxr_pulse, sxr_edes]
+    )
 
 
 def linac_with_comparison_snapshot() -> Root:
