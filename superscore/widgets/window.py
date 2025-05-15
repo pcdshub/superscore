@@ -47,47 +47,68 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.setup_ui()
 
     def setup_ui(self) -> None:
-        self.navigation_panel = NavigationPanel()
-        self.navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
-        self.navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
-        self.navigation_panel.sigExpandedChanged.connect(self.handle_nav_panel_expand_changed)
-        self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
+        self.navigation_panel = self.init_nav_panel()
 
-        self.snapshot_table = QtWidgets.QTableView()
-        self.snapshot_table.setModel(SnapshotTableModel(self.client))
-        self.snapshot_table.doubleClicked.connect(self.open_snapshot)
-        self.snapshot_table.setStyleSheet(
+        self.snapshot_table = self.init_snapshot_table()
+
+        self.pv_browser_page = self.init_pv_browser_page()
+
+        self.main_content_stack = QtWidgets.QStackedLayout()
+        self.main_content_stack.addWidget(self.snapshot_table)
+        self.main_content_stack.addWidget(self.pv_browser_page)
+        self.main_content_stack.setCurrentWidget(self.snapshot_table)
+        self.main_content_container = QtWidgets.QWidget()
+        self.main_content_container.setContentsMargins(0, 0, 0, 0)
+        self.main_content_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        self.main_content_container.setLayout(self.main_content_stack)
+
+        central_widget = QtWidgets.QWidget()
+        central_widget.setLayout(QtWidgets.QHBoxLayout())
+        central_widget.layout().addWidget(self.navigation_panel)
+        central_widget.layout().addWidget(self.main_content_container)
+        central_widget.layout().setSpacing(0)
+        central_widget.layout().setContentsMargins(0, 0, 0, 0)
+        self.setCentralWidget(central_widget)
+
+        # open diff page
+        self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
+
+    def init_nav_panel(self) -> NavigationPanel:
+        navigation_panel = NavigationPanel()
+        navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
+        navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
+        navigation_panel.sigExpandedChanged.connect(self.handle_nav_panel_expand_changed)
+        navigation_panel.set_nav_button_selected(navigation_panel.view_snapshots_button)
+        navigation_panel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        return navigation_panel
+
+    def handle_nav_panel_expand_changed(self, expanded: bool) -> None:
+        """Sets the nav panel width when expanding or collapsing. Not strictly needed,
+        but helps with a smoother looking transition between expanded and collapsed
+
+        Args:
+            expanded (bool): expand state of the nav panel
+        """
+        if expanded:
+            self.navigation_panel.setMinimumWidth(149)
+        else:
+            self.navigation_panel.setMinimumWidth(56)
+
+    def init_snapshot_table(self) -> QtWidgets.QTableView:
+        snapshot_table = QtWidgets.QTableView()
+        snapshot_table.setModel(SnapshotTableModel(self.client))
+        snapshot_table.doubleClicked.connect(self.open_snapshot)
+        snapshot_table.setStyleSheet(
             "QTableView::item {"
             "    border: 0px;"  # required to enforce padding on left side of cell
             "    padding: 5px;"
             "}"
         )
-        self.snapshot_table.verticalHeader().hide()
-        header_view = self.snapshot_table.horizontalHeader()
+        snapshot_table.verticalHeader().hide()
+        header_view = snapshot_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setSectionResizeMode(1, header_view.Stretch)
-
-        self.init_pv_browser_page()
-
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitter.setChildrenCollapsible(False)
-        self.splitter.addWidget(self.navigation_panel)
-        self.splitter.addWidget(self.snapshot_table)
-        self.splitter.setStretchFactor(0, 0)
-        self.splitter.setStretchFactor(1, 1)
-        self.setCentralWidget(self.splitter)
-
-        # open diff page
-        self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
-
-    def handle_nav_panel_expand_changed(self, expanded: bool) -> None:
-        sizes = self.splitter.sizes()
-        if expanded:
-            sizes[0] = 149
-        else:
-            self.last_expandable_width = sizes[0]
-            sizes[0] = 56
-        self.splitter.setSizes(sizes)
+        return snapshot_table
 
     def init_pv_browser_page(self) -> QtWidgets.QWidget:
         """Initialize the PV browser page with the PV browser table."""
@@ -95,12 +116,12 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         pv_browser_filter = PVBrowserFilterProxyModel()
         pv_browser_filter.setSourceModel(pv_browser_model)
 
-        self.pv_browser_page = QtWidgets.QWidget()
+        pv_browser_page = QtWidgets.QWidget()
         pv_browser_layout = QtWidgets.QVBoxLayout()
         pv_browser_layout.setContentsMargins(0, 11, 0, 0)
-        self.pv_browser_page.setLayout(pv_browser_layout)
+        pv_browser_page.setLayout(pv_browser_layout)
 
-        search_bar = QtWidgets.QLineEdit(self.pv_browser_page)
+        search_bar = QtWidgets.QLineEdit(pv_browser_page)
         search_bar.setClearButtonEnabled(True)
         search_bar.addAction(
             qta.icon("fa5s.search"),
@@ -113,26 +134,24 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
 
-        self.pv_browser_table = QtWidgets.QTableView(self.pv_browser_page)
+        self.pv_browser_table = QtWidgets.QTableView(pv_browser_page)
         self.pv_browser_table.setModel(pv_browser_filter)
         self.pv_browser_table.verticalHeader().hide()
         header_view = self.pv_browser_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeToContents)
         header_view.setStretchLastSection(True)
         pv_browser_layout.addWidget(self.pv_browser_table)
+        return pv_browser_page
 
     def open_pv_browser_page(self) -> None:
         """Open the PV Browser Page if it is not already open."""
-        curr_widget = self.centralWidget().widget(1)
-        if curr_widget is self.pv_browser_page:
-            return
-        self.centralWidget().replaceWidget(1, self.pv_browser_page)
-        self.centralWidget().setStretchFactor(1, 1)
-        self.navigation_panel.set_nav_button_selected(self.navigation_panel.browse_pvs_button)
+        if self.main_content_stack.currentWidget() != self.pv_browser_page:
+            self.main_content_stack.setCurrentWidget(self.pv_browser_page)
+            self.navigation_panel.set_nav_button_selected(self.navigation_panel.browse_pvs_button)
 
     def open_snapshot_table(self):
-        if self.centralWidget().widget(1) != self.snapshot_table:
-            self.centralWidget().replaceWidget(1, self.snapshot_table)
+        if self.main_content_stack.currentWidget() != self.snapshot_table:
+            self.main_content_stack.setCurrentWidget(self.snapshot_table)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
     def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
@@ -276,6 +295,7 @@ class NavigationPanel(QtWidgets.QWidget):
                 padding: 8px;
                 border-radius: 4px;
                 text-align: left;
+                border: none;
             }
             QPushButton:hover {
                 background-color: lightgray;
@@ -294,6 +314,7 @@ class NavigationPanel(QtWidgets.QWidget):
 
         self.view_snapshots_button = QtWidgets.QPushButton()
         self.view_snapshots_button.setIcon(qta.icon("ph.stack"))
+        self.view_snapshots_button.setIconSize(QtCore.QSize(24, 24))
         self.view_snapshots_button.setText("View Snapshots")
         self.view_snapshots_button.setFlat(True)
         self.view_snapshots_button.setToolTip("View Snapshots")
@@ -302,6 +323,7 @@ class NavigationPanel(QtWidgets.QWidget):
 
         self.browse_pvs_button = QtWidgets.QPushButton()
         self.browse_pvs_button.setIcon(qta.icon("ph.database"))
+        self.browse_pvs_button.setIconSize(QtCore.QSize(24, 24))
         self.browse_pvs_button.setText("Browse PVs")
         self.browse_pvs_button.setFlat(True)
         self.browse_pvs_button.setToolTip("Browse PVs")
@@ -310,6 +332,7 @@ class NavigationPanel(QtWidgets.QWidget):
 
         self.configure_tags_button = QtWidgets.QPushButton()
         self.configure_tags_button.setIcon(qta.icon("ph.tag"))
+        self.configure_tags_button.setIconSize(QtCore.QSize(24, 24))
         self.configure_tags_button.setText("Configure Tags")
         self.configure_tags_button.setFlat(True)
         self.configure_tags_button.setToolTip("Configure Tags")
@@ -323,6 +346,7 @@ class NavigationPanel(QtWidgets.QWidget):
         toggle_expand_layout = QtWidgets.QHBoxLayout()
         self.toggle_expand_button = QtWidgets.QPushButton()
         self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-left"))
+        self.toggle_expand_button.setIconSize(QtCore.QSize(24, 24))
         self.toggle_expand_button.setFlat(True)
         self.toggle_expand_button.clicked.connect(self.toggle_expanded)
         toggle_expand_layout.addWidget(self.toggle_expand_button)
@@ -331,6 +355,7 @@ class NavigationPanel(QtWidgets.QWidget):
 
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setIcon(qta.icon("ph.instagram-logo"))
+        self.save_button.setIconSize(QtCore.QSize(24, 24))
         self.save_button.setText("Save Snapshot")
         self.save_button.clicked.connect(self.sigSave.emit)
         self.save_button.setObjectName("save-snapshot-btn")
@@ -355,10 +380,15 @@ class NavigationPanel(QtWidgets.QWidget):
                 self.browse_pvs_button.setText("Browse PVs")
                 self.configure_tags_button.setText("Configure Tags")
                 self.save_button.setText("Save Snapshot")
+                # for button in self.nav_buttons:
+                # button.setStyleSheet("")
+                # self.save_button.setStyleSheet("")
             else:
                 self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-right"))
                 for button in self.nav_buttons:
                     button.setText("")
+                    # button.setStyleSheet("text-align: center")
                 self.save_button.setText("")
+                # self.save_button.setStyleSheet("text-align: center")
 
             self.sigExpandedChanged.emit(self.expanded)
