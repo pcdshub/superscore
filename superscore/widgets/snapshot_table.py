@@ -57,3 +57,9 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
                 except IndexError:
                     meta_pvs = self.client.backend.get_meta_pvs()
                     return meta_pvs[section - len(self.HEADER)].description
+
+    def index_to_snapshot(self, index: QtCore.QModelIndex) -> Snapshot:
+        """Convert a QModelIndex to a Snapshot object."""
+        if not (index and index.isValid()):
+            return None
+        return self._data[index.row()]
