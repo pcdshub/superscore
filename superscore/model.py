@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Iterable, List, Optional, Union
+from typing import List, Optional, Sequence, Union
 from uuid import UUID, uuid4
 
 import apischema
@@ -280,4 +280,4 @@ class Root:
     meta_id: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
     tag_groups: TagDef = field(default_factory=dict)
-    meta_pvs: Iterable[Parameter] = field(default_factory=list)
+    meta_pvs: Sequence[Parameter] = field(default_factory=list)

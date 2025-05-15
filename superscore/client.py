@@ -265,7 +265,7 @@ class Client:
         """
         logger.debug(f"Saving Snapshot for Collection {entry.uuid}")
         pvs, _ = self._gather_data(entry)
-        pvs.extend(Collection.meta_pvs)
+        pvs.extend(self.backend.get_meta_pvs())
         values = self.cl.get(pvs)
         data = {}
         for pv, value in zip(pvs, values):
@@ -489,7 +489,7 @@ class Client:
                 snapshot.children.append(self._build_snapshot(child, values))
 
         snapshot.meta_pvs = []
-        for pv in Collection.meta_pvs:
+        for pv in self.backend.get_meta_pvs():
             edata = self._value_or_default(values.get(pv, None))
             readback = Readback(
                 pv_name=pv,

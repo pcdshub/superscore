@@ -3,11 +3,11 @@ Base superscore data storage backend interface
 """
 import re
 from collections.abc import Container, Generator
-from typing import Callable, Iterable, NamedTuple, Union
+from typing import Callable, Iterable, NamedTuple, Sequence, Union
 from uuid import UUID
 
 import superscore.tests.conftest_data
-from superscore.model import Entry, Root
+from superscore.model import Entry, Parameter, Root
 from superscore.type_hints import AnyEpicsType, TagDef
 
 SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
@@ -126,6 +126,14 @@ class _Backend:
         """Set the definition of valid entry tags"""
         raise NotImplementedError
 
+    def get_meta_pvs(self) -> Sequence[Parameter]:
+        """Return the PVs used as Snapshot metadata"""
+        raise NotImplementedError
+
+    def set_meta_pvs(self, meta_pvs: Sequence[Parameter]) -> None:
+        """Set the PVs used as Snapshot metadata"""
+        raise NotImplementedError
+
 
 def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
     """
@@ -151,5 +159,6 @@ def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, R
             for entry in data.entries:
                 backend.save_entry(entry)
             backend.set_tags(data.tag_groups)
+            backend.set_meta_pvs(data.meta_pvs)
         else:
             backend.save_entry(data)
