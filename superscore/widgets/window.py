@@ -43,6 +43,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         # Initialize content pages and add to stack
         self.view_snapshot_page = self.init_view_snapshot_page()
+        self.snapshot_details_page = self.init_snapshot_details_page()
         self.pv_browser_page = self.init_pv_browser_page()
 
         self.main_content_stack = QtWidgets.QStackedLayout()
@@ -64,7 +65,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def init_nav_panel(self) -> NavigationPanel:
         navigation_panel = NavigationPanel()
-        navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
+        navigation_panel.sigViewSnapshots.connect(self.open_view_snapshot_page)
         navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
         navigation_panel.set_nav_button_selected(navigation_panel.view_snapshots_button)
         navigation_panel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
@@ -80,7 +81,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         snapshot_table = QtWidgets.QTableView()
         snapshot_table.setModel(SnapshotTableModel(self.client))
-        snapshot_table.doubleClicked.connect(self.open_snapshot)
+        snapshot_table.doubleClicked.connect(self.open_snapshot_details)
         snapshot_table.setStyleSheet(
             "QTableView::item {"
             "    border: 0px;"  # required to enforce padding on left side of cell
@@ -93,6 +94,32 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         header_view.setSectionResizeMode(1, header_view.Stretch)
         view_snapshot_layout.addWidget(snapshot_table)
         return view_snapshot_page
+
+    def init_snapshot_details_page(self) -> QtWidgets.QWidget:
+        """Initialize the snapshot details page"""
+        snapshot_details_page = QtWidgets.QWidget()
+        snapshot_details_layout = QtWidgets.QVBoxLayout()
+        snapshot_details_layout.setContentsMargins(0, 11, 0, 0)
+        snapshot_details_page.setLayout(snapshot_details_layout)
+
+        # Create a snapshot details model, populated with first snapshot for initialization
+        first_snapshot = self.snapshot_model.index_to_snapshot(self.snapshot_model.index(0, 0))
+        snapshot_details_model = PVTableModel(first_snapshot.uuid, self.client)
+        self.pv_tables_in_stack[first_snapshot.uuid] = snapshot_details_model
+
+        self.snapshot_details_table = QtWidgets.QTableView()
+        self.snapshot_details_table.setModel(snapshot_details_model)
+        self.snapshot_details_table.setShowGrid(False)
+        self.snapshot_details_table.verticalHeader().hide()
+        header_view = self.snapshot_details_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.Stretch)
+        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+        snapshot_details_layout.addWidget(self.snapshot_details_table)
+
+        return snapshot_details_page
 
     def init_pv_browser_page(self) -> QtWidgets.QWidget:
         """Initialize the PV browser page with the PV browser table."""
@@ -127,20 +154,22 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         pv_browser_layout.addWidget(self.pv_browser_table)
         return pv_browser_page
 
+    @QtCore.Slot()
     def open_pv_browser_page(self) -> None:
         """Open the PV Browser Page if it is not already open."""
         if self.main_content_stack.currentWidget() != self.pv_browser_page:
             self.main_content_stack.setCurrentWidget(self.pv_browser_page)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.browse_pvs_button)
 
-    def open_snapshot_table(self) -> None:
+    @QtCore.Slot()
+    def open_view_snapshot_page(self) -> None:
         """Open the snapshot page if it is not already open."""
         if self.main_content_stack.currentWidget() != self.snapshot_table:
             self.main_content_stack.setCurrentWidget(self.snapshot_table)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
     @QtCore.Slot(QtCore.Qt.QModelIndex)
-    def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
+    def open_snapshot_details(self, index: QtCore.Qt.QModelIndex) -> None:
         """Opens the snapshot stored at the selected index. A widget representing the
         snapshot is created if necessary and set as the current view in the stack.
 
@@ -149,26 +178,15 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         """
         snapshot = self.snapshot_table.model()._data[index.row()]
         if snapshot.uuid not in self.pv_tables_in_stack.keys():
-            # table doesn't exist in stack, make it
-            pv_table = QtWidgets.QTableView()
-            pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
-            pv_table.destroyed.connect(pv_table.model().close)
-            pv_table.setShowGrid(False)
-            pv_table.verticalHeader().hide()
-            header_view = pv_table.horizontalHeader()
-            header_view.setSectionResizeMode(header_view.Stretch)
-            header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
-            header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
-            header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
-            header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
-
-            self.main_content_stack.addWidget(pv_table)
-            self.pv_tables_in_stack[snapshot.uuid] = pv_table
+            # table model doesn't exist in stack, make it
+            pv_table_model = PVTableModel(snapshot.uuid, self.client)
+            self.pv_tables_in_stack[snapshot.uuid] = pv_table_model
         else:
-            # table already exists in stack, retrieve it
-            pv_table = self.pv_tables_in_stack[snapshot.uuid]
+            # table model already exists in stack, retrieve it
+            pv_table_model = self.pv_tables_in_stack[snapshot.uuid]
 
-        self.main_content_stack.setCurrentWidget(pv_table)
+        self.snapshot_details_table.setModel(pv_table_model)
+        self.main_content_stack.setCurrentWidget(self.snapshot_details_page)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         try:
