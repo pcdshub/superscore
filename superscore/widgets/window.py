@@ -50,6 +50,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.navigation_panel = NavigationPanel()
         self.navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
         self.navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
+        self.navigation_panel.sigExpandedChanged.connect(self.handle_nav_panel_expand_changed)
         self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
         self.snapshot_table = QtWidgets.QTableView()
@@ -68,16 +69,25 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.init_pv_browser_page()
 
-        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(self.navigation_panel)
-        splitter.addWidget(self.snapshot_table)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        self.setCentralWidget(splitter)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.addWidget(self.navigation_panel)
+        self.splitter.addWidget(self.snapshot_table)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.setCentralWidget(self.splitter)
 
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
+
+    def handle_nav_panel_expand_changed(self, expanded: bool) -> None:
+        sizes = self.splitter.sizes()
+        if expanded:
+            sizes[0] = 149
+        else:
+            self.last_expandable_width = sizes[0]
+            sizes[0] = 56
+        self.splitter.setSizes(sizes)
 
     def init_pv_browser_page(self) -> QtWidgets.QWidget:
         """Initialize the PV browser page with the PV browser table."""
@@ -253,6 +263,7 @@ class NavigationPanel(QtWidgets.QWidget):
     sigBrowsePVs = QtCore.Signal()
     sigConfigureTags = QtCore.Signal()
     sigSave = QtCore.Signal()
+    sigExpandedChanged = QtCore.Signal(bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -279,10 +290,13 @@ class NavigationPanel(QtWidgets.QWidget):
         """
         )
 
+        self.expanded = True
+
         self.view_snapshots_button = QtWidgets.QPushButton()
         self.view_snapshots_button.setIcon(qta.icon("ph.stack"))
         self.view_snapshots_button.setText("View Snapshots")
         self.view_snapshots_button.setFlat(True)
+        self.view_snapshots_button.setToolTip("View Snapshots")
         self.view_snapshots_button.clicked.connect(self.sigViewSnapshots.emit)
         self.layout().addWidget(self.view_snapshots_button)
 
@@ -290,6 +304,7 @@ class NavigationPanel(QtWidgets.QWidget):
         self.browse_pvs_button.setIcon(qta.icon("ph.database"))
         self.browse_pvs_button.setText("Browse PVs")
         self.browse_pvs_button.setFlat(True)
+        self.browse_pvs_button.setToolTip("Browse PVs")
         self.browse_pvs_button.clicked.connect(self.sigBrowsePVs.emit)
         self.layout().addWidget(self.browse_pvs_button)
 
@@ -297,6 +312,7 @@ class NavigationPanel(QtWidgets.QWidget):
         self.configure_tags_button.setIcon(qta.icon("ph.tag"))
         self.configure_tags_button.setText("Configure Tags")
         self.configure_tags_button.setFlat(True)
+        self.configure_tags_button.setToolTip("Configure Tags")
         self.configure_tags_button.clicked.connect(self.sigConfigureTags.emit)
         self.layout().addWidget(self.configure_tags_button)
 
@@ -304,16 +320,45 @@ class NavigationPanel(QtWidgets.QWidget):
 
         self.layout().addStretch()
 
-        save_button = QtWidgets.QPushButton()
-        save_button.setIcon(qta.icon("ph.instagram-logo"))
-        save_button.setText("Save Snapshot")
-        save_button.clicked.connect(self.sigSave.emit)
-        save_button.setObjectName("save-snapshot-btn")
-        self.layout().addWidget(save_button)
+        toggle_expand_layout = QtWidgets.QHBoxLayout()
+        self.toggle_expand_button = QtWidgets.QPushButton()
+        self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-left"))
+        self.toggle_expand_button.setFlat(True)
+        self.toggle_expand_button.clicked.connect(self.toggle_expanded)
+        toggle_expand_layout.addWidget(self.toggle_expand_button)
+        toggle_expand_layout.addStretch()
+        self.layout().addLayout(toggle_expand_layout)
+
+        self.save_button = QtWidgets.QPushButton()
+        self.save_button.setIcon(qta.icon("ph.instagram-logo"))
+        self.save_button.setText("Save Snapshot")
+        self.save_button.clicked.connect(self.sigSave.emit)
+        self.save_button.setObjectName("save-snapshot-btn")
+        self.layout().addWidget(self.save_button)
 
     def set_nav_button_selected(self, nav_button):
         un_set_style = ""
-        set_style = "background-color: white;"
+        set_style = "QPushButton {background-color: white;}"
 
         for button in self.nav_buttons:
             button.setStyleSheet(set_style if button == nav_button else un_set_style)
+
+    def toggle_expanded(self):
+        self.set_expanded(not self.expanded)
+
+    def set_expanded(self, value: bool):
+        if self.expanded != value:
+            self.expanded = value
+            if self.expanded:
+                self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-left"))
+                self.view_snapshots_button.setText("View Snapshots")
+                self.browse_pvs_button.setText("Browse PVs")
+                self.configure_tags_button.setText("Configure Tags")
+                self.save_button.setText("Save Snapshot")
+            else:
+                self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-right"))
+                for button in self.nav_buttons:
+                    button.setText("")
+                self.save_button.setText("")
+
+            self.sigExpandedChanged.emit(self.expanded)
