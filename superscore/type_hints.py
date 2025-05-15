@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from superscore.model import Entry
     from superscore.widgets.core import DataWidget
 
-AnyEpicsType = Union[float, str, bool, int]  # this order is important for apischema coercion
+AnyEpicsType = Union[None, float, str, bool, int]  # this order is important for apischema coercion
 TagDef = dict[int, list[Union[str, str, dict[int, str]]]]  # the definition of available tag groups
 TagSet = dict[int, set[int]]  # a set of active tags and tag groups attached to an entry
 
