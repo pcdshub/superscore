@@ -853,6 +853,7 @@ def parameter_with_readback() -> Parameter:
         uuid="64772c61-c117-445b-b0c8-4c17fd1625d9",
         pv_name="RBV",
         description="A readback PV",
+        read_only=True,
     )
     setpoint = Parameter(
         uuid="b508344d-1fe9-473b-8d43-9499d0e8e23f",
