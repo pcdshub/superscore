@@ -44,13 +44,14 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         else:
             self.client = Client.from_config()
         self._partial_slots = []
+        self.pv_tables = []
         self.setup_ui()
 
     def setup_ui(self) -> None:
         self.navigation_panel = self.init_nav_panel()
 
+        # Initialize content pages and add to stack
         self.snapshot_table = self.init_snapshot_table()
-
         self.pv_browser_page = self.init_pv_browser_page()
 
         self.main_content_stack = QtWidgets.QStackedLayout()
@@ -77,24 +78,12 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         navigation_panel = NavigationPanel()
         navigation_panel.sigViewSnapshots.connect(self.open_snapshot_table)
         navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
-        navigation_panel.sigExpandedChanged.connect(self.handle_nav_panel_expand_changed)
         navigation_panel.set_nav_button_selected(navigation_panel.view_snapshots_button)
         navigation_panel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         return navigation_panel
 
-    def handle_nav_panel_expand_changed(self, expanded: bool) -> None:
-        """Sets the nav panel width when expanding or collapsing. Not strictly needed,
-        but helps with a smoother looking transition between expanded and collapsed
-
-        Args:
-            expanded (bool): expand state of the nav panel
-        """
-        if expanded:
-            self.navigation_panel.setMinimumWidth(149)
-        else:
-            self.navigation_panel.setMinimumWidth(56)
-
     def init_snapshot_table(self) -> QtWidgets.QTableView:
+        """Initialize the snapshot page"""
         snapshot_table = QtWidgets.QTableView()
         snapshot_table.setModel(SnapshotTableModel(self.client))
         snapshot_table.doubleClicked.connect(self.open_snapshot)
@@ -149,7 +138,8 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.main_content_stack.setCurrentWidget(self.pv_browser_page)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.browse_pvs_button)
 
-    def open_snapshot_table(self):
+    def open_snapshot_table(self) -> None:
+        """Open the snapshot page if it is not already open."""
         if self.main_content_stack.currentWidget() != self.snapshot_table:
             self.main_content_stack.setCurrentWidget(self.snapshot_table)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
@@ -168,8 +158,9 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
         header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
 
-        self.centralWidget().replaceWidget(1, pv_table)
-        self.centralWidget().setStretchFactor(1, 1)
+        self.main_content_stack.addWidget(pv_table)
+        self.main_content_stack.setCurrentWidget(pv_table)
+        self.pv_tables.append(pv_table)  # Store a reference so they can be cleaned up later
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
@@ -269,8 +260,9 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         try:
-            self.centralWidget().widget(1).model().stop_polling(wait_time=5000)
-            self.centralWidget().widget(1).close()
+            for pv_table in self.pv_tables:
+                pv_table.model().stop_polling(wait_time=5000)
+                pv_table.close()
         except AttributeError:
             pass
         super().closeEvent(a0)
@@ -306,6 +298,12 @@ class NavigationPanel(QtWidgets.QWidget):
             }
             QPushButton#save-snapshot-btn:hover {
                 background-color: lightgray;
+            }
+            QPushButton[selected="true"] {
+                background-color: white;
+            }
+            QPushButton[icon-only="true"] {
+                text-align: center;
             }
         """
         )
@@ -361,17 +359,22 @@ class NavigationPanel(QtWidgets.QWidget):
         self.save_button.setObjectName("save-snapshot-btn")
         self.layout().addWidget(self.save_button)
 
-    def set_nav_button_selected(self, nav_button):
-        un_set_style = ""
-        set_style = "QPushButton {background-color: white;}"
+    def set_nav_button_selected(self, nav_button: QtWidgets.QPushButton) -> None:
+        """Sets a nav button as selected and deselects the others.
 
+        Args:
+            nav_button (QtWidgets.QPushButton): The button to set as selected.
+        """
         for button in self.nav_buttons:
-            button.setStyleSheet(set_style if button == nav_button else un_set_style)
+            button.setProperty("selected", True if button == nav_button else False)
+        self.reset_stylesheet()
 
-    def toggle_expanded(self):
+    def toggle_expanded(self) -> None:
+        """Toggles the expanded state of the nav panel"""
         self.set_expanded(not self.expanded)
 
-    def set_expanded(self, value: bool):
+    def set_expanded(self, value: bool) -> None:
+        """Sets the expanded state of the nav panel and redraws the buttons appropriately"""
         if self.expanded != value:
             self.expanded = value
             if self.expanded:
@@ -380,15 +383,23 @@ class NavigationPanel(QtWidgets.QWidget):
                 self.browse_pvs_button.setText("Browse PVs")
                 self.configure_tags_button.setText("Configure Tags")
                 self.save_button.setText("Save Snapshot")
-                # for button in self.nav_buttons:
-                # button.setStyleSheet("")
-                # self.save_button.setStyleSheet("")
+                for button in self.nav_buttons:
+                    button.setProperty("icon-only", False)
+                self.save_button.setProperty("icon-only", False)
             else:
                 self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-right"))
                 for button in self.nav_buttons:
                     button.setText("")
-                    # button.setStyleSheet("text-align: center")
+                    button.setProperty("icon-only", True)
                 self.save_button.setText("")
-                # self.save_button.setStyleSheet("text-align: center")
+                self.save_button.setProperty("icon-only", True)
 
             self.sigExpandedChanged.emit(self.expanded)
+            self.reset_stylesheet()
+
+    def reset_stylesheet(self) -> None:
+        """Clears then resets stylesheet to force recomputation. Needed when property
+        or object name driven styles should change."""
+        stylesheet = self.styleSheet()
+        self.setStyleSheet("")
+        self.setStyleSheet(stylesheet)
