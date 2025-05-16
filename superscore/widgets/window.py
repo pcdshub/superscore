@@ -102,8 +102,36 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         snapshot_details_layout.setContentsMargins(0, 11, 0, 0)
         snapshot_details_page.setLayout(snapshot_details_layout)
 
+        header_layout = QtWidgets.QHBoxLayout()
+        back_button = QtWidgets.QPushButton()
+        back_button.setIcon(qta.icon("ph.arrow-left"))
+        back_button.setIconSize(QtCore.QSize(24, 24))
+        back_button.setStyleSheet("border: none")
+        back_button.clicked.connect(lambda: self.open_page(self.view_snapshot_page))
+        header_layout.addWidget(back_button)
+
+        snapshot_label = QtWidgets.QLabel()
+        snapshot_label.setText("Snapshot")
+        header_layout.addWidget(snapshot_label)
+        spacer_label1 = QtWidgets.QLabel()
+        spacer_label1.setText("|")
+        spacer_label1.setStyleSheet("font: bold 18px")
+        header_layout.addWidget(spacer_label1)
+        self.snapshot_title_label = QtWidgets.QLabel()
+        header_layout.addWidget(self.snapshot_title_label)
+        spacer_label2 = QtWidgets.QLabel()
+        spacer_label2.setText("|")
+        spacer_label2.setStyleSheet("font: bold 18px")
+        header_layout.addWidget(spacer_label2)
+        self.snapshot_time_label = QtWidgets.QLabel()
+        self.snapshot_time_label.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Preferred,)
+        header_layout.addWidget(self.snapshot_time_label)
+        snapshot_details_layout.addLayout(header_layout)
+
         # Create a snapshot details model, populated with first snapshot for initialization
-        first_snapshot = self.snapshot_model.index_to_snapshot(self.snapshot_model.index(0, 0))
+        first_snapshot = self.snapshot_table.model().index_to_snapshot(self.snapshot_model.index(0, 0))
         snapshot_details_model = PVTableModel(first_snapshot.uuid, self.client)
         self.pv_tables_in_stack[first_snapshot.uuid] = snapshot_details_model
 
@@ -177,6 +205,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             index (QtCore.Qt.QModelIndex): table index of the snapshot to open
         """
         snapshot = self.snapshot_table.model()._data[index.row()]
+
+        # Set snapshot header details
+        self.snapshot_title_label.setText(snapshot.title)
+        self.snapshot_time_label.setText(snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S"))
+
         if snapshot.uuid not in self.pv_tables_in_stack.keys():
             # table model doesn't exist in stack, make it
             pv_table_model = PVTableModel(snapshot.uuid, self.client)
@@ -188,11 +221,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.snapshot_details_table.setModel(pv_table_model)
         self.main_content_stack.setCurrentWidget(self.snapshot_details_page)
 
+
     def closeEvent(self, a0: QCloseEvent) -> None:
         try:
-            for pv_table in self.pv_tables_in_stack.values():
-                pv_table.model().stop_polling(wait_time=5000)
-                pv_table.close()
+            for pv_table_model in self.pv_tables_in_stack.values():
+                pv_table_model.close()
         except AttributeError:
             pass
         super().closeEvent(a0)
