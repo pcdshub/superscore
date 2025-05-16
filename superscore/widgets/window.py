@@ -44,7 +44,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         else:
             self.client = Client.from_config()
         self._partial_slots = []
-        self.pv_tables = []
+        self.pv_tables_in_stack = {}
         self.setup_ui()
 
     def setup_ui(self) -> None:
@@ -145,22 +145,34 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
     def open_snapshot(self, index: QtCore.Qt.QModelIndex) -> None:
-        snapshot = self.snapshot_table.model()._data[index.row()]
-        pv_table = QtWidgets.QTableView()
-        pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
-        pv_table.destroyed.connect(pv_table.model().close)
-        pv_table.setShowGrid(False)
-        pv_table.verticalHeader().hide()
-        header_view = pv_table.horizontalHeader()
-        header_view.setSectionResizeMode(header_view.Stretch)
-        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+        """Opens the snapshot stored at the selected index. A widget representing the
+        snapshot is created if necessary and set as the current view in the stack.
 
-        self.main_content_stack.addWidget(pv_table)
+        Args:
+            index (QtCore.Qt.QModelIndex): table index of the snapshot to open
+        """
+        snapshot = self.snapshot_table.model()._data[index.row()]
+        if snapshot.uuid not in self.pv_tables_in_stack.keys():
+            # table doesn't exist in stack, make it
+            pv_table = QtWidgets.QTableView()
+            pv_table.setModel(PVTableModel(snapshot.uuid, self.client))
+            pv_table.destroyed.connect(pv_table.model().close)
+            pv_table.setShowGrid(False)
+            pv_table.verticalHeader().hide()
+            header_view = pv_table.horizontalHeader()
+            header_view.setSectionResizeMode(header_view.Stretch)
+            header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
+            header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
+            header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
+            header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+
+            self.main_content_stack.addWidget(pv_table)
+            self.pv_tables_in_stack[snapshot.uuid] = pv_table
+        else:
+            # table already exists in stack, retrieve it
+            pv_table = self.pv_tables_in_stack[snapshot.uuid]
+
         self.main_content_stack.setCurrentWidget(pv_table)
-        self.pv_tables.append(pv_table)  # Store a reference so they can be cleaned up later
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
@@ -260,7 +272,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         try:
-            for pv_table in self.pv_tables:
+            for pv_table in self.pv_tables_in_stack.values():
                 pv_table.model().stop_polling(wait_time=5000)
                 pv_table.close()
         except AttributeError:
