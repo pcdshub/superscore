@@ -82,6 +82,7 @@ def test_pv_browser_search(qtbot, test_client):
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_nav_panel_expanded(qtbot, test_client):
+    """Passes if button property and text are correctly set when nav panel is expanded"""
     window = Window(client=test_client)
     qtbot.addWidget(window)
 
@@ -93,6 +94,7 @@ def test_nav_panel_expanded(qtbot, test_client):
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_nav_panel_collapsed(qtbot, test_client):
+    """Passes if button property and text are correctly set when nav panel is collapsed"""
     window = Window(client=test_client)
     qtbot.addWidget(window)
 
@@ -104,13 +106,17 @@ def test_nav_panel_collapsed(qtbot, test_client):
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_nav_panel_selected(qtbot, test_client):
+    """Passes if button property is correctly set when button is clicked, and the content
+    switched to the correct view"""
     window = Window(client=test_client)
     qtbot.addWidget(window)
 
     assert window.navigation_panel.view_snapshots_button.property("selected") is True
     assert window.navigation_panel.browse_pvs_button.property("selected") is False
+    assert window.main_content_stack.currentWidget() == window.snapshot_table
 
     window.navigation_panel.browse_pvs_button.click()
 
     assert window.navigation_panel.view_snapshots_button.property("selected") is False
     assert window.navigation_panel.browse_pvs_button.property("selected") is True
+    assert window.main_content_stack.currentWidget() == window.pv_browser_page
