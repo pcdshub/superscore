@@ -328,6 +328,8 @@ class NavigationPanel(QtWidgets.QWidget):
         self.view_snapshots_button.setText("View Snapshots")
         self.view_snapshots_button.setFlat(True)
         self.view_snapshots_button.setToolTip("View Snapshots")
+        self.view_snapshots_button.setProperty("icon-only", False)
+        self.view_snapshots_button.setProperty("selected", False)
         self.view_snapshots_button.clicked.connect(self.sigViewSnapshots.emit)
         self.layout().addWidget(self.view_snapshots_button)
 
@@ -337,6 +339,8 @@ class NavigationPanel(QtWidgets.QWidget):
         self.browse_pvs_button.setText("Browse PVs")
         self.browse_pvs_button.setFlat(True)
         self.browse_pvs_button.setToolTip("Browse PVs")
+        self.browse_pvs_button.setProperty("icon-only", False)
+        self.browse_pvs_button.setProperty("selected", False)
         self.browse_pvs_button.clicked.connect(self.sigBrowsePVs.emit)
         self.layout().addWidget(self.browse_pvs_button)
 
@@ -346,6 +350,8 @@ class NavigationPanel(QtWidgets.QWidget):
         self.configure_tags_button.setText("Configure Tags")
         self.configure_tags_button.setFlat(True)
         self.configure_tags_button.setToolTip("Configure Tags")
+        self.configure_tags_button.setProperty("icon-only", False)
+        self.configure_tags_button.setProperty("selected", False)
         self.configure_tags_button.clicked.connect(self.sigConfigureTags.emit)
         self.layout().addWidget(self.configure_tags_button)
 
@@ -358,6 +364,7 @@ class NavigationPanel(QtWidgets.QWidget):
         self.toggle_expand_button.setIcon(qta.icon("ph.arrow-line-left"))
         self.toggle_expand_button.setIconSize(QtCore.QSize(24, 24))
         self.toggle_expand_button.setFlat(True)
+        self.toggle_expand_button.setProperty("icon-only", False)
         self.toggle_expand_button.clicked.connect(self.toggle_expanded)
         toggle_expand_layout.addWidget(self.toggle_expand_button)
         toggle_expand_layout.addStretch()
@@ -367,6 +374,7 @@ class NavigationPanel(QtWidgets.QWidget):
         self.save_button.setIcon(qta.icon("ph.instagram-logo"))
         self.save_button.setIconSize(QtCore.QSize(24, 24))
         self.save_button.setText("Save Snapshot")
+        self.save_button.setProperty("icon-only", False)
         self.save_button.clicked.connect(self.sigSave.emit)
         self.save_button.setObjectName("save-snapshot-btn")
         self.layout().addWidget(self.save_button)
