@@ -68,16 +68,16 @@ def test_tags_widget(qtbot):
     index = selection_model.model().index(1, 0)
     selection_model.select(index, Select)
     assert len(chip.tags) == 2
-    assert "SXR" in chip.label.text()
-    assert "HXR" in chip.label.text()
+    assert "SXR" in chip.tags_label.text()
+    assert "HXR" in chip.tags_label.text()
 
     Deselect = selection_model.Deselect
     selection_model.select(index, Deselect)
     assert len(chip.tags) == 1
-    assert "SXR" in chip.label.text()
-    assert "HXR" not in chip.label.text()
+    assert "SXR" in chip.tags_label.text()
+    assert "HXR" not in chip.tags_label.text()
 
     chip.clear()
     assert len(chip.tags) == 0
-    assert "SXR" not in chip.label.text()
-    assert "HXR" not in chip.label.text()
+    assert "SXR" not in chip.tags_label.text()
+    assert "HXR" not in chip.tags_label.text()
