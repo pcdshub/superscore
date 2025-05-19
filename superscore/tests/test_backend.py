@@ -149,12 +149,12 @@ def test_fuzzy_search(test_backend: _Backend):
 def test_tag_search(test_backend: _Backend):
     entry_count = len(list(test_backend.search()))
     results = list(test_backend.search(
-        SearchTerm('tags', 'gt', set())
+        SearchTerm('tags', 'gt', {})
     ))
     assert len(results) == entry_count
 
-    smaller_tag_set = {0}
-    bigger_tag_set = {0, 1}
+    smaller_tag_set = {0: {0}}
+    bigger_tag_set = {0: {0, 1}}
 
     results[0].tags = smaller_tag_set
     results[1].tags = bigger_tag_set
@@ -234,9 +234,12 @@ def test_gather_reachable(test_backend: _Backend):
     sources=["linac_data"], backend_type=[TestBackend, FilestoreBackend],
 )
 def test_tags(test_backend: _Backend):
-    default_tags = {0: "SXR", 1: "HXR"}
-    assert test_backend.get_tags() == default_tags
+    tag_groups = test_backend.get_tags()
+    dest_tags = {0: "SXR", 1: "HXR"}
+    assert tag_groups[0][0] == 'Dest'
+    assert tag_groups[0][2] == dest_tags
 
     new_tags = {0: "SXR-2", 1: "HXR", 2: "BSYD"}
-    test_backend.set_tags(new_tags)
-    assert test_backend.get_tags() == new_tags
+    tag_groups[0][2] = new_tags
+    test_backend.set_tags(tag_groups)
+    assert test_backend.get_tags()[0][2] == new_tags

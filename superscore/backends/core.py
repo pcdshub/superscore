@@ -8,7 +8,7 @@ from uuid import UUID
 
 import superscore.tests.conftest_data
 from superscore.model import Entry, Root
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, TagDef
 
 SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
 SearchTermType = tuple[str, str, SearchTermValue]
@@ -91,9 +91,15 @@ class _Backend:
         if op == "eq":
             return data == target
         elif op == "lt":
-            return data <= target
+            if isinstance(data, dict):
+                return all(data[key] <= target.get(key, set()) for key in data)
+            else:
+                return data <= target
         elif op == "gt":
-            return data >= target
+            if isinstance(data, dict):
+                return all(data.get(key, set()) >= target[key] for key in target)
+            else:
+                return data >= target
         elif op == "in":
             return data in target
         elif op == "like":
@@ -108,12 +114,16 @@ class _Backend:
         """Return the Root Entry in this backend"""
         raise NotImplementedError
 
-    def get_tags(self) -> dict[int, str]:
-        """Return the set of valid Collection / Snapshot tags"""
+    def get_tags(self) -> TagDef:
+        """
+        Return the definition of valid entry tags. Each tag group has an id and name, so that
+        groups can be renamed without invaliding existing data. Tags (tag group members) also
+        each have an id and name, for the same reason.
+        """
         raise NotImplementedError
 
-    def set_tags(self, tags: dict[int, str]) -> None:
-        """Set the set of valid Collection / Snapshot tags"""
+    def set_tags(self, tags: TagDef) -> None:
+        """Set the definition of valid entry tags"""
         raise NotImplementedError
 
 
@@ -140,6 +150,6 @@ def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, R
         if isinstance(data, Root):
             for entry in data.entries:
                 backend.save_entry(entry)
-            backend.set_tags(data.all_tags)
+            backend.set_tags(data.tag_groups)
         else:
             backend.save_entry(data)

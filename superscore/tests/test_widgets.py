@@ -6,7 +6,8 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.model import Collection
-from superscore.widgets.core import DataWidget, NameDescTagsWidget
+from superscore.widgets import TagsWidget
+from superscore.widgets.core import DataWidget
 
 
 @pytest.mark.parametrize(
@@ -40,19 +41,43 @@ def test_collection_datawidget_bridge(
     qtbot.addWidget(widget2)
 
 
-def test_tags(qtbot, linac_backend, simple_snapshot_fixture):
-    widget = NameDescTagsWidget(simple_snapshot_fixture, tag_options=linac_backend.get_tags())
+def test_tags_widget(qtbot):
+    tag_groups = {
+        0: (
+            "Dest",
+            "Which endpoint the beam is directed towards",
+            {
+                0: "SXR",
+                1: "HXR",
+            }
+        )
+    }
+
+    widget = TagsWidget(tag_groups=tag_groups, enabled=True)
     qtbot.addWidget(widget)
 
-    tags_list = widget.tags_widget.flow_layout
-    tag_editor = widget.tags_widget.editor
+    assert widget.layout().count() == 1
 
-    assert tags_list.count() == 0
-    tag_editor.input_line.lineEdit().setText("HXR")
-    tag_editor.add_button.click()
-    assert tags_list.count() == 1
-    assert tags_list.itemAt(0).widget().label.text() == "HXR"
+    chip = widget.layout().itemAt(0).widget()
+    assert len(chip.tags) == 0
 
-    tag_chip = tags_list.itemAt(0).widget()
-    tag_chip.remove_button.click()
-    assert tags_list.count() == 0
+    selection_model = chip.editor.choice_list.selectionModel()
+    Select = selection_model.Select
+    index = selection_model.model().index(0, 0)
+    selection_model.select(index, Select)
+    index = selection_model.model().index(1, 0)
+    selection_model.select(index, Select)
+    assert len(chip.tags) == 2
+    assert "SXR" in chip.label.text()
+    assert "HXR" in chip.label.text()
+
+    Deselect = selection_model.Deselect
+    selection_model.select(index, Deselect)
+    assert len(chip.tags) == 1
+    assert "SXR" in chip.label.text()
+    assert "HXR" not in chip.label.text()
+
+    chip.clear()
+    assert len(chip.tags) == 0
+    assert "SXR" not in chip.label.text()
+    assert "HXR" not in chip.label.text()

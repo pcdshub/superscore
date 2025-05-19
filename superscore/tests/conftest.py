@@ -176,12 +176,12 @@ def test_data(request: pytest.FixtureRequest) -> Root:
             fpath = user_path if user_path.is_absolute() else Path(__file__).parent / user_path
             with open(fpath) as fp:
                 serialized = json.load(fp)
-            data = apischema.deserialize(Root, serialized)
+            data = apischema.deserialize(Root, serialized, coerce=True)
 
         if isinstance(data, Root):
             for entry in data.entries:
                 new_root.entries.append(entry)
-            new_root.all_tags.update(data.all_tags)
+            new_root.tag_groups.update(data.tag_groups)
         elif isinstance(data, Entry):
             new_root.entries.append(data)
 
@@ -244,7 +244,7 @@ def test_backend(
 
     for entry in test_data.entries:
         backend.save_entry(entry)
-        backend.set_tags(test_data.all_tags)
+        backend.set_tags(test_data.tag_groups)
 
     return backend
 

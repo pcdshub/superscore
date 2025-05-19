@@ -18,6 +18,7 @@ from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
 from superscore.model import Entry, Nestable, Root
+from superscore.type_hints import TagDef
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class FilestoreBackend(_Backend):
                 new_children.append(self.fill_uuids(new_child))
 
         new_root.entries = new_children
-        new_root.all_tags = self._root.all_tags
+        new_root.tag_groups = self._root.tag_groups
         return new_root
 
     def fill_uuids(self, entry: Entry) -> Entry:
@@ -338,14 +339,14 @@ class FilestoreBackend(_Backend):
         yield db
         self.store()
 
-    def get_tags(self) -> dict[int, str]:
+    def get_tags(self) -> TagDef:
         with self._load_and_store_context():
-            tags = self._root.all_tags
+            tags = self._root.tag_groups
         return tags
 
-    def set_tags(self, tags: dict[int, str]) -> None:
+    def set_tags(self, tags: TagDef) -> None:
         with self._load_and_store_context():
-            self._root.all_tags = tags
+            self._root.tag_groups = tags
 
     def reset(self) -> None:
         with self._load_and_store_context():
