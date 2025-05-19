@@ -167,3 +167,11 @@ class PVTableModel(LivePVTableModel):
                 self._checked.add(index.row())
             self.dataChanged.emit(index, index)
         return True
+
+    def set_snapshot(self, snapshot_id: UUID) -> None:
+        self._data = list(self.client.search(
+            ("ancestor", "eq", snapshot_id),
+            ("entry_type", "eq", (Setpoint, Readback)),
+        ))
+        self._checked = set()
+        self.set_entries(self._data)
