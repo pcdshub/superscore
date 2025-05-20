@@ -78,9 +78,9 @@ class SnapshotDetailsPage(Page):
         )
         interactions_layout.addWidget(self.search_bar)
         interactions_layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+
         self.restore_button = QtWidgets.QPushButton(qta.icon("ph.arrow-clockwise"), "Restore", self)
-        self.restore_button.setEnabled(False)    # TODO: connect to restore function
-        # restore_button.clicked.connect()
+        self.restore_button.clicked.connect(self.show_restore_dialog)
         interactions_layout.addWidget(self.restore_button)
 
         self.comparison_dialog = SnapshotComparisonDialog(self, self.client, self.snapshot)
@@ -157,6 +157,32 @@ class SnapshotDetailsPage(Page):
             "Invalid Selection",
             "Please select a Snapshot to compare to.",
         )
+
+    def show_restore_dialog(self):
+        """Prompt the user to confirm a restore action"""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setLayout(QtWidgets.QHBoxLayout())
+        button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        dialog.layout().addWidget(button_box)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        selected_pvs = self.snapshot_details_table.model().get_selected_pvs()
+        if len(selected_pvs) == 0:
+            dialog.setWindowTitle("Restore all PVs?")
+        else:
+            dialog.setWindowTitle("Restore selected PVs?")
+        dialog.accepted.connect(self.restore_from_table)
+        dialog.exec()
+
+    def restore_from_table(self):
+        """Restore checked setpoints from the PV table. If no PVs are selected, restore all."""
+        selected_pvs = self.snapshot_details_table.model().get_selected_pvs()
+        if len(selected_pvs) == 0:
+            selected_pvs = self.snapshot_details_table.model()._data
+        ephemeral_snapshot = Snapshot(children=selected_pvs)
+        self.client.apply(ephemeral_snapshot)
 
 
 class SnapshotComparisonDialog(QtWidgets.QDialog):
