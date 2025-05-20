@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from functools import cache
-from typing import Container, Generator, Optional, Union
+from typing import Container, Generator, Optional, Sequence, Union
 from uuid import UUID
 
 from apischema import deserialize, serialize
@@ -14,7 +14,7 @@ from apischema import deserialize, serialize
 from superscore.backends.core import SearchTermType, _Backend
 from superscore.errors import (BackendError, EntryExistsError,
                                EntryNotFoundError)
-from superscore.model import Entry, Nestable, Root
+from superscore.model import Entry, Nestable, Parameter, Root
 from superscore.type_hints import TagDef
 from superscore.utils import build_abs_path
 
@@ -178,6 +178,16 @@ class DirectoryBackend(_Backend):
     def set_tags(self, tags: TagDef) -> None:
         root = self.root
         root.tag_groups = tags
+        serialized = serialize(Root, root)
+        with open(os.path.join(self.path, "root.json"), 'w') as f:
+            json.dump(serialized, f, indent=2)
+
+    def get_meta_pvs(self) -> Sequence[Parameter]:
+        return self.root.meta_pvs
+
+    def set_meta_pvs(self, meta_pvs: Sequence[Parameter]) -> None:
+        root = self.root
+        root.meta_pvs = meta_pvs
         serialized = serialize(Root, root)
         with open(os.path.join(self.path, "root.json"), 'w') as f:
             json.dump(serialized, f, indent=2)

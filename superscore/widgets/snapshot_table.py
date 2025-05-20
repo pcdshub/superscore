@@ -2,14 +2,14 @@ from qtpy import QtCore
 
 from superscore.model import Snapshot
 
-HEADER = [
-    "TIMESTAMP",
-    "SNAPSHOT TITLE",
-]
-
 
 class SnapshotTableModel(QtCore.QAbstractTableModel):
     """A table model containing all of the Snapshots available in a client"""
+
+    HEADER = [
+        "TIMESTAMP",
+        "SNAPSHOT TITLE",
+    ]
 
     def __init__(self, client, parent=None):
         super().__init__(parent)
@@ -22,7 +22,8 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, parent=None):
-        return len(HEADER)
+        meta_pvs = self.client.backend.get_meta_pvs()
+        return len(self.HEADER) + len(meta_pvs)
 
     def data(
         self,
@@ -36,7 +37,10 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
             elif column == 1:
                 return entry.title
             else:
-                return None
+                try:
+                    return entry.meta_pvs[column - len(self.HEADER)].data
+                except IndexError:
+                    return None
         else:
             return None
 
@@ -48,4 +52,8 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
     ):
         if orientation == QtCore.Qt.Horizontal:
             if role == QtCore.Qt.DisplayRole:
-                return HEADER[section]
+                try:
+                    return self.HEADER[section]
+                except IndexError:
+                    meta_pvs = self.client.backend.get_meta_pvs()
+                    return meta_pvs[section - len(self.HEADER)].description
