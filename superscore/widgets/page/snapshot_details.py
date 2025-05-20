@@ -31,7 +31,6 @@ class SnapshotDetailsPage(Page):
         self.snapshot = init_snapshot
 
         self.init_ui()
-        self.set_snapshot(init_snapshot)
 
     def init_ui(self) -> None:
         """Initialize the UI for the snapshot details page."""
@@ -55,6 +54,7 @@ class SnapshotDetailsPage(Page):
         spacer_label1.setStyleSheet("font: bold 18px")
         header_layout.addWidget(spacer_label1)
         self.snapshot_title_label = QtWidgets.QLabel()
+        self.snapshot_title_label.setText(self.snapshot.title)
         header_layout.addWidget(self.snapshot_title_label)
         spacer_label2 = QtWidgets.QLabel()
         spacer_label2.setText("|")
@@ -64,6 +64,8 @@ class SnapshotDetailsPage(Page):
         self.snapshot_time_label.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Preferred,)
+        ts_str = self.snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+        self.snapshot_time_label.setText(ts_str)
         header_layout.addWidget(self.snapshot_time_label)
         snapshot_details_layout.addLayout(header_layout)
 
@@ -83,6 +85,7 @@ class SnapshotDetailsPage(Page):
 
         self.comparison_dialog = SnapshotComparisonDialog(self, self.client, self.snapshot)
         self.comparison_dialog.finished.connect(self.comparison_selected)
+        self.comparison_dialog.set_snapshot(self.snapshot)
         self.compare_button = QtWidgets.QPushButton(qta.icon("ph.plus"), "Compare", self)
         self.compare_button.clicked.connect(self.open_comparison_selection)
         interactions_layout.addWidget(self.compare_button)
