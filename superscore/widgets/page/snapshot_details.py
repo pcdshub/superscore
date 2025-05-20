@@ -5,12 +5,14 @@ from superscore.client import Client
 from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
 from superscore.widgets.pv_table import PV_HEADER, PVTableModel
+from superscore.widgets.snapshot_table import SnapshotTableModel
 
 
 class SnapshotDetailsPage(Page):
     """Snapshot details page for displaying the details of a snapshot."""
 
     back_to_main_signal = QtCore.Signal()
+    comparison_signal = QtCore.Signal(object, object)
 
     def __init__(self, parent: QtWidgets.QWidget, client: Client, init_snapshot: Snapshot):
         """Initialize the snapshot details page.
@@ -78,8 +80,11 @@ class SnapshotDetailsPage(Page):
         self.restore_button.setEnabled(False)    # TODO: connect to restore function
         # restore_button.clicked.connect()
         interactions_layout.addWidget(self.restore_button)
+
+        self.comparison_dialog = SnapshotComparisonDialog(self, self.client, self.snapshot)
+        self.comparison_dialog.finished.connect(self.comparison_selected)
         self.compare_button = QtWidgets.QPushButton(qta.icon("ph.plus"), "Compare", self)
-        # compare_button.clicked.connect()    # TODO: connect to compare function
+        self.compare_button.clicked.connect(self.open_comparison_selection)
         interactions_layout.addWidget(self.compare_button)
         snapshot_details_layout.addLayout(interactions_layout)
 
@@ -112,3 +117,134 @@ class SnapshotDetailsPage(Page):
         self.snapshot_time_label.setText(ts_str)
 
         self.snapshot_details_model.set_snapshot(self.snapshot.uuid)
+
+        self.comparison_dialog.set_snapshot(self.snapshot)
+
+    @QtCore.Slot()
+    def open_comparison_selection(self) -> None:
+        """Select a comparison snapshot."""
+        self.comparison_dialog.show()
+
+    @QtCore.Slot(int)
+    def comparison_selected(self, result: QtWidgets.QDialog.DialogCode) -> None:
+        """Handle the selection of a comparison snapshot."""
+        if result == QtWidgets.QDialog.Rejected:
+            return
+        comparison_snapshot = self.comparison_dialog.selected_snapshot
+        if comparison_snapshot is None or comparison_snapshot == self.snapshot:
+            self.metaObject().invokeMethod(
+                self,
+                "show_warning",
+                QtCore.Qt.QueuedConnection,
+            )
+            return
+        self.comparison_signal.emit(self.snapshot, comparison_snapshot)
+
+    @QtCore.Slot()
+    def show_warning(self):
+        """Show a warning dialog if the selected entry is the main Snapshot. This
+        has to be a separate slot to allow QDialog close events to process."""
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Invalid Selection",
+            "Please select a Snapshot to compare to.",
+        )
+
+
+class SnapshotComparisonDialog(QtWidgets.QDialog):
+    """Dialog for selecting a comparison snapshot."""
+
+    def __init__(self, parent: QtWidgets.QWidget, client: Client, snapshot: Snapshot):
+        """Initialize the snapshot comparison dialog.
+
+        Parameters
+        ----------
+        parent : QtWidgets.QWidget
+            Parent widget for the dialog.
+        client : Client
+            Client object for interacting with the server.
+        """
+        super().__init__(parent)
+        self.client = client
+        self.snapshot = None
+
+        self.init_ui()
+        self.set_snapshot(snapshot)
+
+    def init_ui(self) -> None:
+        self.setWindowTitle("Select Comparison Snapshot")
+
+        main_layout = QtWidgets.QVBoxLayout()
+        self.setLayout(main_layout)
+
+        self.header_label = QtWidgets.QLabel()
+        main_layout.addWidget(self.header_label)
+
+        self.table_model = SnapshotTableModel(self.client)
+        self.proxy_model = ExcludeCurrentSnapshotProxyModel(self, self.snapshot)
+        self.proxy_model.setSourceModel(self.table_model)
+        self.table_view = QtWidgets.QTableView()
+        self.table_view.setModel(self.proxy_model)
+        self.table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.table_view.doubleClicked.connect(self.accept)
+        self.table_view.verticalHeader().hide()
+        header_view = self.table_view.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setSectionResizeMode(1, header_view.Stretch)
+        main_layout.addWidget(self.table_view)
+
+        btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        buttonBox = QtWidgets.QDialogButtonBox(btns)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+        main_layout.addWidget(buttonBox)
+
+        self.resize(450, 300)
+
+    @property
+    def selected_snapshot(self):
+        try:
+            selected_index = self.table_view.selectedIndexes()[0]
+        except IndexError:
+            return None
+        return self.proxy_model.index_to_snapshot(selected_index)
+
+    def set_snapshot(self, snapshot: Snapshot) -> None:
+        """Set the snapshot to be displayed in the details page."""
+        if snapshot is self.snapshot:
+            return
+
+        self.snapshot = snapshot
+
+        header_text = f"Main Snapshot:\n    {self.snapshot.title}\n\n" \
+                      "Select a snapshot to compare to:"
+        self.header_label.setText(header_text)
+
+        self.proxy_model.set_snapshot(self.snapshot)
+
+
+class ExcludeCurrentSnapshotProxyModel(QtCore.QSortFilterProxyModel):
+    """A proxy model that excludes the current snapshot from the source model."""
+
+    def __init__(self, parent, snapshot: Snapshot):
+        super().__init__(parent)
+        self.snapshot = snapshot
+
+    def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:
+        source_index = self.sourceModel().index(source_row, 0, source_parent)
+        source_snapshot = self.sourceModel().index_to_snapshot(source_index)
+        if source_snapshot == self.snapshot:
+            return False
+        return True
+
+    def set_snapshot(self, snapshot: Snapshot) -> None:
+        """Set the snapshot to be displayed in the details page."""
+        if snapshot == self.snapshot:
+            return
+        self.snapshot = snapshot
+        self.invalidateFilter()
+
+    def index_to_snapshot(self, index: QtCore.QModelIndex) -> Snapshot:
+        """Convert a QModelIndex to a Snapshot object."""
+        source_index = self.mapToSource(index)
+        return self.sourceModel().index_to_snapshot(source_index)
