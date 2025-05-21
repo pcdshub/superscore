@@ -16,6 +16,7 @@ from superscore.client import Client
 from superscore.model import Snapshot
 from superscore.widgets.core import NameDescTagsWidget, QtSingleton
 from superscore.widgets.page.page import Page
+from superscore.widgets.page.snapshot_comparison import SnapshotComparisonPage
 from superscore.widgets.page.snapshot_details import SnapshotDetailsPage
 from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
                                                  PVBrowserTableModel)
@@ -47,11 +48,14 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.view_snapshot_page = self.init_view_snapshot_page()
         self.snapshot_details_page = self.init_snapshot_details_page()
         self.pages.add(self.snapshot_details_page)
+        self.comparison_page = self.init_comparison_page()
+        self.pages.add(self.comparison_page)
         self.pv_browser_page = self.init_pv_browser_page()
 
         self.main_content_stack = QtWidgets.QStackedLayout()
         self.main_content_stack.addWidget(self.view_snapshot_page)
         self.main_content_stack.addWidget(self.snapshot_details_page)
+        self.main_content_stack.addWidget(self.comparison_page)
         self.main_content_stack.addWidget(self.pv_browser_page)
         self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
         self.main_content_container = QtWidgets.QWidget()
@@ -105,8 +109,16 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         first_snapshot = self.snapshot_table.model().index_to_snapshot(temp_index)
         snapshot_details_page = SnapshotDetailsPage(self, self.client, first_snapshot)
         snapshot_details_page.back_to_main_signal.connect(self.open_view_snapshot_page)
+        self.snapshot_details_page.comparison_signal.connect(self.open_comparison_page)
 
         return snapshot_details_page
+
+    def init_comparison_page(self) -> QtWidgets.QWidget:
+        """Initialize the snapshot comparison page so it can be opened later."""
+        comparison_page = SnapshotComparisonPage(self)
+        comparison_page.remove_comparison_signal.connect(self.open_snapshot_details)
+
+        return comparison_page
 
     def init_pv_browser_page(self) -> QtWidgets.QWidget:
         """Initialize the PV browser page with the PV browser table."""
@@ -202,6 +214,14 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         buttonBox.rejected.connect(metadata_dialog.reject)
         metadata_dialog.setLayout(layout)
         return metadata_dialog
+
+    @QtCore.Slot(Snapshot, Snapshot)
+    def open_comparison_page(self, main_snapshot: Snapshot, comp_snapshot: Snapshot) -> None:
+        """Open the comparison page with the given snapshots."""
+        self.comparison_page.set_main_snapshot(main_snapshot)
+        self.comparison_page.set_comparison_snapshot(comp_snapshot)
+
+        self.main_content_stack.setCurrentWidget(self.comparison_page)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         for page in self.pages:
