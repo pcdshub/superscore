@@ -1,7 +1,9 @@
 from typing import Any
 
+import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 
+import superscore.color
 from superscore.type_hints import TagDef
 from superscore.widgets import FlowLayout
 
@@ -66,7 +68,7 @@ class TagsWidget(QtWidgets.QWidget):
             self.layout().addWidget(chip)
 
 
-class TagChip(QtWidgets.QWidget):
+class TagChip(QtWidgets.QFrame):
     """
     A UI element representing active tags for one tag group. TagsWidget uses multiple to
     represent a full TagSet.
@@ -97,49 +99,115 @@ class TagChip(QtWidgets.QWidget):
         self.tag_name = tag_name
         self.choices = choices
         self.tags = set()
+        self.setProperty("empty", True)
         self.setToolTip(desc)
+        self.setStyleSheet(
+            "TagChip {"
+            "border-width: 2px;"
+            f"border-color: {superscore.color.GREY};"
+            "border-radius: 1.9ex;"
+            "}\n"
+            "TagChip:disabled {"
+            "border-radius: 1.7ex;"
+            "}\n"
+            "TagChip[empty=\"false\"] {"
+            "border-style: solid;"
+            "}\n"
+            "TagChip[empty=\"true\"] {"
+            "border-style: dashed;"
+            "}\n"
+        )
 
-        self.label = QtWidgets.QLabel()
-        self.refresh_label()
+        self.group_label = QtWidgets.QLabel()
+        self.group_label.setStyleSheet(
+            "QLabel:disabled {"
+            f"color: {superscore.color.GREY};"
+            "}"
+        )
+        self.spacer_label = QtWidgets.QLabel("|")
+        self.tags_label = QtWidgets.QLabel()
+        self.tags_label.setStyleSheet(
+            f"color: {superscore.color.LIGHT_BLUE};"
+        )
 
         self.setLayout(QtWidgets.QHBoxLayout())
-        self.layout().setContentsMargins(5, 2, 5, 2)
-        self.layout().setSpacing(5)
-        self.layout().addWidget(self.label)
-
-        self.clear_button = QtWidgets.QToolButton()
-        self.clear_button.setText("X")
-        self.clear_button.setToolTip("Reset this tag")
-
-        self.layout().insertWidget(0, self.clear_button)
-        self.clear_button.clicked.connect(self.clear)
+        self.layout().setSpacing(3)
+        self.layout().addWidget(self.group_label)
+        self.layout().addWidget(self.spacer_label)
+        self.layout().addWidget(self.tags_label)
 
         self.editor = TagEditor(self.choices, self.tags, parent=self)
         self.editor.tagsChanged.connect(self.set_tags)
         self.editor.hide()
 
+        self.clear_button = QtWidgets.QToolButton()
+        self.clear_button.setStyleSheet(
+            "QToolButton {"
+            "border-radius: 1ex;"
+            "}"
+        )
+        clear_icon = qta.icon("ph.x-circle-fill", color=superscore.color.GREY, scale_factor=1.1)
+        self.clear_button.setIcon(clear_icon)
+        self.clear_button.clicked.connect(self.clear)
+        self.layout().insertWidget(0, self.clear_button)
+
+        self.add_button = QtWidgets.QToolButton()
+        self.add_button.setStyleSheet(
+            "QToolButton {"
+            "border-radius: 1ex;"
+            "}"
+        )
+        add_icon = qta.icon("ph.plus-circle-fill", color=superscore.color.GREY, scale_factor=1.1)
+        self.add_button.setIcon(add_icon)
+        self.add_button.clicked.connect(self.editor.show)
+        self.layout().insertWidget(0, self.add_button)
+
         self.setEnabled(enabled)
+        self.redraw()
 
     def setEnabled(self, enabled: bool):
-        self.clear_button.setVisible(enabled)
         super().setEnabled(enabled)
+        self.redraw()
 
-    def refresh_label(self) -> None:
-        """Refresh this widget's displayed text"""
+    def redraw(self) -> None:
+        """Redraw this widget according to its current state"""
+        # set label text
         tag_strings = {self.choices[tag] for tag in self.tags}
-        text = f"{self.tag_name}|{', '.join(sorted(tag_strings))}"
-        self.label.setText(text)
+        self.group_label.setText(f"{self.tag_name}")
+        self.tags_label.setText(', '.join(sorted(tag_strings)))
+        if len(self.tags) > 0:
+            self.spacer_label.show()
+        else:
+            self.spacer_label.hide()
+
+        # show correct icon
+        self.clear_button.hide()
+        self.add_button.hide()
+        if self.isEnabled():
+            if len(self.tags) > 0:
+                self.clear_button.show()
+            else:
+                self.add_button.show()
+            self.layout().setContentsMargins(5, 2, 5, 2)
+        else:
+            self.layout().setContentsMargins(10, 2, 0, 2)
+
+        # trigger "empty" property styling; cannot update box model
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
 
     def set_tags(self, tags: set[int]) -> None:
-        """Set this widget's active tags and trigger a text refresh."""
+        """Set this widget's active tags and redraw."""
         self.tags = tags
-        self.refresh_label()
+        self.setProperty("empty", len(self.tags) == 0)
+        self.redraw()
 
     def clear(self) -> None:
         """Clear this widget's active tags."""
         self.tags = set()
         self.editor.choice_list.clearSelection()
-        self.refresh_label()
+        self.redraw()
 
     def mouseReleaseEvent(self, event):
         self.editor.show()

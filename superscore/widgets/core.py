@@ -205,6 +205,7 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         Set up the tags widgets appropriately.
         """
         self.tags_widget.setObjectName("TagsWidget")
+        self.tags_widget.setEnabled(True)
         self.tags_widget.set_tag_groups(tag_groups)
 
 
