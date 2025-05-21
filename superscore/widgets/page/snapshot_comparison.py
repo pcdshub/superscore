@@ -1,5 +1,5 @@
 import qtawesome as qta
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
@@ -7,6 +7,8 @@ from superscore.widgets.page.page import Page
 
 class SnapshotComparisonPage(Page):
     """Page for comparing snapshots"""
+
+    remove_comparison_signal = QtCore.Signal()
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -50,7 +52,7 @@ class SnapshotComparisonPage(Page):
         # Add a label to show the comparison result
         comp_header_layout = QtWidgets.QHBoxLayout()
         comp_snapshot_label = QtWidgets.QLabel()
-        comp_snapshot_label.setText("Main Snapshot")
+        comp_snapshot_label.setText("Comparison Snapshot")
         comp_header_layout.addWidget(comp_snapshot_label)
 
         spacer_label3 = QtWidgets.QLabel()
@@ -73,14 +75,14 @@ class SnapshotComparisonPage(Page):
         comp_header_layout.addWidget(self.comp_snapshot_time_label)
         comp_header_layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
         remove_button = QtWidgets.QPushButton(qta.icon("ei.remove"), "Remove Comparison", self)
-        remove_button.setEnabled(False)    # TODO: Remove the comparison
-        # remove_button.clicked.connect()
+        remove_button.clicked.connect(self.remove_comparison_signal.emit)
         comp_header_layout.addWidget(remove_button)
 
         snapshot_comparison_layout.addLayout(comp_header_layout)
 
         # Add a table to show the comparison result
         self.comparison_table = QtWidgets.QTableView()
+        snapshot_comparison_layout.addWidget(self.comparison_table)
 
     def set_main_snapshot(self, snapshot: Snapshot):
         """Set the main snapshot for comparison."""
