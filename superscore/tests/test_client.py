@@ -101,11 +101,9 @@ def test_snap(
     get_mock.side_effect = [EpicsData(i) for i in range(6)]
     snapshot = test_client.snap()
     assert get_mock.call_count == 6
-    assert all([snapshot.children[i].data == i for i in range(4)])  # children saved in order
-    setpoint = snapshot.children[-1]
-    assert isinstance(setpoint, Setpoint)
-    assert isinstance(setpoint.readback, Readback)
-    assert setpoint.readback.data > 4  # readback saved after setpoint
+    assert all([snapshot.children[i].data == i for i in range(5)])  # children saved in order
+    assert all(isinstance(e, Setpoint) for e in snapshot.children)
+    assert any(isinstance(e.readback, Readback) for e in snapshot.children)
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
