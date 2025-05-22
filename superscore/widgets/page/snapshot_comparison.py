@@ -1,8 +1,11 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 
+from superscore.client import Client
 from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
+from superscore.widgets.snapshot_comparison_table import \
+    SnapshotComparisonTableModel
 
 
 class SnapshotComparisonPage(Page):
@@ -10,8 +13,9 @@ class SnapshotComparisonPage(Page):
 
     remove_comparison_signal = QtCore.Signal()
 
-    def __init__(self, parent):
+    def __init__(self, parent: QtWidgets.QWidget, client: Client):
         super().__init__(parent)
+        self.client = client
         self.main_snapshot = None
         self.comparison_snapshot = None
 
@@ -81,7 +85,9 @@ class SnapshotComparisonPage(Page):
         snapshot_comparison_layout.addLayout(comp_header_layout)
 
         # Add a table to show the comparison result
+        self.comparison_table_model = SnapshotComparisonTableModel(self.client, self)
         self.comparison_table = QtWidgets.QTableView()
+        self.comparison_table.setModel(self.comparison_table_model)
         snapshot_comparison_layout.addWidget(self.comparison_table)
 
     def set_main_snapshot(self, snapshot: Snapshot):
@@ -89,12 +95,14 @@ class SnapshotComparisonPage(Page):
         self.main_snapshot = snapshot
         self.main_snapshot_title_label.setText(snapshot.title)
         self.main_snapshot_time_label.setText(snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S"))
+        self.comparison_table_model.set_main_snapshot(snapshot)
 
     def set_comparison_snapshot(self, snapshot: Snapshot):
         """Set the comparison snapshot."""
         self.comparison_snapshot = snapshot
         self.comp_snapshot_title_label.setText(snapshot.title)
         self.comp_snapshot_time_label.setText(snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S"))
+        self.comparison_table_model.set_comparison_snapshot(snapshot)
 
     def update_comparison_table(self):
         """Update the comparison table with the differences between the two snapshots."""
