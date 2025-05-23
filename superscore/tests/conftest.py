@@ -24,7 +24,8 @@ from superscore.widgets.window import Window
 # expose fixtures and helpers from other files in conftest so they will be gathered
 from .conftest_data import (linac_data, linac_with_comparison_snapshot,  # NOQA
                             parameter_with_readback, sample_database,
-                            setpoint_with_readback, simple_snapshot)
+                            setpoint_with_readback, simple_comparison_snapshot,
+                            simple_snapshot)
 
 
 @pytest.fixture(scope='function')
@@ -51,6 +52,11 @@ def parameter_with_readback_fixture() -> Parameter:
 @pytest.fixture(scope='function')
 def simple_snapshot_fixture() -> Collection:
     return simple_snapshot()
+
+
+@pytest.fixture(scope='function')
+def simple_comparison_snapshot_fixture() -> Collection:
+    return simple_comparison_snapshot()
 
 
 @pytest.fixture(scope='function')

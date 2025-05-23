@@ -19,6 +19,7 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            SetpointPage, SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.page.snapshot_comparison import SnapshotComparisonPage
 
 
 @pytest.fixture(scope='function')
@@ -314,3 +315,30 @@ def test_restore_dialog_remove_pv(
     assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
     items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
     assert item_to_remove not in items_left
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_snapshot_comparison_page(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot,
+    simple_comparison_snapshot_fixture: Snapshot
+):
+    # Setup the test backend and model
+    test_client.backend.save_entry(simple_snapshot_fixture)
+    test_client.backend.save_entry(simple_comparison_snapshot_fixture)
+
+    page = SnapshotComparisonPage(
+        client=test_client,
+    )
+
+    page.set_main_snapshot(simple_snapshot_fixture)
+    expected_time = simple_snapshot_fixture.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+    assert page.main_snapshot == simple_snapshot_fixture
+    assert page.main_snapshot_title_label.text() == simple_snapshot_fixture.title
+    assert page.main_snapshot_time_label.text() == expected_time
+
+    page.set_comparison_snapshot(simple_comparison_snapshot_fixture)
+    expected_time = simple_comparison_snapshot_fixture.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+    assert page.comparison_snapshot == simple_comparison_snapshot_fixture
+    assert page.comp_snapshot_title_label.text() == simple_comparison_snapshot_fixture.title
+    assert page.comp_snapshot_time_label.text() == expected_time

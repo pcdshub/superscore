@@ -872,6 +872,14 @@ def simple_snapshot() -> Collection:
     return snap
 
 
+def simple_comparison_snapshot() -> Collection:
+    snap = simple_snapshot()
+    snap.children.pop(0)
+    snap.children[0].data = 1
+    snap.children.append(Setpoint(pv_name="MY:NEW:ENUM"))
+    return snap
+
+
 def sample_database() -> Root:
     """
     A sample superscore database, including all the Entry types.
