@@ -24,65 +24,70 @@ class SnapshotComparisonPage(Page):
     def setup_ui(self) -> None:
         # Set up the layout
         snapshot_comparison_layout = QtWidgets.QVBoxLayout()
+        snapshot_comparison_layout.setContentsMargins(0, 11, 0, 0)
         self.setLayout(snapshot_comparison_layout)
 
-        # Add a label to show the comparison result
-        main_header_layout = QtWidgets.QHBoxLayout()
+        # Set up the header
+        header_layout = QtWidgets.QGridLayout()
+        snapshot_comparison_layout.addLayout(header_layout)
+
+        back_button = QtWidgets.QPushButton()
+        back_button.setIcon(qta.icon("ph.arrow-left"))
+        back_button.setIconSize(QtCore.QSize(24, 24))
+        back_button.setStyleSheet("border: none")
+        back_button.clicked.connect(self.remove_comparison_signal.emit)
+        header_layout.addWidget(back_button, 0, 0)
+
         main_snapshot_label = QtWidgets.QLabel()
         main_snapshot_label.setText("Main Snapshot")
-        main_header_layout.addWidget(main_snapshot_label)
+        header_layout.addWidget(main_snapshot_label, 0, 1)
 
         spacer_label1 = QtWidgets.QLabel()
         spacer_label1.setText("|")
         spacer_label1.setStyleSheet("font: bold 18px")
-        main_header_layout.addWidget(spacer_label1)
+        header_layout.addWidget(spacer_label1, 0, 2)
 
         self.main_snapshot_title_label = QtWidgets.QLabel()
-        main_header_layout.addWidget(self.main_snapshot_title_label)
+        header_layout.addWidget(self.main_snapshot_title_label, 0, 3)
 
         spacer_label2 = QtWidgets.QLabel()
         spacer_label2.setText("|")
         spacer_label2.setStyleSheet("font: bold 18px")
-        main_header_layout.addWidget(spacer_label2)
+        header_layout.addWidget(spacer_label2, 0, 4)
 
         self.main_snapshot_time_label = QtWidgets.QLabel()
         self.main_snapshot_time_label.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Preferred,)
-        main_header_layout.addWidget(self.main_snapshot_time_label)
+        header_layout.addWidget(self.main_snapshot_time_label, 0, 5)
 
-        snapshot_comparison_layout.addLayout(main_header_layout)
-
-        # Add a label to show the comparison result
-        comp_header_layout = QtWidgets.QHBoxLayout()
+        # Second row of the header
         comp_snapshot_label = QtWidgets.QLabel()
         comp_snapshot_label.setText("Comparison Snapshot")
-        comp_header_layout.addWidget(comp_snapshot_label)
+        header_layout.addWidget(comp_snapshot_label, 1, 1)
 
         spacer_label3 = QtWidgets.QLabel()
         spacer_label3.setText("|")
         spacer_label3.setStyleSheet("font: bold 18px")
-        comp_header_layout.addWidget(spacer_label3)
+        header_layout.addWidget(spacer_label3, 1, 2)
 
         self.comp_snapshot_title_label = QtWidgets.QLabel()
-        comp_header_layout.addWidget(self.comp_snapshot_title_label)
+        header_layout.addWidget(self.comp_snapshot_title_label, 1, 3)
 
         spacer_label4 = QtWidgets.QLabel()
         spacer_label4.setText("|")
         spacer_label4.setStyleSheet("font: bold 18px")
-        comp_header_layout.addWidget(spacer_label4)
+        header_layout.addWidget(spacer_label4, 1, 4)
 
         self.comp_snapshot_time_label = QtWidgets.QLabel()
         self.comp_snapshot_time_label.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Preferred,)
-        comp_header_layout.addWidget(self.comp_snapshot_time_label)
-        comp_header_layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+        header_layout.addWidget(self.comp_snapshot_time_label, 1, 5)
+
         remove_button = QtWidgets.QPushButton(qta.icon("ei.remove"), "Remove Comparison", self)
         remove_button.clicked.connect(self.remove_comparison_signal.emit)
-        comp_header_layout.addWidget(remove_button)
-
-        snapshot_comparison_layout.addLayout(comp_header_layout)
+        header_layout.addWidget(remove_button, 1, 6)
 
         # Add a table to show the comparison result
         self.comparison_table_model = SnapshotComparisonTableModel(self.client, self)
