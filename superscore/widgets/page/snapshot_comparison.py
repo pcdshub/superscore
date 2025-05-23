@@ -4,8 +4,8 @@ from qtpy import QtCore, QtWidgets
 from superscore.client import Client
 from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
-from superscore.widgets.snapshot_comparison_table import \
-    SnapshotComparisonTableModel
+from superscore.widgets.snapshot_comparison_table import (
+    COMPARE_HEADER, SnapshotComparisonTableModel)
 
 
 class SnapshotComparisonPage(Page):
@@ -88,6 +88,14 @@ class SnapshotComparisonPage(Page):
         self.comparison_table_model = SnapshotComparisonTableModel(self.client, self)
         self.comparison_table = QtWidgets.QTableView()
         self.comparison_table.setModel(self.comparison_table_model)
+        self.comparison_table.verticalHeader().hide()
+        header_view = self.comparison_table.horizontalHeader()
+        header_view.setSectionResizeMode(header_view.Stretch)
+        header_view.setSectionResizeMode(COMPARE_HEADER.CHECKBOX.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(COMPARE_HEADER.SEVERITY.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(COMPARE_HEADER.COMPARE_SEVERITY.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(COMPARE_HEADER.DEVICE.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(COMPARE_HEADER.PV.value, header_view.ResizeToContents)
         snapshot_comparison_layout.addWidget(self.comparison_table)
 
     def set_main_snapshot(self, snapshot: Snapshot):
