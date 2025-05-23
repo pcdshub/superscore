@@ -151,7 +151,16 @@ class PVTableModel(LivePVTableModel):
             stored_data = getattr(entry, 'data', None)
             is_close = self.is_close(entry, stored_data)
             if stored_data is not None and not is_close:
-                return QtGui.QColor(superscore.color.RED)
+                return QtGui.QColor(superscore.color.LIVE_SETPOINT_HIGHLIGHT)
+            else:
+                return None
+        elif role == QtCore.Qt.FontRole and column == PV_HEADER.LIVE_SETPOINT:
+            stored_data = getattr(entry, 'data', None)
+            is_close = self.is_close(entry, stored_data)
+            if stored_data is not None and not is_close:
+                font = QtGui.QFont()
+                font.setBold(True)
+                return font
             else:
                 return None
         elif role == QtCore.Qt.TextAlignmentRole and column not in [PV_HEADER.DEVICE, PV_HEADER.PV]:
