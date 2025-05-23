@@ -110,6 +110,10 @@ class AiocaShim(_BaseShim):
         precision = getattr(value_ctrl, "precision", None)
         upper_ctrl_limit = getattr(value_ctrl, "upper_ctrl_limit", None)
         lower_ctrl_limit = getattr(value_ctrl, "lower_ctrl_limit", None)
+        lower_alarm_limit = getattr(value_ctrl, "lower_alarm_limit", None)
+        upper_alarm_limit = getattr(value_ctrl, "upper_alarm_limit", None)
+        lower_warning_limit = getattr(value_ctrl, "lower_warning_limit", None)
+        upper_warning_limit = getattr(value_ctrl, "upper_warning_limit", None)
         enums = getattr(value_ctrl, "enums", None)
 
         return EpicsData(
@@ -121,5 +125,9 @@ class AiocaShim(_BaseShim):
             precision=precision,
             upper_ctrl_limit=upper_ctrl_limit,
             lower_ctrl_limit=lower_ctrl_limit,
-            enums=enums
+            lower_alarm_limit=lower_alarm_limit,
+            upper_alarm_limit=upper_alarm_limit,
+            lower_warning_limit=lower_warning_limit,
+            upper_warning_limit=upper_warning_limit,
+            enums=enums,
         )

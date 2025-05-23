@@ -36,4 +36,8 @@ class EpicsData:
     precision: Optional[int] = None
     upper_ctrl_limit: Optional[float] = None
     lower_ctrl_limit: Optional[float] = None
+    lower_alarm_limit: Optional[float] = None  # LOLO
+    upper_alarm_limit: Optional[float] = None  # HIHI
+    lower_warning_limit: Optional[float] = None  # LOW
+    upper_warning_limit: Optional[float] = None  # HIGH
     enums: Optional[list[str]] = None
