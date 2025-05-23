@@ -18,6 +18,10 @@ class PVDetails:
     description: str
     tolerance_abs: float
     tolerance_rel: float
+    lolo: float
+    low: float
+    high: float
+    hihi: float
     tags: Any  # TODO: Placeholder for tags implementation
 
 
@@ -49,12 +53,12 @@ class PVDetailsTitleBar(QWidget):
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPos() - self.parent_widget.frameGeometry().topLeft()
+            self.drag_position = event.globalPos() - self.parent().frameGeometry().topLeft()
             event.accept()
 
     def mouseMoveEvent(self, event) -> None:
         if event.buttons() & Qt.LeftButton and self.drag_position is not None:
-            self.parent_widget.move(event.globalPos() - self.drag_position)
+            self.parent().move(event.globalPos() - self.drag_position)
             event.accept()
 
 
@@ -123,6 +127,12 @@ class PVDetailsPopup(QWidget):
         layout.addLayout(PVDetailsRow("Tolerance", None))
         layout.addLayout(PVDetailsRow("Absolute:", QLabel(str(pv_details.tolerance_abs)), indent=1))
         layout.addLayout(PVDetailsRow("Relative:", QLabel(str(pv_details.tolerance_rel)), indent=1))
+
+        layout.addLayout(PVDetailsRow("PV Limits", None))
+        layout.addLayout(PVDetailsRow("LOLO:", QLabel(str(pv_details.lolo)), indent=1))
+        layout.addLayout(PVDetailsRow("LOW:", QLabel(str(pv_details.low)), indent=1))
+        layout.addLayout(PVDetailsRow("HIGH:", QLabel(str(pv_details.high)), indent=1))
+        layout.addLayout(PVDetailsRow("HIHI:", QLabel(str(pv_details.hihi)), indent=1))
 
         layout.addLayout(PVDetailsRow("Tags", QLabel("N/A"), direction=QBoxLayout.TopToBottom))  # Placeholder
         layout.addStretch()
@@ -230,6 +240,10 @@ if __name__ == "__main__":
         description="This will be the description of the PV",
         tolerance_abs=0.1,
         tolerance_rel=0.01,
+        lolo=0.0,
+        low=0.1,
+        high=0.9,
+        hihi=1.0,
         tags=None,
     )
 
