@@ -87,9 +87,6 @@ class SnapshotComparisonTableModel(QtCore.QAbstractTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ):
-        if role == QtCore.Qt.TextAlignmentRole and index.data() == NO_DATA:
-            return QtCore.Qt.AlignCenter
-
         column = COMPARE_HEADER(index.column())
         is_compare_column = column.is_compare_column()
 
@@ -98,18 +95,19 @@ class SnapshotComparisonTableModel(QtCore.QAbstractTableModel):
         if is_compare_column:
             entry, compare = compare, entry
 
-        # If there is no entry data, return a default value
-        if entry is None:
-            return NO_DATA if role == QtCore.Qt.DisplayRole else None
+        # Handle different roles
+        if role == QtCore.Qt.TextAlignmentRole:
+            if column not in (COMPARE_HEADER.DEVICE, COMPARE_HEADER.PV):
+                return QtCore.Qt.AlignCenter
         elif role == QtCore.Qt.CheckStateRole:
             if column == COMPARE_HEADER.CHECKBOX:
                 return QtCore.Qt.Checked if index.row() in self._checked else QtCore.Qt.Unchecked
         elif role == QtCore.Qt.BackgroundRole:
-            if compare is None:
-                return None
-            elif column == COMPARE_HEADER.COMPARE_SETPOINT:
+            if column == COMPARE_HEADER.COMPARE_SETPOINT:
                 try:
                     is_close = np.isclose(entry.data, compare.data)
+                except AttributeError:
+                    return None
                 except TypeError:
                     is_close = entry.data == compare.data
                 if compare.data is not None and not is_close:
@@ -130,23 +128,29 @@ class SnapshotComparisonTableModel(QtCore.QAbstractTableModel):
                 return compare.pv_name
         elif role == QtCore.Qt.DecorationRole:
             if column in (COMPARE_HEADER.SEVERITY, COMPARE_HEADER.COMPARE_SEVERITY):
+                if entry is None:
+                    return None
                 icon = SEVERITY_ICONS[entry.severity]
                 if icon is None:
                     icon = SEVERITY_ICONS[entry.status]
                 return icon
         elif role == QtCore.Qt.DisplayRole:
-            if column == COMPARE_HEADER.DEVICE:
-                # TODO: figure out how to represent a device
-                return NO_DATA
-            elif column == COMPARE_HEADER.PV:
-                return entry.pv_name
-            elif column in (COMPARE_HEADER.SETPOINT, COMPARE_HEADER.COMPARE_SETPOINT):
-                return entry.data
-            elif column in (COMPARE_HEADER.READBACK, COMPARE_HEADER.COMPARE_READBACK):
-                try:
-                    return entry.readback.data
-                except AttributeError:
+            try:
+                if column in (COMPARE_HEADER.SEVERITY, COMPARE_HEADER.COMPARE_SEVERITY):
+                    # Return NO_DATA if only one entry is present
+                    if entry is None:
+                        return NO_DATA
+                elif column == COMPARE_HEADER.DEVICE:
+                    # TODO: figure out how to represent a device
                     return NO_DATA
+                elif column == COMPARE_HEADER.PV:
+                    return entry.pv_name if entry else compare.pv_name
+                elif column in (COMPARE_HEADER.SETPOINT, COMPARE_HEADER.COMPARE_SETPOINT):
+                    return entry.data
+                elif column in (COMPARE_HEADER.READBACK, COMPARE_HEADER.COMPARE_READBACK):
+                    return entry.readback.data
+            except AttributeError:
+                return NO_DATA
 
         # Default case
         return None
