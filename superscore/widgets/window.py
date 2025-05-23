@@ -115,7 +115,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def init_comparison_page(self) -> SnapshotComparisonPage:
         """Initialize the snapshot comparison page so it can be opened later."""
-        comparison_page = SnapshotComparisonPage(self, self.client)
+        comparison_page = SnapshotComparisonPage(self.client, self)
         comparison_page.remove_comparison_signal.connect(self.open_snapshot_details)
 
         return comparison_page

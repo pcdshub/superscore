@@ -13,7 +13,7 @@ class SnapshotComparisonPage(Page):
 
     remove_comparison_signal = QtCore.Signal()
 
-    def __init__(self, parent: QtWidgets.QWidget, client: Client):
+    def __init__(self, client: Client, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.client = client
         self.main_snapshot = None
