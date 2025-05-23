@@ -113,7 +113,7 @@ def test_nav_panel_selected(qtbot, test_client):
 
     assert window.navigation_panel.view_snapshots_button.property("selected") is True
     assert window.navigation_panel.browse_pvs_button.property("selected") is False
-    assert window.main_content_stack.currentWidget() == window.snapshot_table
+    assert window.main_content_stack.currentWidget() == window.view_snapshot_page
 
     window.navigation_panel.browse_pvs_button.click()
 
