@@ -35,7 +35,6 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.client = client
         else:
             self.client = Client.from_config()
-        self.pv_tables_in_stack = {}
         self.pages: set[Page] = set()
         self.setup_ui()
 
@@ -45,10 +44,12 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         # Initialize content pages and add to stack
         self.view_snapshot_page = self.init_view_snapshot_page()
         self.snapshot_details_page = self.init_snapshot_details_page()
+        self.pages.add(self.snapshot_details_page)
         self.pv_browser_page = self.init_pv_browser_page()
 
         self.main_content_stack = QtWidgets.QStackedLayout()
         self.main_content_stack.addWidget(self.view_snapshot_page)
+        self.main_content_stack.addWidget(self.snapshot_details_page)
         self.main_content_stack.addWidget(self.pv_browser_page)
         self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
         self.main_content_container = QtWidgets.QWidget()
@@ -79,7 +80,6 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         view_snapshot_layout.setContentsMargins(0, 11, 0, 0)
         view_snapshot_page.setLayout(view_snapshot_layout)
 
-
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
         self.snapshot_table.doubleClicked.connect(self.open_snapshot_details)
@@ -98,10 +98,10 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     def init_snapshot_details_page(self) -> Page:
         """Initialize the snapshot details page with the first snapshot in the snapshot_model."""
-        first_snapshot = self.snapshot_table.model().index_to_snapshot(self.snapshot_model.index(0, 0))
+        temp_index = self.snapshot_table.model().index(0, 0)
+        first_snapshot = self.snapshot_table.model().index_to_snapshot(temp_index)
         snapshot_details_page = SnapshotDetailsPage(self, self.client, first_snapshot)
         snapshot_details_page.back_to_main_signal.connect(self.open_view_snapshot_page)
-        self.pages.add(self.snapshot_details_page)
 
         return snapshot_details_page
 
@@ -152,8 +152,8 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
-    @QtCore.Slot(QtCore.Qt.QModelIndex)
-    def open_snapshot_details(self, index: QtCore.Qt.QModelIndex) -> None:
+    @QtCore.Slot(QtCore.QModelIndex)
+    def open_snapshot_details(self, index: QtCore.QModelIndex) -> None:
         """Opens the snapshot stored at the selected index. A widget representing the
         snapshot is created if necessary and set as the current view in the stack.
 
@@ -168,7 +168,6 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         # Set snapshot header details
         self.snapshot_details_page.set_snapshot(new_snapshot)
         self.main_content_stack.setCurrentWidget(self.snapshot_details_page)
-
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         for page in self.pages:

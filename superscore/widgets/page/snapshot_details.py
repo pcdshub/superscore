@@ -93,7 +93,7 @@ class SnapshotDetailsPage(Page):
 
         # Create a snapshot details model, populated with first snapshot for initialization
         self.snapshot_details_model = PVTableModel(self.snapshot.uuid, self.client)
-        self.live_models.add(self.snapshot_details_model)
+        self.pv_table_models[self.snapshot.uuid] = self.snapshot_details_model
 
         self.snapshot_details_table = QtWidgets.QTableView()
         self.snapshot_details_table.setModel(self.snapshot_details_model)
@@ -119,7 +119,12 @@ class SnapshotDetailsPage(Page):
         ts_str = self.snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S")
         self.snapshot_time_label.setText(ts_str)
 
-        self.snapshot_details_model.set_snapshot(self.snapshot.uuid)
+        if self.snapshot.uuid in self.pv_table_models:
+            self.snapshot_details_model = self.pv_table_models[self.snapshot.uuid]
+        else:
+            self.snapshot_details_model = PVTableModel(self.snapshot.uuid, self.client)
+            self.pv_table_models[self.snapshot.uuid] = self.snapshot_details_model
+        self.snapshot_details_table.setModel(self.snapshot_details_model)
 
         self.comparison_dialog.set_snapshot(self.snapshot)
 
