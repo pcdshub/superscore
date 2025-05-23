@@ -116,8 +116,3 @@ class SnapshotComparisonPage(Page):
         self.comp_snapshot_title_label.setText(snapshot.title)
         self.comp_snapshot_time_label.setText(snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S"))
         self.comparison_table_model.set_comparison_snapshot(snapshot)
-
-    def update_comparison_table(self):
-        """Update the comparison table with the differences between the two snapshots."""
-        if self.main_snapshot is None or self.comparison_snapshot is None:
-            return

@@ -156,6 +156,7 @@ class SnapshotComparisonTableModel(QtCore.QAbstractTableModel):
         return None
 
     def setData(self, index: QtCore.QModelIndex, value: Any, role: QtCore.Qt.ItemDataRole) -> bool:
+        """Set the data for a given index. Only checkboxes are editable."""
         column = COMPARE_HEADER(index.column())
         if role == QtCore.Qt.CheckStateRole and column == COMPARE_HEADER.CHECKBOX:
             if value == QtCore.Qt.Checked:
