@@ -253,7 +253,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         pv_details = PVDetails(
             pv_name=data.pv_name,
-            readback_name=data.readback.pv_name if data.readback else None,
+            readback_name=data.readback.pv_name if getattr(data, "readback", None) else None,
             description=data.description,
             tolerance_abs=data.abs_tolerance if isinstance(data, Parameter) else None,
             tolerance_rel=data.rel_tolerance if isinstance(data, Parameter) else None,
