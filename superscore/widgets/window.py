@@ -116,7 +116,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
     def init_comparison_page(self) -> SnapshotComparisonPage:
         """Initialize the snapshot comparison page so it can be opened later."""
         comparison_page = SnapshotComparisonPage(self.client, self)
-        comparison_page.remove_comparison_signal.connect(self.open_snapshot_details)
+        comparison_page.remove_comparison_signal.connect(self.open_snapshot)
 
         return comparison_page
 
@@ -167,9 +167,8 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
-    @QtCore.Slot()
     @QtCore.Slot(QtCore.QModelIndex)
-    def open_snapshot_index(self, index: QtCore.QModelIndex = None) -> None:
+    def open_snapshot_index(self, index: QtCore.QModelIndex) -> None:
         """
         Opens the snapshot stored at the selected index. A widget representing the
         snapshot is created if necessary and set as the current view in the stack.
@@ -177,17 +176,19 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         Args:
             index (QtCore.Qt.QModelIndex): table index of the snapshot to open
         """
-        if isinstance(index, QtCore.QModelIndex):
-            if not index.isValid():
-                logger.warning("Invalid index passed to open_snapshot_details")
-                return
+        if not index.isValid():
+            logger.warning("Invalid index passed to open_snapshot_details")
+            return
 
-            # Set new_snapshot in the details page
-            new_snapshot = self.snapshot_table.model().index_to_snapshot(index)
+        # Set new_snapshot in the details page
+        new_snapshot = self.snapshot_table.model().index_to_snapshot(index)
         self.open_snapshot(new_snapshot)
 
-    def open_snapshot(self, snapshot: Snapshot) -> None:
-        self.snapshot_details_page.set_snapshot(snapshot)
+    @QtCore.Slot()
+    @QtCore.Slot(Snapshot)
+    def open_snapshot(self, snapshot: Snapshot = None) -> None:
+        if isinstance(snapshot, Snapshot):
+            self.snapshot_details_page.set_snapshot(snapshot)
         self.main_content_stack.setCurrentWidget(self.snapshot_details_page)
 
     def take_snapshot(self) -> Optional[Snapshot]:
