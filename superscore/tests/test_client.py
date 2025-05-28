@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from superscore.backends.core import SearchTerm
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -84,7 +85,7 @@ def test_apply(
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
-@setup_test_stack(mock_cl=False)
+@setup_test_stack(backend_type=[DirectoryBackend], mock_cl=False)
 def test_snap(
     get_mock,
     test_client: Client,
@@ -93,51 +94,51 @@ def test_snap(
 ):
     # Testing get -> _get_one chain, must not mock control layer
 
-    coll = sample_database_fixture.entries[2]
-    coll.children.append(parameter_with_readback_fixture)
+    for entry in sample_database_fixture.entries:
+        test_client.save(entry)
+    test_client.save(parameter_with_readback_fixture)
 
-    get_mock.side_effect = [EpicsData(i) for i in range(5)]
-    snapshot = test_client.snap(coll)
-    assert get_mock.call_count == 5
-    assert all([snapshot.children[i].data == i for i in range(4)])  # children saved in order
-    setpoint = snapshot.children[-1]
-    assert isinstance(setpoint, Setpoint)
-    assert isinstance(setpoint.readback, Readback)
-    assert setpoint.readback.data == 4  # readback saved after setpoint
+    get_mock.side_effect = [EpicsData(i) for i in range(6)]
+    snapshot = test_client.snap()
+    assert get_mock.call_count == 6
+    assert all([snapshot.children[i].data == i for i in range(5)])  # children saved in order
+    assert all(isinstance(e, Setpoint) for e in snapshot.children)
+    assert any(isinstance(e.readback, Readback) for e in snapshot.children)
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
-@setup_test_stack(mock_cl=False)
+@setup_test_stack(backend_type=[DirectoryBackend], mock_cl=False)
 def test_snap_exception(get_mock, test_client: Client, sample_database_fixture: Root):
     # Testing get -> _get_one chain, must not mock control layer
-    coll = sample_database_fixture.entries[2]
+    for entry in sample_database_fixture.entries:
+        test_client.save(entry)
     get_mock.side_effect = [EpicsData(0), EpicsData(1), CommunicationError,
                             EpicsData(3), EpicsData(4)]
-    snapshot = test_client.snap(coll)
+    snapshot = test_client.snap()
     assert snapshot.children[2].data is None
 
 
 @patch('superscore.control_layers.core.ControlLayer._get_one')
-@setup_test_stack(mock_cl=False)
+@setup_test_stack(backend_type=[DirectoryBackend], mock_cl=False)
 def test_snap_RO(get_mock, test_client: Client, sample_database_fixture: Root):
     # Testing get -> _get_one chain, must not mock control layer
-    coll: Collection = sample_database_fixture.entries[2]
-    coll.children.append(
-        Parameter(pv_name="RO:PV",
-                  abs_tolerance=1,
-                  rel_tolerance=-.1,
-                  read_only=True)
+    for entry in sample_database_fixture.entries:
+        test_client.save(entry)
+    test_client.save(
+        Parameter(
+            pv_name="RO:PV",
+            abs_tolerance=1,
+            rel_tolerance=-.1,
+            read_only=True
+        )
     )
 
     get_mock.side_effect = [EpicsData(i) for i in range(5)]
-    snapshot = test_client.snap(coll)
+    snapshot = test_client.snap()
 
-    assert get_mock.call_count == 4
-    for coll_child, snap_child in zip(coll.children, snapshot.children):
-        if coll_child.read_only:
-            assert isinstance(snap_child, Readback)
-        else:
-            assert isinstance(snap_child, Setpoint)
+    assert get_mock.call_count == 5
+    assert sum(1 for entry in snapshot.children if isinstance(entry, Readback)) == 1
+    assert sum(1 for entry in snapshot.children if isinstance(entry, Setpoint)) == 4
 
 
 def test_from_cfg(sscore_cfg: str):

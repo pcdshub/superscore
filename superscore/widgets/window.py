@@ -5,6 +5,7 @@ Top-level window widget that contains other widgets
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Optional
 
 import qtawesome as qta
@@ -12,7 +13,8 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import Client
-from superscore.widgets.core import QtSingleton
+from superscore.model import Snapshot
+from superscore.widgets.core import NameDescTagsWidget, QtSingleton
 from superscore.widgets.page.page import Page
 from superscore.widgets.page.snapshot_details import SnapshotDetailsPage
 from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
@@ -69,6 +71,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         navigation_panel = NavigationPanel()
         navigation_panel.sigViewSnapshots.connect(self.open_view_snapshot_page)
         navigation_panel.sigBrowsePVs.connect(self.open_pv_browser_page)
+        navigation_panel.sigSave.connect(self.take_snapshot)
         navigation_panel.set_nav_button_selected(navigation_panel.view_snapshots_button)
         navigation_panel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         return navigation_panel
@@ -82,7 +85,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
-        self.snapshot_table.doubleClicked.connect(self.open_snapshot_details)
+        self.snapshot_table.doubleClicked.connect(self.open_snapshot_index)
         self.snapshot_table.setStyleSheet(
             "QTableView::item {"
             "    border: 0px;"  # required to enforce padding on left side of cell
@@ -153,21 +156,52 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             self.navigation_panel.set_nav_button_selected(self.navigation_panel.view_snapshots_button)
 
     @QtCore.Slot(QtCore.QModelIndex)
-    def open_snapshot_details(self, index: QtCore.QModelIndex) -> None:
-        """Opens the snapshot stored at the selected index. A widget representing the
+    def open_snapshot_index(self, index: QtCore.Qt.QModelIndex) -> None:
+        """
+        Opens the snapshot stored at the selected index. A widget representing the
         snapshot is created if necessary and set as the current view in the stack.
 
         Args:
             index (QtCore.Qt.QModelIndex): table index of the snapshot to open
         """
         if not index.isValid():
-            logger.warning("Invalid index passed to open_snapshot_details")
+            logger.warning("Invalid index passed to open_snapshot_index")
             return
-        new_snapshot = self.snapshot_table.model()._data[index.row()]
+        snapshot = self.snapshot_table.model()._data[index.row()]
+        self.open_snapshot(snapshot)
 
-        # Set snapshot header details
-        self.snapshot_details_page.set_snapshot(new_snapshot)
+    def open_snapshot(self, snapshot: Snapshot) -> None:
+        self.snapshot_details_page.set_snapshot(snapshot)
         self.main_content_stack.setCurrentWidget(self.snapshot_details_page)
+
+    def take_snapshot(self) -> Optional[Snapshot]:
+        """
+        Save a new snapshot for the entry connected to this page. Also opens the
+        new snapshot.
+        """
+        dest_snapshot = Snapshot()
+        dialog = self.metadata_dialog(dest_snapshot)
+        dialog.accepted.connect(partial(self.client.snap, dest=dest_snapshot))
+        dialog.accepted.connect(partial(self.client.save, dest_snapshot))
+        dialog.accepted.connect(partial(self.open_snapshot, dest_snapshot))
+        dialog.accepted.connect(self.snapshot_table.model().fetch)
+
+        dialog.open()
+        return dest_snapshot
+
+    def metadata_dialog(self, dest: Snapshot) -> QtWidgets.QDialog:
+        """Construct dialog prompting the user to enter metadata for the given entry"""
+        metadata_dialog = QtWidgets.QDialog(parent=self)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(NameDescTagsWidget(data=dest, tag_options=self.client.backend.get_tags()))
+        buttonBox = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(metadata_dialog.accept)
+        buttonBox.rejected.connect(metadata_dialog.reject)
+        metadata_dialog.setLayout(layout)
+        return metadata_dialog
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         for page in self.pages:

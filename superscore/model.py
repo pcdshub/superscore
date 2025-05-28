@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
@@ -126,15 +127,17 @@ class Setpoint(Entry):
         data: AnyEpicsType,
         status: Status = Status.UDF,
         severity: Severity = Severity.INVALID,
+        readback: Optional[Readback] = None,
     ) -> Setpoint:
 
         return cls(
             pv_name=origin.pv_name,
-            tags=origin.tags,
+            description=origin.description,
+            tags=deepcopy(origin.tags),
             data=data,
             status=status,
             severity=severity,
-            readback=origin.readback,
+            readback=readback,
         )
 
     def validate(self, toplevel: bool = True) -> bool:
@@ -175,7 +178,8 @@ class Readback(Entry):
 
         return cls(
             pv_name=origin.pv_name,
-            tags=origin.tags,
+            description=origin.description,
+            tags=deepcopy(origin.tags),
             data=data,
             status=status,
             severity=severity,

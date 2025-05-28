@@ -14,9 +14,8 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
     def __init__(self, client, parent=None):
         super().__init__(parent)
         self.client = client
-        self._data = list(self.client.search(
-            ("entry_type", "eq", Snapshot),
-        ))
+        self._data = []
+        self.fetch()
 
     def rowCount(self, parent=None):
         return len(self._data)
@@ -57,6 +56,14 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
                 except IndexError:
                     meta_pvs = self.client.backend.get_meta_pvs()
                     return meta_pvs[section - len(self.HEADER)].description
+
+    def fetch(self):
+        """Fetch all snapshots from the backend"""
+        self._data = sorted(
+            self.client.search(("entry_type", "eq", Snapshot)),
+            key=lambda s: s.creation_time,
+            reverse=True,
+        )
 
     def index_to_snapshot(self, index: QtCore.QModelIndex) -> Snapshot:
         """Convert a QModelIndex to a Snapshot object."""

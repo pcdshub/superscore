@@ -11,7 +11,6 @@ from superscore.backends.core import SearchTerm, SearchTermType, _Backend
 from superscore.compare import DiffItem, EntryDiff, walk_find_diff
 from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
-from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Setpoint, Snapshot)
 from superscore.utils import build_abs_path
@@ -248,7 +247,7 @@ class Client:
 
             entry.children = new_children
 
-    def snap(self, entry: Collection, dest: Optional[Snapshot] = None) -> Snapshot:
+    def snap(self, dest: Optional[Snapshot] = None) -> Snapshot:
         """
         Asyncronously read data for all PVs under ``entry``, and store in a
         Snapshot.  PVs that can't be read will have an exception as their value.
@@ -263,19 +262,72 @@ class Client:
         Snapshot
             a Snapshot corresponding to the input Collection
         """
-        logger.debug(f"Saving Snapshot for Collection {entry.uuid}")
-        pvs, _ = self._gather_data(entry)
-        pvs.extend(self.backend.get_meta_pvs())
-        values = self.cl.get(pvs)
-        data = {}
-        for pv, value in zip(pvs, values):
-            if isinstance(value, CommunicationError):
-                logger.debug(f"Couldn't read value for {pv}, storing \"None\"")
-                data[pv] = None
+        logger.debug("Saving Snapshot")
+        pvs = list(self.search(("entry_type", "eq", Parameter)))
+        readback_pvs = [pv.readback for pv in pvs if getattr(pv, "readback", None)]
+        meta_pvs = self.backend.get_meta_pvs()
+        all_pvs = pvs + readback_pvs + meta_pvs
+        values = self.cl.get([pv.pv_name for pv in all_pvs])
+        data = {pv.pv_name: value for pv, value in zip(all_pvs, values)}
+
+        snapshot = dest or Snapshot()
+
+        for pv in pvs:
+            if pv.readback is not None:
+                value = data[pv.readback.pv_name]
+                edata = self._value_or_default(value)
+                readback = Readback.from_parameter(
+                    pv.readback,
+                    data=edata.data,
+                    status=edata.status,
+                    severity=edata.severity,
+                )
+                readback_pvs.remove(pv.readback)
             else:
-                logger.debug(f"Storing {pv} = {value}")
-                data[pv] = value
-        return self._build_snapshot(entry, data, dest=dest)
+                readback = None
+
+            value = data[pv.pv_name]
+            edata = self._value_or_default(value)
+            if pv.read_only:
+                new_entry = Readback.from_parameter(
+                    pv,
+                    data=edata.data,
+                    status=edata.status,
+                    severity=edata.severity,
+                )
+            else:
+                new_entry = Setpoint.from_parameter(
+                    pv,
+                    data=edata.data,
+                    status=edata.status,
+                    severity=edata.severity,
+                    readback=readback,
+                )
+            snapshot.children.append(new_entry)
+
+        for pv in readback_pvs:
+            value = data[pv.pv_name]
+            edata = self._value_or_default(value)
+            new_entry = Readback.from_parameter(
+                pv,
+                data=edata.data,
+                status=edata.status,
+                severity=edata.severity,
+            )
+            snapshot.children.append(new_entry)
+
+        for pv in meta_pvs:
+            value = data[pv.pv_name]
+            edata = self._value_or_default(value)
+            new_entry = Readback.from_parameter(
+                pv,
+                data=edata.data,
+                status=edata.status,
+                severity=edata.severity,
+            )
+            snapshot.meta_pvs.append(new_entry)
+
+        return snapshot
 
     def apply(
         self,
