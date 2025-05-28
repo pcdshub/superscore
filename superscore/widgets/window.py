@@ -183,7 +183,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
                 return
 
             # Set new_snapshot in the details page
-            new_snapshot = self.snapshot_table.model()._data[index.row()]
+            new_snapshot = self.snapshot_table.model().index_to_snapshot(index)
         self.open_snapshot(new_snapshot)
 
     def open_snapshot(self, snapshot: Snapshot) -> None:
