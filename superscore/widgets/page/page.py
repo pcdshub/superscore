@@ -10,7 +10,7 @@ logger = getLogger(__name__)
 
 
 class Page(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.pv_table_models: dict[UUID: PVTableModel] = {}
 

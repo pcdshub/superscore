@@ -19,6 +19,8 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            SetpointPage, SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.page.snapshot_comparison import SnapshotComparisonPage
+from superscore.widgets.snapshot_comparison_table import COMPARE_HEADER
 
 
 @pytest.fixture(scope='function')
@@ -314,3 +316,77 @@ def test_restore_dialog_remove_pv(
     assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
     items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
     assert item_to_remove not in items_left
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_snapshot_comparison_page_set_main(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot,
+):
+    page = SnapshotComparisonPage(
+        client=test_client,
+    )
+    page.set_main_snapshot(simple_snapshot_fixture)
+
+    # Check that the comparison table model is empty
+    assert page.comparison_table_model.rowCount() == 0
+
+    assert page.main_snapshot == simple_snapshot_fixture
+    assert page.main_snapshot_title_label.text() == simple_snapshot_fixture.title
+    assert page.main_snapshot_time_label.text() == simple_snapshot_fixture.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_snapshot_comparison_page_set_comp(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot,
+):
+    page = SnapshotComparisonPage(
+        client=test_client,
+    )
+    page.set_comparison_snapshot(simple_snapshot_fixture)
+
+    # Check that the comparison table model is empty
+    assert page.comparison_table_model.rowCount() == 0
+
+    # Check that the comparison snapshot is set correctly
+    assert page.comparison_snapshot == simple_snapshot_fixture
+    assert page.comp_snapshot_title_label.text() == simple_snapshot_fixture.title
+    assert page.comp_snapshot_time_label.text() == simple_snapshot_fixture.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_snapshot_comparison_page_set_both(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot,
+    simple_comparison_snapshot_fixture: Snapshot
+):
+    # Setup the test backend and model
+    test_client.backend.save_entry(simple_snapshot_fixture)
+    test_client.backend.save_entry(simple_comparison_snapshot_fixture)
+
+    page = SnapshotComparisonPage(
+        client=test_client,
+    )
+    page.set_main_snapshot(simple_snapshot_fixture)
+    page.set_comparison_snapshot(simple_comparison_snapshot_fixture)
+
+    compare_model = page.comparison_table_model
+    assert compare_model.rowCount() == 4
+
+    # Setup the data expected from the model
+    expected_data = [["MY:FLOAT", None, "--"],
+                     ["MY:INT", None, 1],
+                     ["MY:ENUM", None, None],
+                     ["MY:NEW:ENUM", "--", None]]
+
+    # Check that the model data matches the expected data
+    actual_data = []
+    for row in range(len(expected_data)):
+        actual_row = []
+        for column_header in (COMPARE_HEADER.PV, COMPARE_HEADER.SETPOINT, COMPARE_HEADER.COMPARE_SETPOINT):
+            col = column_header.value
+            index = compare_model.index(row, col)
+            actual_row.append(compare_model.data(index, QtCore.Qt.DisplayRole))
+        actual_data.append(actual_row)
+    assert actual_data == expected_data

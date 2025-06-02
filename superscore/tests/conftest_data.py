@@ -864,11 +864,19 @@ def parameter_with_readback() -> Parameter:
     return setpoint
 
 
-def simple_snapshot() -> Collection:
+def simple_snapshot() -> Snapshot:
     snap = Snapshot(description='various types', title='types collection')
     snap.children.append(Setpoint(pv_name="MY:FLOAT"))
     snap.children.append(Setpoint(pv_name="MY:INT"))
     snap.children.append(Setpoint(pv_name="MY:ENUM"))
+    return snap
+
+
+def simple_comparison_snapshot() -> Snapshot:
+    snap = simple_snapshot()
+    snap.children.pop(0)
+    snap.children[0].data = 1
+    snap.children.append(Setpoint(pv_name="MY:NEW:ENUM"))
     return snap
 
 
