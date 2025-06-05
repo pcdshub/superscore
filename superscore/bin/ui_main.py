@@ -11,8 +11,8 @@ from qtpy.QtWidgets import QApplication
 from superscore.client import Client
 from superscore.widgets.window import Window
 
-MAX_DEFAULT_WIDTH = 1400
-MAX_DEFAULT_HEIGHT = 800
+MAX_DEFAULT_WIDTH = 1920
+MAX_DEFAULT_HEIGHT = 1080
 
 
 def main(cfg_path: Optional[str] = None):
@@ -26,8 +26,8 @@ def main(cfg_path: Optional[str] = None):
     primary_screen = app.screens()[0]
     screen_width = primary_screen.geometry().width()
     screen_height = primary_screen.geometry().height()
-    width = min(int(screen_width*.5), MAX_DEFAULT_WIDTH)
-    height = min(int(screen_height*.5), MAX_DEFAULT_HEIGHT)
+    width = min(int(screen_width*.7), MAX_DEFAULT_WIDTH)
+    height = min(int(screen_height*.7), MAX_DEFAULT_HEIGHT)
     # move window rather creating a QRect because we want to include the frame geometry
     main_window.setGeometry(0, 0, width, height)
     center = primary_screen.geometry().center()
