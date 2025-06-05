@@ -19,7 +19,8 @@ from superscore.widgets.core import NameDescTagsWidget, QtSingleton
 from superscore.widgets.page.page import Page
 from superscore.widgets.page.snapshot_comparison import SnapshotComparisonPage
 from superscore.widgets.page.snapshot_details import SnapshotDetailsPage
-from superscore.widgets.pv_browser_table import PVBrowserFilterProxyModel, PVBrowserTableModel
+from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
+                                                 PVBrowserTableModel)
 from superscore.widgets.pv_details_components import PVDetails, PVDetailsPopup
 from superscore.widgets.pv_table import PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
