@@ -15,7 +15,6 @@ from superscore.qt_helpers import QDataclassBridge
 from superscore.type_hints import AnyDataclass, OpenPageSlot, TagDef
 from superscore.utils import SUPERSCORE_SOURCE_PATH
 from superscore.widgets import TagsWidget, get_window
-from superscore.widgets.manip_helpers import match_line_edit_text_width
 
 
 class Display(DesignerDisplay):
@@ -78,10 +77,8 @@ class NameMixin:
         load_name = self.bridge.title.get() or ''
         self.last_name = load_name
         self.name_edit.setText(load_name)
-        self.on_text_changed(load_name)
         # Set up the saving/loading
         self.name_edit.textEdited.connect(self.update_saved_name)
-        self.name_edit.textChanged.connect(self.on_text_changed)
         self.bridge.title.changed_value.connect(self.apply_new_name)
 
     def update_saved_name(self, name: str) -> None:
@@ -100,9 +97,6 @@ class NameMixin:
         if text != self.last_name:
             self.name_edit.setText(text)
 
-    def on_text_changed(self, text: str):
-        match_line_edit_text_width(self.name_edit, text=text)
-
 
 class NameDescTagsWidget(Display, NameMixin, DataWidget):
     """
@@ -110,8 +104,6 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
 
     Any of these will be automatically disabled if the data source is missing
     the corresponding field.
-
-    As a convenience, this also holds an "extra_text_label" QLabel for general use.
     """
     filename = 'name_desc_tags_widget.ui'
 
@@ -120,7 +112,6 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
     desc_edit: QtWidgets.QPlainTextEdit
     desc_frame: QtWidgets.QFrame
     tags_widget: TagsWidget
-    extra_text_label: QtWidgets.QLabel
 
     def __init__(self, data: AnyDataclass, **kwargs):
 
