@@ -192,6 +192,7 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         self.proxy_model = ExcludeCurrentSnapshotProxyModel(self, self.snapshot)
         self.proxy_model.setSourceModel(self.table_model)
         self.table_view = QtWidgets.QTableView()
+        self.table_view.setShowGrid(False)
         self.table_view.setModel(self.proxy_model)
         self.table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table_view.doubleClicked.connect(self.accept)

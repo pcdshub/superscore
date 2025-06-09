@@ -12,6 +12,7 @@ import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
+import superscore.color
 from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import Parameter, Readback, Setpoint, Snapshot
@@ -74,6 +75,14 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         central_widget.layout().setContentsMargins(0, 0, 0, 0)
         self.setCentralWidget(central_widget)
 
+        self.setStyleSheet(
+            "QTableView::item {"
+            "    border: 0px;"
+            f"    border-top: 1px solid {superscore.color.TABLE_GRID};"
+            f"    border-bottom: 1px solid {superscore.color.TABLE_GRID};"
+            "}"
+        )
+
     def init_nav_panel(self) -> NavigationPanel:
         navigation_panel = NavigationPanel()
         navigation_panel.sigViewSnapshots.connect(self.open_view_snapshot_page)
@@ -93,9 +102,9 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.snapshot_table = QtWidgets.QTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
         self.snapshot_table.doubleClicked.connect(self.open_snapshot_index)
+        self.snapshot_table.setShowGrid(False)
         self.snapshot_table.setStyleSheet(
             "QTableView::item {"
-            "    border: 0px;"  # required to enforce padding on left side of cell
             "    padding: 5px;"
             "}"
         )
@@ -151,6 +160,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         pv_browser_layout.addLayout(search_bar_lyt)
 
         self.pv_browser_table = QtWidgets.QTableView(pv_browser_page)
+        self.pv_browser_table.setShowGrid(False)
         self.pv_browser_table.setModel(pv_browser_filter)
         self.pv_browser_table.doubleClicked.connect(lambda index: self.open_pv_details(index, self.pv_browser_table))
         self.pv_browser_table.verticalHeader().hide()
