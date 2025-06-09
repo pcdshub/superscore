@@ -111,6 +111,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             "    padding: 5px;"
             "}"
         )
+        self.snapshot_table.setSelectionBehavior(self.snapshot_table.SelectionBehavior.SelectRows)
         self.snapshot_table.verticalHeader().hide()
         header_view = self.snapshot_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeMode.Fixed)
@@ -165,6 +166,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.pv_browser_table = QtWidgets.QTableView(pv_browser_page)
         self.pv_browser_table.setShowGrid(False)
+        self.pv_browser_table.setSelectionBehavior(self.pv_browser_table.SelectionBehavior.SelectRows)
         self.pv_browser_table.setModel(pv_browser_filter)
         self.pv_browser_table.doubleClicked.connect(lambda index: self.open_pv_details(index, self.pv_browser_table))
         self.pv_browser_table.verticalHeader().hide()

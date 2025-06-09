@@ -92,6 +92,7 @@ class SnapshotComparisonPage(Page):
         # Add a table to show the comparison result
         self.comparison_table_model = SnapshotComparisonTableModel(self.client, self)
         self.comparison_table = QtWidgets.QTableView()
+        self.comparison_table.setSelectionBehavior(self.comparison_table.SelectionBehavior.SelectRows)
         self.comparison_table.setModel(self.comparison_table_model)
         self.comparison_table.verticalHeader().hide()
         header_view = self.comparison_table.horizontalHeader()

@@ -87,9 +87,13 @@ class PVTableModel(LivePVTableModel):
     def flags(self, index) -> QtCore.Qt.ItemFlags:
         column = PV_HEADER(index.column())
         if column == PV_HEADER.CHECKBOX:
-            return QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+            return (
+                QtCore.Qt.ItemIsUserCheckable
+                | QtCore.Qt.ItemIsEnabled
+                | QtCore.Qt.ItemIsSelectable
+            )
         else:
-            return super().flags(index)
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def data(
         self,
