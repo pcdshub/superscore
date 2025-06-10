@@ -233,6 +233,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         buttonBox.accepted.connect(metadata_dialog.accept)
         buttonBox.rejected.connect(metadata_dialog.reject)
         metadata_dialog.setLayout(layout)
+        metadata_dialog.resize(558, 254)
         return metadata_dialog
 
     @QtCore.Slot(Snapshot, Snapshot)
