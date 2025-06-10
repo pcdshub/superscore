@@ -292,10 +292,10 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             description=data.description,
             tolerance_abs=data.abs_tolerance if isinstance(data, Parameter) else None,
             tolerance_rel=data.rel_tolerance if isinstance(data, Parameter) else None,
-            lolo=epics_data.lower_alarm_limit,
-            low=epics_data.lower_warning_limit,
-            high=epics_data.upper_warning_limit,
-            hihi=epics_data.upper_alarm_limit,
+            lolo=epics_data.lower_alarm_limit if isinstance(epics_data, EpicsData) else None,
+            low=epics_data.lower_warning_limit if isinstance(epics_data, EpicsData) else None,
+            high=epics_data.upper_warning_limit if isinstance(epics_data, EpicsData) else None,
+            hihi=epics_data.upper_alarm_limit if isinstance(epics_data, EpicsData) else None,
             tags=None,
         )
         self.popup = PVDetailsPopup(pv_details)
