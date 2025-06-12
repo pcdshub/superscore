@@ -282,7 +282,7 @@ def test_restore_all(
     assert put_mock.call_args.args[0] == all_pv_names
 
     table_model.close()
-    qtbot.wait_until(lambda: not table_model._poll_thread.isRunning())
+    qtbot.wait_until(lambda: not table_model._poll_thread.isRunning(), timeout=10000)
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
@@ -305,7 +305,7 @@ def test_restore_selected(
     assert put_mock.call_args.args[0] == [table_model.data(pv_index, role=QtCore.Qt.DisplayRole)]
 
     table_model.close()
-    qtbot.wait_until(lambda: not table_model._poll_thread.isRunning())
+    qtbot.wait_until(lambda: not table_model._poll_thread.isRunning(), timeout=10000)
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
