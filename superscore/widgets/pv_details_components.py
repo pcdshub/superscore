@@ -1,12 +1,14 @@
 import sys
 from dataclasses import dataclass
-from typing import Any
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator, QFont
 from qtpy.QtWidgets import (QApplication, QBoxLayout, QDialog, QGridLayout,
                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
                             QVBoxLayout, QWidget)
+
+from superscore.type_hints import TagDef, TagSet
+from superscore.widgets.tag import TagChip, TagsWidget
 
 
 @dataclass
@@ -22,7 +24,7 @@ class PVDetails:
     low: float
     high: float
     hihi: float
-    tags: Any  # TODO: Placeholder for tags implementation
+    tags: TagSet
 
 
 class PVDetailsTitleBar(QWidget):
@@ -106,7 +108,7 @@ class PVDetailsRow(QBoxLayout):
 class PVDetailsPopup(QWidget):
     """Read-only popup displaying PV details."""
 
-    def __init__(self, pv_details: PVDetails, parent: QWidget = None) -> None:
+    def __init__(self, tag_groups: TagDef, pv_details: PVDetails, parent: QWidget = None) -> None:
         super().__init__(parent)
         self.setWindowFlags(Qt.Popup)
 
@@ -134,14 +136,18 @@ class PVDetailsPopup(QWidget):
         layout.addLayout(PVDetailsRow("HIGH:", QLabel(str(pv_details.high)), indent=1))
         layout.addLayout(PVDetailsRow("HIHI:", QLabel(str(pv_details.hihi)), indent=1))
 
-        layout.addLayout(PVDetailsRow("Tags", QLabel("N/A"), direction=QBoxLayout.TopToBottom))  # Placeholder
+        tags_widget = TagsWidget(tag_groups=tag_groups, enabled=True)
+        for tag_group in tag_groups.keys():
+            if tag_group in tag_set:
+                tags_widget.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
+        layout.addLayout(PVDetailsRow("Tags", tags_widget, direction=QBoxLayout.TopToBottom))
         layout.addStretch()
 
 
 class PVDetailsPopupEditable(QDialog):
     """Editable popup for creating or editing PVs."""
 
-    def __init__(self, initial_data: PVDetails = None) -> None:
+    def __init__(self, tag_groups: TagDef, initial_data: PVDetails = None) -> None:
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setWindowModality(Qt.ApplicationModal)
@@ -161,7 +167,12 @@ class PVDetailsPopupEditable(QDialog):
         self.description_input = QLineEdit()
         self.tolerance_abs_input = QLineEdit()
         self.tolerance_rel_input = QLineEdit()
-        self.tags_input_placeholder = QLineEdit()  # Placeholder
+
+        self.tags_input = TagsWidget(tag_groups=tag_groups, enabled=True)
+        if initial_data:
+            for tag_group in tag_groups.keys():
+                if tag_group in tag_set:
+                    self.tags_input.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
 
         validator = QDoubleValidator(bottom=0.0, top=1e10, decimals=4)
         self.tolerance_abs_input.setValidator(validator)
@@ -202,7 +213,7 @@ class PVDetailsPopupEditable(QDialog):
         tags_label = QLabel("Tags")
         tags_label.setStyleSheet("font-weight: bold;")
         form_layout.addWidget(tags_label, 6, 0)
-        form_layout.addWidget(self.tags_input_placeholder, 7, 0, 1, 2)
+        form_layout.addWidget(self.tags_input, 7, 0, 1, 2)
 
         layout.addLayout(form_layout)
 
@@ -224,7 +235,7 @@ class PVDetailsPopupEditable(QDialog):
                 description=self.description_input.text(),
                 tolerance_abs=float(self.tolerance_abs_input.text() or 0),
                 tolerance_rel=float(self.tolerance_rel_input.text() or 0),
-                tags=None,
+                tags=self.tags_input,
             )
             self.accept()
         except ValueError as e:
@@ -233,6 +244,12 @@ class PVDetailsPopupEditable(QDialog):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    tag_groups: TagDef
+    tag_groups = {0: ["Dest", "Which endpoint...", {0: "SXR", 1: "HXR", 2: "ASDF"}]}
+
+    tag_set: TagSet
+    tag_set = {0: {0, 2}}
 
     pv_details = PVDetails(
         pv_name="QUAD:LI21:401:EDES",
@@ -244,15 +261,15 @@ if __name__ == "__main__":
         low=0.1,
         high=0.9,
         hihi=1.0,
-        tags=None,
+        tags=tag_set,
     )
 
     # Show read-only popup first
-    readonly_popup = PVDetailsPopup(pv_details)
+    readonly_popup = PVDetailsPopup(tag_groups=tag_groups, pv_details=pv_details)
     readonly_popup.show()
 
     def show_editable_popup():
-        editable_popup = PVDetailsPopupEditable()
+        editable_popup = PVDetailsPopupEditable(tag_groups=tag_groups, initial_data=pv_details)
         if editable_popup.exec_() == QDialog.Accepted:
             print("PV Details Submitted:")
             print(f"PV Name: {editable_popup.pv_details.pv_name}")
