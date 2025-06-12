@@ -138,7 +138,7 @@ class PVDetailsPopup(QWidget):
 
         tags_widget = TagsWidget(tag_groups=tag_groups, enabled=True)
         for tag_group in tag_groups.keys():
-            if tag_group in tag_set:
+            if tag_group in pv_details.tags:
                 tags_widget.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
         layout.addLayout(PVDetailsRow("Tags", tags_widget, direction=QBoxLayout.TopToBottom))
         layout.addStretch()
@@ -171,7 +171,7 @@ class PVDetailsPopupEditable(QDialog):
         self.tags_input = TagsWidget(tag_groups=tag_groups, enabled=True)
         if initial_data:
             for tag_group in tag_groups.keys():
-                if tag_group in tag_set:
+                if tag_group in initial_data.tags:
                     self.tags_input.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
 
         validator = QDoubleValidator(bottom=0.0, top=1e10, decimals=4)
