@@ -6,6 +6,7 @@ from superscore.widgets.page.page import Page
 from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
                                                  PVBrowserTableModel)
 from superscore.widgets.squirrel_table_view import SquirrelTableView
+from superscore.widgets.tag import TagsWidget
 
 
 class PVBrowserPage(Page):
@@ -36,6 +37,9 @@ class PVBrowserPage(Page):
         search_bar_lyt.addWidget(self.search_bar)
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
+
+        tags = TagsWidget(tag_groups=self.client.backend.get_tags(), enabled=True)
+        pv_browser_layout.addWidget(tags)
 
         pv_browser_model = PVBrowserTableModel(self.client)
         self.pv_browser_filter = PVBrowserFilterProxyModel()
