@@ -101,10 +101,11 @@ class SnapshotDetailsPage(Page):
         self.snapshot_details_table.verticalHeader().hide()
         header_view = self.snapshot_details_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Stretch)
-        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeMode.Fixed)
+        self.snapshot_details_table.resizeColumnsToContents()
         snapshot_details_layout.addWidget(self.snapshot_details_table)
 
     def set_snapshot(self, snapshot: Snapshot) -> None:
@@ -229,8 +230,9 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         self.table_view.doubleClicked.connect(self.accept)
         self.table_view.verticalHeader().hide()
         header_view = self.table_view.horizontalHeader()
-        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setSectionResizeMode(header_view.ResizeMode.Fixed)
         header_view.setSectionResizeMode(1, header_view.Stretch)
+        self.table_view.resizeColumnsToContents()
         main_layout.addWidget(self.table_view)
 
         btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
