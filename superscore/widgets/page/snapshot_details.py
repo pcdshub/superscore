@@ -257,13 +257,15 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         """Set the snapshot to be displayed in the details page."""
         if snapshot is self.snapshot:
             return
-
         self.snapshot = snapshot
-
-        header_text = f"Main Snapshot:\n    {self.snapshot.title}\n\n" \
-                      "Select a snapshot to compare to:"
-        self.header_label.setText(header_text)
-
+        self.header_label.setText(
+            "\n".join([
+                "Main Snapshot:",
+                f"      {self.snapshot.title}",
+                "",
+                "Select a snapshot to compare to:",
+            ])
+        )
         self.proxy_model.set_snapshot(self.snapshot)
 
 
