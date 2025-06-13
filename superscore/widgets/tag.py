@@ -32,6 +32,9 @@ class TagChip(QtWidgets.QFrame):
     **kwargs : Any
         Additional keyword arguments to pass to the base QWidget.
     """
+
+    tagsChanged = QtCore.Signal(set)
+
     def __init__(self, tag_group: int, choices: dict[int, str], tag_name: str, desc: str = "", enabled: bool = False, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -142,6 +145,7 @@ class TagChip(QtWidgets.QFrame):
         self.tags = tags
         self.setProperty("empty", len(self.tags) == 0)
         self.redraw()
+        self.tagsChanged.emit(self.tags)
 
     def clear(self) -> None:
         """Clear this widget's active tags."""
