@@ -241,7 +241,9 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         buttonBox.rejected.connect(self.reject)
         main_layout.addWidget(buttonBox)
 
-        self.resize(450, 300)
+        column_count = self.table_view.model().columnCount()
+        full_width = sum([self.table_view.columnWidth(i) for i in range(column_count)])
+        self.resize(full_width, 450)
 
     @property
     def selected_snapshot(self):
