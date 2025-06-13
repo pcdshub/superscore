@@ -214,9 +214,14 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         self.header_label = QtWidgets.QLabel()
         main_layout.addWidget(self.header_label)
 
-        self.table_model = SnapshotTableModel(self.client)
         self.proxy_model = ExcludeCurrentSnapshotProxyModel(self, self.snapshot)
-        self.proxy_model.setSourceModel(self.table_model)
+        try:
+            main_window = self.parent().parent()
+            snapshot_table_model = main_window.snapshot_table.model()
+        except AttributeError:
+            snapshot_table_model = SnapshotTableModel(self.client)
+        finally:
+            self.proxy_model.setSourceModel(snapshot_table_model)
         self.table_view = QtWidgets.QTableView()
         self.table_view.setShowGrid(False)
         self.table_view.setModel(self.proxy_model)
