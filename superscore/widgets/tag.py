@@ -4,68 +4,8 @@ import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 
 import superscore.color
-from superscore.type_hints import TagDef
+from superscore.type_hints import TagDef, TagSet
 from superscore.widgets import FlowLayout
-
-
-class TagsWidget(QtWidgets.QWidget):
-    """
-    A container for TagChips arranged in a flow layout.
-
-    This widget manages a collection of tag elements, each of which manages the
-    addition, removal, and display of tags in its tag group. To freeze the set
-    of tags in the TagChips, set enabled to False on this widget. The tags are
-    arranged using a custom FlowLayout that automatically wraps the tags when
-    they reach the edge of the widget.
-
-    Attributes
-    ----------
-    tag_list_layout : FlowLayout
-        The layout containing the widget's tag elements.
-    """
-    def __init__(
-        self,
-        *args: Any,
-        tag_groups: TagDef = {},
-        enabled: bool = False,
-        **kwargs: Any,
-    ) -> None:
-        """
-        Initialize the TagsWidget.
-
-        Parameters
-        ----------
-        tag_groups : TagDef
-            A data structure containing tag group indices, names, and members
-        *args : Any
-            Additional positional arguments passed to the base QWidget.
-        **kwargs : Any
-            Additional keyword arguments passed to the base QWidget.
-        """
-        super().__init__(*args, **kwargs)
-        self.setEnabled(enabled)
-
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Fixed,
-            QtWidgets.QSizePolicy.Fixed
-        )
-
-        self.setLayout(FlowLayout(margin=0, spacing=5))
-        self.layout().setObjectName("TagChipFlowLayout")
-
-        self.set_tag_groups(tag_groups)
-
-    def set_tag_groups(self, tag_groups: TagDef) -> None:
-        while self.layout().count() > 0:
-            self.layout().takeAt(0)
-        for tag_group, details in tag_groups.items():
-            chip = TagChip(
-                tag_group,
-                details[2],
-                details[0],
-                desc=details[1],
-                enabled=self.isEnabled())
-            self.layout().addWidget(chip)
 
 
 class TagChip(QtWidgets.QFrame):
@@ -282,3 +222,81 @@ class TagEditor(QtWidgets.QWidget):
         global_pos = self.parent().mapToGlobal(corner)
         self.move(global_pos)
         super().show()
+
+
+class TagsWidget(QtWidgets.QWidget):
+    """
+    A container for TagChips arranged in a flow layout.
+
+    This widget manages a collection of tag elements, each of which manages the
+    addition, removal, and display of tags in its tag group. To freeze the set
+    of tags in the TagChips, set enabled to False on this widget. The tags are
+    arranged using a custom FlowLayout that automatically wraps the tags when
+    they reach the edge of the widget.
+
+    Attributes
+    ----------
+    tag_list_layout : FlowLayout
+        The layout containing the widget's tag elements.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        tag_groups: TagDef = {},
+        enabled: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Initialize the TagsWidget.
+
+        Parameters
+        ----------
+        tag_groups : TagDef
+            A data structure containing tag group indices, names, and members
+        *args : Any
+            Additional positional arguments passed to the base QWidget.
+        **kwargs : Any
+            Additional keyword arguments passed to the base QWidget.
+        """
+        super().__init__(*args, **kwargs)
+        self.tag_groups = tag_groups
+
+        self.setEnabled(enabled)
+
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+        self.setLayout(FlowLayout(margin=0, spacing=5))
+        self.layout().setObjectName("TagChipFlowLayout")
+
+        self.set_tag_groups(self.tag_groups)
+
+    def set_tag_groups(self, tag_groups: TagDef) -> None:
+        while self.layout().count() > 0:
+            self.layout().takeAt(0)
+        for tag_group, details in tag_groups.items():
+            chip = TagChip(tag_group, details[2], details[0], desc=details[1], enabled=self.isEnabled())
+            self.layout().addWidget(chip)
+        self.tag_groups = tag_groups
+
+    def set_tags(self, tag_set: TagSet) -> None:
+        """Sets the child TagChips according to the provided TagSet"""
+        for tag_group in tag_set:
+            chip = self.get_group_chip(tag_group)
+            if isinstance(chip, TagChip):
+                chip.set_tags(tag_set[tag_group])
+
+    def get_tag_set(self) -> TagSet:
+        """Constructs the TagSet representation of the child TagChips"""
+        tag_set = {}
+        chips = self.findChildren(TagChip)
+        for chip in chips:
+            tag_set[chip.tag_group] = chip.tags
+
+    def get_group_chip(self, tag_group: int) -> TagChip | None:
+        """Returns TagChip corresponding to the desired tag group, or None if chip was not found"""
+        chips = self.findChildren(TagChip)
+        for chip in chips:
+            if chip.tag_group == tag_group:
+                return chip
+        return None
