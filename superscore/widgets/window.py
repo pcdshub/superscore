@@ -19,10 +19,10 @@ from superscore.model import Parameter, Readback, Setpoint, Snapshot
 from superscore.widgets.configure_window import TagGroupsWindow
 from superscore.widgets.core import NameDescTagsWidget, QtSingleton
 from superscore.widgets.page.page import Page
+from superscore.widgets.page.pv_browser import PVBrowserPage
 from superscore.widgets.page.snapshot_comparison import SnapshotComparisonPage
 from superscore.widgets.page.snapshot_details import SnapshotDetailsPage
-from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
-                                                 PVBrowserTableModel)
+from superscore.widgets.pv_browser_table import PVBrowserFilterProxyModel
 from superscore.widgets.pv_details_components import PVDetails, PVDetailsPopup
 from superscore.widgets.pv_table import PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
@@ -53,18 +53,21 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         # Initialize content pages and add to stack
         self.view_snapshot_page = self.init_view_snapshot_page()
         self.snapshot_details_page = self.init_snapshot_details_page()
-        self.pages.add(self.snapshot_details_page)
         self.comparison_page = self.init_comparison_page()
-        self.pages.add(self.comparison_page)
         self.pv_browser_page = self.init_pv_browser_page()
         self.configure_page = self.init_configure_page()
+
+        self.pages.add(self.snapshot_details_page)
+        self.pages.add(self.comparison_page)
+        self.pages.add(self.pv_browser_page)
+
         self.main_content_stack = QtWidgets.QStackedLayout()
+        for page in self.pages:
+            self.main_content_stack.addWidget(page)
         self.main_content_stack.addWidget(self.view_snapshot_page)
-        self.main_content_stack.addWidget(self.snapshot_details_page)
-        self.main_content_stack.addWidget(self.comparison_page)
-        self.main_content_stack.addWidget(self.pv_browser_page)
         self.main_content_stack.addWidget(self.configure_page)
         self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
+
         self.main_content_container = QtWidgets.QWidget()
         self.main_content_container.setContentsMargins(0, 0, 0, 0)
         self.main_content_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
@@ -141,38 +144,11 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         return comparison_page
 
-    def init_pv_browser_page(self) -> QtWidgets.QWidget:
+    def init_pv_browser_page(self) -> PVBrowserPage:
         """Initialize the PV browser page with the PV browser table."""
-        pv_browser_model = PVBrowserTableModel(self.client)
-        pv_browser_filter = PVBrowserFilterProxyModel()
-        pv_browser_filter.setSourceModel(pv_browser_model)
+        pv_browser_page = PVBrowserPage(self.client, self)
+        pv_browser_page.open_details_signal.connect(self.open_pv_details)
 
-        pv_browser_page = QtWidgets.QWidget()
-        pv_browser_layout = QtWidgets.QVBoxLayout()
-        pv_browser_layout.setContentsMargins(0, 11, 0, 0)
-        pv_browser_page.setLayout(pv_browser_layout)
-
-        search_bar = QtWidgets.QLineEdit(pv_browser_page)
-        search_bar.setClearButtonEnabled(True)
-        search_bar.addAction(
-            qta.icon("fa5s.search"),
-            QtWidgets.QLineEdit.LeadingPosition,
-        )
-        search_bar.textChanged.connect(pv_browser_filter.setFilterFixedString)
-        search_bar_lyt = QtWidgets.QHBoxLayout()
-        spacer = QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        search_bar_lyt.addWidget(search_bar)
-        search_bar_lyt.addSpacerItem(spacer)
-        pv_browser_layout.addLayout(search_bar_lyt)
-
-        self.pv_browser_table = SquirrelTableView(pv_browser_page)
-        self.pv_browser_table.setModel(pv_browser_filter)
-        self.pv_browser_table.doubleClicked.connect(lambda index: self.open_pv_details(index, self.pv_browser_table))
-        header_view = self.pv_browser_table.horizontalHeader()
-        header_view.setSectionResizeMode(header_view.Fixed)
-        header_view.setStretchLastSection(True)
-        self.pv_browser_table.resizeColumnsToContents()
-        pv_browser_layout.addWidget(self.pv_browser_table)
         return pv_browser_page
 
     def init_configure_page(self) -> QtWidgets.QWidget:
@@ -269,7 +245,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.main_content_stack.setCurrentWidget(self.comparison_page)
 
-    @QtCore.Slot(QtCore.QModelIndex)
+    @QtCore.Slot(QtCore.QModelIndex, QtWidgets.QAbstractItemView)
     def open_pv_details(self, index: QtCore.QModelIndex, view: QtWidgets.QAbstractItemView) -> None:
         if not index.isValid():
             logger.warning("Invalid index passed to open_pv_details")
