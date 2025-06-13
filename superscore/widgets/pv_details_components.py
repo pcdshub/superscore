@@ -136,10 +136,8 @@ class PVDetailsPopup(QWidget):
         layout.addLayout(PVDetailsRow("HIGH:", QLabel(str(pv_details.high)), indent=1))
         layout.addLayout(PVDetailsRow("HIHI:", QLabel(str(pv_details.hihi)), indent=1))
 
-        tags_widget = TagsWidget(tag_groups=tag_groups, enabled=True)
-        for tag_group in tag_groups.keys():
-            if tag_group in pv_details.tags:
-                tags_widget.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
+        tags_widget = TagsWidget(tag_groups=tag_groups, enabled=False)
+        tags_widget.set_tags(pv_details.tags)
         layout.addLayout(PVDetailsRow("Tags", tags_widget, direction=QBoxLayout.TopToBottom))
         layout.addStretch()
 
@@ -170,9 +168,7 @@ class PVDetailsPopupEditable(QDialog):
 
         self.tags_input = TagsWidget(tag_groups=tag_groups, enabled=True)
         if initial_data:
-            for tag_group in tag_groups.keys():
-                if tag_group in initial_data.tags:
-                    self.tags_input.findChildren(TagChip)[tag_group].set_tags(tag_set[tag_group])
+            self.tags_input.set_tags(initial_data.tags)
 
         validator = QDoubleValidator(bottom=0.0, top=1e10, decimals=4)
         self.tolerance_abs_input.setValidator(validator)
@@ -235,7 +231,7 @@ class PVDetailsPopupEditable(QDialog):
                 description=self.description_input.text(),
                 tolerance_abs=float(self.tolerance_abs_input.text() or 0),
                 tolerance_rel=float(self.tolerance_rel_input.text() or 0),
-                tags=self.tags_input,
+                tags=self.tags_input.get_tag_set(),
             )
             self.accept()
         except ValueError as e:

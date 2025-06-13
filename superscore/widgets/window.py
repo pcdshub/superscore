@@ -296,9 +296,9 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
             low=epics_data.lower_warning_limit if isinstance(epics_data, EpicsData) else None,
             high=epics_data.upper_warning_limit if isinstance(epics_data, EpicsData) else None,
             hihi=epics_data.upper_alarm_limit if isinstance(epics_data, EpicsData) else None,
-            tags=None,
+            tags=data.tags,
         )
-        self.popup = PVDetailsPopup(pv_details)
+        self.popup = PVDetailsPopup(tag_groups=self.client.backend.get_tags(), pv_details=pv_details)
         self.popup.adjustSize()
 
         table_top_right = view.mapToGlobal(view.rect().topRight())
