@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass
+from typing import Optional
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator, QFont
@@ -20,12 +21,11 @@ class PVDetails:
     description: str
     tolerance_abs: float
     tolerance_rel: float
-    lolo: float
-    low: float
-    high: float
-    hihi: float
     tags: TagSet
-
+    lolo: Optional[float] = None
+    low: Optional[float] = None
+    high: Optional[float] = None
+    hihi: Optional[float] = None
 
 class PVDetailsTitleBar(QWidget):
     """Title bar for the PV details popup. Allows dragging and closing the popup."""
@@ -273,6 +273,8 @@ if __name__ == "__main__":
             print(f"Description: {editable_popup.pv_details.description}")
             print(f"Absolute Tolerance: {editable_popup.pv_details.tolerance_abs}")
             print(f"Relative Tolerance: {editable_popup.pv_details.tolerance_rel}")
+            print(f"Tags: {editable_popup.pv_details.tags}")
+
 
     # Launch editable popup after readonly popup is closed
     readonly_popup.destroyed.connect(show_editable_popup)
