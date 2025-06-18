@@ -8,7 +8,7 @@ from qtpy.QtWidgets import (QApplication, QBoxLayout, QDialog, QGridLayout,
                             QVBoxLayout, QWidget)
 
 from superscore.type_hints import TagDef, TagSet
-from superscore.widgets.tag import TagChip, TagsWidget
+from superscore.widgets.tag import TagsWidget
 
 
 @dataclass
