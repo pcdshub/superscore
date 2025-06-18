@@ -292,6 +292,7 @@ class TagsWidget(QtWidgets.QWidget):
         chips = self.findChildren(TagChip)
         for chip in chips:
             tag_set[chip.tag_group] = chip.tags
+        return tag_set
 
     def get_group_chip(self, tag_group: int) -> TagChip | None:
         """Returns TagChip corresponding to the desired tag group, or None if chip was not found"""
