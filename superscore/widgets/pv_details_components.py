@@ -27,6 +27,7 @@ class PVDetails:
     high: Optional[float] = None
     hihi: Optional[float] = None
 
+
 class PVDetailsTitleBar(QWidget):
     """Title bar for the PV details popup. Allows dragging and closing the popup."""
 
@@ -274,7 +275,6 @@ if __name__ == "__main__":
             print(f"Absolute Tolerance: {editable_popup.pv_details.tolerance_abs}")
             print(f"Relative Tolerance: {editable_popup.pv_details.tolerance_rel}")
             print(f"Tags: {editable_popup.pv_details.tags}")
-
 
     # Launch editable popup after readonly popup is closed
     readonly_popup.destroyed.connect(show_editable_popup)
