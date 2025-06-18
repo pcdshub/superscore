@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
@@ -294,7 +294,7 @@ class TagsWidget(QtWidgets.QWidget):
             tag_set[chip.tag_group] = chip.tags
         return tag_set
 
-    def get_group_chip(self, tag_group: int) -> TagChip | None:
+    def get_group_chip(self, tag_group: int) -> Optional[TagChip]:
         """Returns TagChip corresponding to the desired tag group, or None if chip was not found"""
         chips = self.findChildren(TagChip)
         for chip in chips:
