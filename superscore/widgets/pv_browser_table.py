@@ -81,7 +81,11 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
             elif column == PV_BROWSER_HEADER.READBACK:
                 return entry.readback.pv_name if entry.readback else NO_DATA
             elif column == PV_BROWSER_HEADER.TAGS:
-                return None
+                return str(entry.tags) if entry.tags else NO_DATA
+        elif role == QtCore.Qt.UserRole:
+            # Return the full entry object for further processing
+            entry = self._data[index.row()]
+            return entry
         return None
 
 
@@ -91,7 +95,7 @@ class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
         self.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.setFilterKeyColumn(PV_BROWSER_HEADER.PV.value)
 
-        self.tag_set = tag_set
+        self.tag_set = tag_set or {}  # Initialize with an empty tag dict
 
     def set_tag_set(self, tag_set: TagSet) -> None:
         """Set the tag set for filtering. Apply filter to model immediately.
@@ -102,9 +106,38 @@ class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
             The set of tags to filter entries by.
         """
         self.tag_set = tag_set
-        logger.warning(f"Tag set updated: {self.tag_set}")
+        logger.debug(f"Tag set updated: {self.tag_set}")
         self.invalidateFilter()
 
+    def is_tag_subset(self, entry_tags: TagSet) -> bool:
+        """Check if the entry's tags are a subset of the filter's tag set.
+
+        Parameters
+        ----------
+        entry_tags : TagSet
+            The tags of the entry to check.
+
+        Returns
+        -------
+        bool
+            True if the entry's tags are a subset of the filter's tag set, False otherwise.
+        """
+        is_subset = all(self.tag_set[group].issubset(entry_tags.get(group, set())) for group in self.tag_set)
+        logger.warning(f"Tag values subset: {is_subset}")
+
+        return is_subset
+
+    def tag_set_is_empty(self) -> bool:
+        """Check if the tag set is empty."""
+        return not self.tag_set or all(not tags for tags in self.tag_set.values())
+
     def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:
-        # TODO: Implement filtering logic based on tags
+        row_index = self.sourceModel().index(source_row, 0, source_parent)
+        entry = self.sourceModel().data(row_index, QtCore.Qt.UserRole)
+        if not entry:
+            return False
+
+        logger.debug(f"Filtering row {source_row} with entry: {entry}")
+        if not self.tag_set_is_empty() and not self.is_tag_subset(entry.tags):
+            return False
         return super().filterAcceptsRow(source_row, source_parent)
