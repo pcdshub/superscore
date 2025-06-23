@@ -26,6 +26,7 @@ from superscore.widgets.pv_browser_table import (PVBrowserFilterProxyModel,
 from superscore.widgets.pv_details_components import PVDetails, PVDetailsPopup
 from superscore.widgets.pv_table import PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
+from superscore.widgets.squirrel_table_view import SquirrelTableView
 from superscore.widgets.views import DiffDispatcher
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.setCentralWidget(central_widget)
 
         self.setStyleSheet(
-            "QTableView::item {"
+            "SquirrelTableView::item {"
             "    border: 0px;"
             f"    border-top: 1px solid {superscore.color.TABLE_GRID};"
             f"    border-bottom: 1px solid {superscore.color.TABLE_GRID};"
@@ -102,7 +103,7 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         view_snapshot_layout.setContentsMargins(0, 11, 0, 0)
         view_snapshot_page.setLayout(view_snapshot_layout)
 
-        self.snapshot_table = QtWidgets.QTableView()
+        self.snapshot_table = SquirrelTableView()
         self.snapshot_table.setModel(SnapshotTableModel(self.client))
         self.snapshot_table.doubleClicked.connect(self.open_snapshot_index)
         self.snapshot_table.setShowGrid(False)
@@ -164,12 +165,9 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
 
-        self.pv_browser_table = QtWidgets.QTableView(pv_browser_page)
-        self.pv_browser_table.setShowGrid(False)
-        self.pv_browser_table.setSelectionBehavior(self.pv_browser_table.SelectionBehavior.SelectRows)
+        self.pv_browser_table = SquirrelTableView(pv_browser_page)
         self.pv_browser_table.setModel(pv_browser_filter)
         self.pv_browser_table.doubleClicked.connect(lambda index: self.open_pv_details(index, self.pv_browser_table))
-        self.pv_browser_table.verticalHeader().hide()
         header_view = self.pv_browser_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Fixed)
         header_view.setStretchLastSection(True)

@@ -6,6 +6,7 @@ from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
 from superscore.widgets.snapshot_comparison_table import (
     COMPARE_HEADER, SnapshotComparisonTableModel)
+from superscore.widgets.squirrel_table_view import SquirrelTableView
 
 
 class SnapshotComparisonPage(Page):
@@ -91,10 +92,8 @@ class SnapshotComparisonPage(Page):
 
         # Add a table to show the comparison result
         self.comparison_table_model = SnapshotComparisonTableModel(self.client, self)
-        self.comparison_table = QtWidgets.QTableView()
-        self.comparison_table.setSelectionBehavior(self.comparison_table.SelectionBehavior.SelectRows)
+        self.comparison_table = SquirrelTableView()
         self.comparison_table.setModel(self.comparison_table_model)
-        self.comparison_table.verticalHeader().hide()
         header_view = self.comparison_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Stretch)
         header_view.setSectionResizeMode(COMPARE_HEADER.CHECKBOX.value, header_view.ResizeMode.Fixed)
