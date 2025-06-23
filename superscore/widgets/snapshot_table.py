@@ -29,17 +29,24 @@ class SnapshotTableModel(QtCore.QAbstractTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ):
+        column = index.column()
         if role == QtCore.Qt.DisplayRole:
-            entry = self._data[index.row()]
-            if (column := index.column()) == 0:
-                return entry.creation_time.strftime("%Y-%m-%d %H:%M:%S")
+            snapshot = self._data[index.row()]
+            if column == 0:
+                return snapshot.creation_time.strftime("%Y-%m-%d %H:%M:%S")
             elif column == 1:
-                return entry.title
+                return snapshot.title
             else:
                 try:
-                    return entry.meta_pvs[column - len(self.HEADER)].data
+                    return snapshot.meta_pvs[column - len(self.HEADER)].data
                 except IndexError:
                     return None
+        elif role == QtCore.Qt.ToolTipRole and column >= 2:
+            snapshot = self._data[index.row()]
+            try:
+                return snapshot.meta_pvs[column - len(self.HEADER)].pv_name
+            except IndexError:
+                return None
         else:
             return None
 
