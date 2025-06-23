@@ -38,8 +38,8 @@ class PVBrowserPage(Page):
         search_bar_lyt.addSpacerItem(spacer)
         pv_browser_layout.addLayout(search_bar_lyt)
 
-        tags = TagsWidget(tag_groups=self.client.backend.get_tags(), enabled=True)
-        pv_browser_layout.addWidget(tags)
+        filter_tags = TagsWidget(tag_groups=self.client.backend.get_tags(), enabled=True)
+        pv_browser_layout.addWidget(filter_tags)
 
         pv_browser_model = PVBrowserTableModel(self.client)
         self.pv_browser_filter = PVBrowserFilterProxyModel()
@@ -54,6 +54,7 @@ class PVBrowserPage(Page):
         self.pv_browser_table.resizeColumnsToContents()
 
         self.search_bar.editingFinished.connect(self.search_bar_middle_man)
+        filter_tags.tagSetChanged.connect(self.pv_browser_filter.set_tag_set)
         self.pv_browser_table.doubleClicked.connect(self.open_details_middle_man)
 
     @QtCore.Slot()

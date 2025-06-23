@@ -1,9 +1,13 @@
+import logging
 from enum import Enum, auto
 from typing import Any
 
 from qtpy import QtCore
 
 from superscore.model import Parameter
+from superscore.type_hints import TagSet
+
+logger = logging.getLogger(__name__)
 
 NO_DATA = "--"
 
@@ -82,15 +86,23 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
 
 
 class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
-    def __init__(self, parent=None, tags=None):
+    def __init__(self, parent=None, tag_set: TagSet = None):
         super().__init__(parent=parent)
         self.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.setFilterKeyColumn(PV_BROWSER_HEADER.PV.value)
 
-        self.tags = tags
+        self.tag_set = tag_set
 
-    def setTags(self, tags) -> None:
-        self.tags = tags
+    def set_tag_set(self, tag_set: TagSet) -> None:
+        """Set the tag set for filtering. Apply filter to model immediately.
+
+        Parameters
+        ----------
+        tag_set : TagSet
+            The set of tags to filter entries by.
+        """
+        self.tag_set = tag_set
+        logger.warning(f"Tag set updated: {self.tag_set}")
         self.invalidateFilter()
 
     def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:

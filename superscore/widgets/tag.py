@@ -244,6 +244,8 @@ class TagsWidget(QtWidgets.QWidget):
         The layout containing the widget's tag elements.
     """
 
+    tagSetChanged = QtCore.Signal(dict)
+
     def __init__(
         self,
         *args: Any,
@@ -280,6 +282,7 @@ class TagsWidget(QtWidgets.QWidget):
             self.layout().takeAt(0)
         for tag_group, details in tag_groups.items():
             chip = TagChip(tag_group, details[2], details[0], desc=details[1], enabled=self.isEnabled())
+            chip.tagsChanged.connect(lambda tags: self.tagSetChanged.emit(self.get_tag_set()))
             self.layout().addWidget(chip)
         self.tag_groups = tag_groups
 
