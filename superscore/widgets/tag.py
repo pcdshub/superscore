@@ -286,8 +286,15 @@ class TagsWidget(QtWidgets.QWidget):
             self.layout().addWidget(chip)
         self.tag_groups = tag_groups
 
+    def clear_tags(self) -> None:
+        """Clears all tags in all TagChips"""
+        chips = self.findChildren(TagChip)
+        for chip in chips:
+            chip.clear()
+
     def set_tags(self, tag_set: TagSet) -> None:
         """Sets the child TagChips according to the provided TagSet"""
+        self.clear_tags()
         for tag_group in tag_set:
             chip = self.get_group_chip(tag_group)
             if isinstance(chip, TagChip):

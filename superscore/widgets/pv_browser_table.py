@@ -123,7 +123,7 @@ class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
             True if the entry's tags are a subset of the filter's tag set, False otherwise.
         """
         is_subset = all(self.tag_set[group].issubset(entry_tags.get(group, set())) for group in self.tag_set)
-        logger.warning(f"Tag values subset: {is_subset}")
+        logger.debug(f"Tag values subset: {is_subset}")
 
         return is_subset
 
