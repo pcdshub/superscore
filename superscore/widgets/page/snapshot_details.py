@@ -101,10 +101,11 @@ class SnapshotDetailsPage(Page):
         self.snapshot_details_table.verticalHeader().hide()
         header_view = self.snapshot_details_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Stretch)
-        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.SEVERITY.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.DEVICE.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(PV_HEADER.PV.value, header_view.ResizeMode.Fixed)
+        self.snapshot_details_table.resizeColumnsToContents()
         snapshot_details_layout.addWidget(self.snapshot_details_table)
 
     def set_snapshot(self, snapshot: Snapshot) -> None:
@@ -214,9 +215,14 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         self.header_label = QtWidgets.QLabel()
         main_layout.addWidget(self.header_label)
 
-        self.table_model = SnapshotTableModel(self.client)
         self.proxy_model = ExcludeCurrentSnapshotProxyModel(self, self.snapshot)
-        self.proxy_model.setSourceModel(self.table_model)
+        try:
+            main_window = self.parent().parent()
+            snapshot_table_model = main_window.snapshot_table.model()
+        except AttributeError:
+            snapshot_table_model = SnapshotTableModel(self.client)
+        finally:
+            self.proxy_model.setSourceModel(snapshot_table_model)
         self.table_view = QtWidgets.QTableView()
         self.table_view.setShowGrid(False)
         self.table_view.setModel(self.proxy_model)
@@ -224,8 +230,9 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         self.table_view.doubleClicked.connect(self.accept)
         self.table_view.verticalHeader().hide()
         header_view = self.table_view.horizontalHeader()
-        header_view.setSectionResizeMode(header_view.ResizeToContents)
+        header_view.setSectionResizeMode(header_view.ResizeMode.Fixed)
         header_view.setSectionResizeMode(1, header_view.Stretch)
+        self.table_view.resizeColumnsToContents()
         main_layout.addWidget(self.table_view)
 
         btns = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
@@ -234,7 +241,9 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         buttonBox.rejected.connect(self.reject)
         main_layout.addWidget(buttonBox)
 
-        self.resize(450, 300)
+        column_count = self.table_view.model().columnCount()
+        full_width = sum([self.table_view.columnWidth(i) for i in range(column_count)])
+        self.resize(full_width, 450)
 
     @property
     def selected_snapshot(self):
@@ -248,13 +257,15 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
         """Set the snapshot to be displayed in the details page."""
         if snapshot is self.snapshot:
             return
-
         self.snapshot = snapshot
-
-        header_text = f"Main Snapshot:\n    {self.snapshot.title}\n\n" \
-                      "Select a snapshot to compare to:"
-        self.header_label.setText(header_text)
-
+        self.header_label.setText(
+            "\n".join([
+                "Main Snapshot:",
+                f"      {self.snapshot.title}",
+                "",
+                "Select a snapshot to compare to:",
+            ])
+        )
         self.proxy_model.set_snapshot(self.snapshot)
 
 

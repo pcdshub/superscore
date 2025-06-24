@@ -96,11 +96,12 @@ class SnapshotComparisonPage(Page):
         self.comparison_table.verticalHeader().hide()
         header_view = self.comparison_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Stretch)
-        header_view.setSectionResizeMode(COMPARE_HEADER.CHECKBOX.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(COMPARE_HEADER.SEVERITY.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(COMPARE_HEADER.COMPARE_SEVERITY.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(COMPARE_HEADER.DEVICE.value, header_view.ResizeToContents)
-        header_view.setSectionResizeMode(COMPARE_HEADER.PV.value, header_view.ResizeToContents)
+        header_view.setSectionResizeMode(COMPARE_HEADER.CHECKBOX.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(COMPARE_HEADER.SEVERITY.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(COMPARE_HEADER.COMPARE_SEVERITY.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(COMPARE_HEADER.DEVICE.value, header_view.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(COMPARE_HEADER.PV.value, header_view.ResizeMode.Fixed)
+        self.comparison_table.resizeColumnsToContents()
         snapshot_comparison_layout.addWidget(self.comparison_table)
 
     def set_main_snapshot(self, snapshot: Snapshot):
