@@ -127,10 +127,6 @@ class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         return is_subset
 
-    def tag_set_is_empty(self) -> bool:
-        """Check if the tag set is empty."""
-        return not self.tag_set or all(not tags for tags in self.tag_set.values())
-
     def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:
         row_index = self.sourceModel().index(source_row, 0, source_parent)
         entry = self.sourceModel().data(row_index, QtCore.Qt.UserRole)
@@ -138,6 +134,6 @@ class PVBrowserFilterProxyModel(QtCore.QSortFilterProxyModel):
             return False
 
         logger.debug(f"Filtering row {source_row} with entry: {entry}")
-        if not self.tag_set_is_empty() and not self.is_tag_subset(entry.tags):
-            return False
-        return super().filterAcceptsRow(source_row, source_parent)
+
+        search_accepts_row = super().filterAcceptsRow(source_row, source_parent)
+        return self.is_tag_subset(entry.tags) and search_accepts_row
