@@ -270,7 +270,7 @@ class TagsWidget(QtWidgets.QWidget):
 
         self.setEnabled(enabled)
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
 
         self.setLayout(FlowLayout(margin=0, spacing=5))
         self.layout().setObjectName("TagChipFlowLayout")
