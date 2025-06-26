@@ -6,6 +6,7 @@ from superscore.model import Snapshot
 from superscore.widgets.page.page import Page
 from superscore.widgets.pv_table import PV_HEADER, PVTableModel
 from superscore.widgets.snapshot_table import SnapshotTableModel
+from superscore.widgets.squirrel_table_view import SquirrelTableView
 
 
 class SnapshotDetailsPage(Page):
@@ -95,11 +96,8 @@ class SnapshotDetailsPage(Page):
         self.snapshot_details_model = PVTableModel(self.snapshot.uuid, self.client)
         self.pv_table_models[self.snapshot.uuid] = self.snapshot_details_model
 
-        self.snapshot_details_table = QtWidgets.QTableView()
+        self.snapshot_details_table = SquirrelTableView()
         self.snapshot_details_table.setModel(self.snapshot_details_model)
-        self.snapshot_details_table.setShowGrid(False)
-        self.snapshot_details_table.setSelectionBehavior(self.snapshot_details_table.SelectionBehavior.SelectRows)
-        self.snapshot_details_table.verticalHeader().hide()
         header_view = self.snapshot_details_table.horizontalHeader()
         header_view.setSectionResizeMode(header_view.Stretch)
         header_view.setSectionResizeMode(PV_HEADER.CHECKBOX.value, header_view.ResizeMode.Fixed)
@@ -224,12 +222,9 @@ class SnapshotComparisonDialog(QtWidgets.QDialog):
             snapshot_table_model = SnapshotTableModel(self.client)
         finally:
             self.proxy_model.setSourceModel(snapshot_table_model)
-        self.table_view = QtWidgets.QTableView()
-        self.table_view.setShowGrid(False)
-        self.table_view.setSelectionBehavior(self.table_view.SelectionBehavior.SelectRows)
+        self.table_view = SquirrelTableView()
         self.table_view.setModel(self.proxy_model)
         self.table_view.doubleClicked.connect(self.accept)
-        self.table_view.verticalHeader().hide()
         header_view = self.table_view.horizontalHeader()
         header_view.setSectionResizeMode(header_view.ResizeMode.Fixed)
         header_view.setSectionResizeMode(1, header_view.Stretch)

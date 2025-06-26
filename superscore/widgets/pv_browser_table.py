@@ -57,16 +57,19 @@ class PVBrowserTableModel(QtCore.QAbstractTableModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.DisplayRole
     ) -> Any:
+        column = PV_BROWSER_HEADER(index.column())
         if not index.isValid():
             return None
         elif role == QtCore.Qt.TextAlignmentRole and index.data() == NO_DATA:
             return QtCore.Qt.AlignCenter
         elif role == QtCore.Qt.ToolTipRole:
             entry = self._data[index.row()]
-            return entry.pv_name
+            if column == PV_BROWSER_HEADER.PV:
+                return entry.pv_name
+            elif column == PV_BROWSER_HEADER.READBACK and entry.readback is not None:
+                return entry.readback.pv_name
         elif role == QtCore.Qt.DisplayRole:
             entry = self._data[index.row()]
-            column = PV_BROWSER_HEADER(index.column())
             if column == PV_BROWSER_HEADER.DEVICE:
                 return None
             elif column == PV_BROWSER_HEADER.PV:

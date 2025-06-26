@@ -143,6 +143,23 @@ class PVTableModel(LivePVTableModel):
                     return None
                 else:
                     return None
+        elif role == QtCore.Qt.ToolTipRole:
+            if isinstance(entry, Setpoint):
+                if column == PV_HEADER.SEVERITY:
+                    return entry.pv_name + ".SEVR"
+                elif column in (PV_HEADER.PV, PV_HEADER.SETPOINT, PV_HEADER.LIVE_SETPOINT):
+                    return entry.pv_name
+                elif column in (PV_HEADER.READBACK, PV_HEADER.LIVE_READBACK) and entry.readback is not None:
+                    return entry.readback.pv_name
+                elif column == PV_HEADER.CONFIG:
+                    return None
+            else:
+                if column == PV_HEADER.SEVERITY:
+                    return entry.pv_name + ".SEVR"
+                elif column in (PV_HEADER.READBACK, PV_HEADER.LIVE_READBACK):
+                    return entry.pv_name
+                elif column == PV_HEADER.CONFIG:
+                    return None
         elif role == QtCore.Qt.CheckStateRole and column == PV_HEADER.CHECKBOX:
             return index.row() in self._checked
         elif role == QtCore.Qt.DecorationRole and column == PV_HEADER.SEVERITY:
