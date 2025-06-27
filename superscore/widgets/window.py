@@ -57,15 +57,15 @@ class Window(QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.pv_browser_page = self.init_pv_browser_page()
         self.configure_page = self.init_configure_page()
 
+        self.pages.add(self.view_snapshot_page)
         self.pages.add(self.snapshot_details_page)
         self.pages.add(self.comparison_page)
         self.pages.add(self.pv_browser_page)
+        self.pages.add(self.configure_page)
 
         self.main_content_stack = QtWidgets.QStackedLayout()
         for page in self.pages:
             self.main_content_stack.addWidget(page)
-        self.main_content_stack.addWidget(self.view_snapshot_page)
-        self.main_content_stack.addWidget(self.configure_page)
         self.main_content_stack.setCurrentWidget(self.view_snapshot_page)
 
         self.main_content_container = QtWidgets.QWidget()
