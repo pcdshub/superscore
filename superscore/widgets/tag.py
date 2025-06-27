@@ -277,12 +277,16 @@ class TagsWidget(QtWidgets.QWidget):
 
         self.set_tag_groups(self.tag_groups)
 
+    def emitTagSetChanged(self) -> None:
+        """Emits the tagSetChanged signal with the widget's current TagSet"""
+        self.tagSetChanged.emit(self.get_tag_set())
+
     def set_tag_groups(self, tag_groups: TagDef) -> None:
         while self.layout().count() > 0:
             self.layout().takeAt(0)
         for tag_group, details in tag_groups.items():
             chip = TagChip(tag_group, details[2], details[0], desc=details[1], enabled=self.isEnabled())
-            chip.tagsChanged.connect(lambda tags: self.tagSetChanged.emit(self.get_tag_set()))
+            chip.tagsChanged.connect(self.emitTagSetChanged)
             self.layout().addWidget(chip)
         self.tag_groups = tag_groups
 
