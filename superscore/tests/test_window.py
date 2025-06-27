@@ -8,6 +8,7 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.pv_browser_table import PVBrowserTableModel
+from superscore.widgets.tag import TagsWidget
 from superscore.widgets.window import Window
 
 
@@ -68,16 +69,36 @@ def test_pv_browser_search(qtbot, test_client):
     window = Window(client=test_client)
     qtbot.addWidget(window)
 
-    pv_browser_filter = window.pv_browser_table.model()
+    pv_browser_filter = window.pv_browser_page.pv_browser_filter
     search_bar = window.pv_browser_page.findChild(QtWidgets.QLineEdit)
     assert isinstance(search_bar, QtWidgets.QLineEdit)
 
     assert pv_browser_filter.rowCount() == 4
 
     search_bar.setText("PREFIX")
+    search_bar.editingFinished.emit()  # Simulate the editingFinished signal
     assert pv_browser_filter.rowCount() == 3
     search_bar.setText("test_str")
+    search_bar.editingFinished.emit()
     assert pv_browser_filter.rowCount() == 0
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_pv_browser_tags(qtbot, test_client):
+    window = Window(client=test_client)
+    qtbot.addWidget(window)
+
+    pv_browser_filter = window.pv_browser_page.pv_browser_filter
+    tags_widget = window.pv_browser_page.findChild(TagsWidget)
+
+    assert pv_browser_filter.rowCount() == 4
+
+    tags_widget.set_tags({1: {0}})
+    assert pv_browser_filter.rowCount() == 0
+    tags_widget.set_tags({0: {1}})
+    assert pv_browser_filter.rowCount() == 2
+    tags_widget.set_tags({0: set()})
+    assert pv_browser_filter.rowCount() == 4
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)

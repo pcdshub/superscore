@@ -9,6 +9,11 @@
         "pv_name": "MY:MOTOR:mtr1.ACCL",
         "abs_tolerance": null,
         "rel_tolerance": null,
+        "tags": {
+          "0": [
+            1
+          ]
+        },
         "readback": null,
         "read_only": false
       }
@@ -22,6 +27,11 @@
         "data": 2,
         "status": 17,
         "severity": 3,
+        "tags": {
+          "3": [
+            1
+          ]
+        },
         "readback": null
       }
     },
@@ -39,6 +49,7 @@
             "pv_name": "MY:PREFIX:mtr1.ACCL",
             "abs_tolerance": null,
             "rel_tolerance": null,
+            "tags": {},
             "readback": null,
             "read_only": false
           },
@@ -49,6 +60,7 @@
             "pv_name": "MY:PREFIX:mtr1.VELO",
             "abs_tolerance": null,
             "rel_tolerance": null,
+            "tags": {},
             "readback": null,
             "read_only": false
           },
@@ -59,6 +71,14 @@
             "pv_name": "MY:PREFIX:mtr1.PREC",
             "abs_tolerance": null,
             "rel_tolerance": null,
+            "tags": {
+              "0": [
+                1
+              ],
+              "3": [
+                1
+              ]
+            },
             "readback": null,
             "read_only": false
           }
@@ -84,7 +104,8 @@
             "severity": 3,
             "abs_tolerance": null,
             "rel_tolerance": null,
-            "timeout": null
+            "timeout": null,
+            "tags": {}
           },
           {
             "uuid": "8e380e15-5489-41db-a8a7-bc47a731f099",
@@ -96,7 +117,8 @@
             "severity": 3,
             "abs_tolerance": null,
             "rel_tolerance": null,
-            "timeout": null
+            "timeout": null,
+            "tags": {}
           },
           {
             "uuid": "ed8318d7-8c72-4d47-82d0-d75216d11565",
@@ -108,12 +130,49 @@
             "severity": 3,
             "abs_tolerance": null,
             "rel_tolerance": null,
-            "timeout": null
+            "timeout": null,
+            "tags": {}
           }
         ],
         "tags": {},
         "meta_pvs": []
       }
     }
-  ]
+  ],
+  "tag_groups": {
+    "0": [
+      "Area",
+      "Location of the device",
+      {
+        "0": "LI21",
+        "1": "LI22",
+        "2": "LI23"
+      }
+    ],
+    "1": [
+      "Region",
+      "Which region the device is in",
+      {
+        "0": "Region 1",
+        "1": "Region 2"
+      }
+    ],
+    "2": [
+      "Subsytem",
+      "Which subsytem the device is a part of",
+      {
+        "0": "Magnets",
+        "1": "Network"
+      }
+    ],
+    "3": [
+      "Device",
+      "What type of device",
+      {
+        "0": "BPM",
+        "1": "BLEM"
+      }
+    ]
+  },
+  "meta_pvs": []
 }

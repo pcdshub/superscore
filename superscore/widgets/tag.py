@@ -32,6 +32,9 @@ class TagChip(QtWidgets.QFrame):
     **kwargs : Any
         Additional keyword arguments to pass to the base QWidget.
     """
+
+    tagsChanged = QtCore.Signal(set)
+
     def __init__(self, tag_group: int, choices: dict[int, str], tag_name: str, desc: str = "", enabled: bool = False, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -142,6 +145,7 @@ class TagChip(QtWidgets.QFrame):
         self.tags = tags
         self.setProperty("empty", len(self.tags) == 0)
         self.redraw()
+        self.tagsChanged.emit(self.tags)
 
     def clear(self) -> None:
         """Clear this widget's active tags."""
@@ -240,6 +244,8 @@ class TagsWidget(QtWidgets.QWidget):
         The layout containing the widget's tag elements.
     """
 
+    tagSetChanged = QtCore.Signal(dict)
+
     def __init__(
         self,
         *args: Any,
@@ -264,23 +270,35 @@ class TagsWidget(QtWidgets.QWidget):
 
         self.setEnabled(enabled)
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
 
         self.setLayout(FlowLayout(margin=0, spacing=5))
         self.layout().setObjectName("TagChipFlowLayout")
 
         self.set_tag_groups(self.tag_groups)
 
+    def emitTagSetChanged(self) -> None:
+        """Emits the tagSetChanged signal with the widget's current TagSet"""
+        self.tagSetChanged.emit(self.get_tag_set())
+
     def set_tag_groups(self, tag_groups: TagDef) -> None:
         while self.layout().count() > 0:
             self.layout().takeAt(0)
         for tag_group, details in tag_groups.items():
             chip = TagChip(tag_group, details[2], details[0], desc=details[1], enabled=self.isEnabled())
+            chip.tagsChanged.connect(self.emitTagSetChanged)
             self.layout().addWidget(chip)
         self.tag_groups = tag_groups
 
+    def clear_tags(self) -> None:
+        """Clears all tags in all TagChips"""
+        chips = self.findChildren(TagChip)
+        for chip in chips:
+            chip.clear()
+
     def set_tags(self, tag_set: TagSet) -> None:
         """Sets the child TagChips according to the provided TagSet"""
+        self.clear_tags()
         for tag_group in tag_set:
             chip = self.get_group_chip(tag_group)
             if isinstance(chip, TagChip):
