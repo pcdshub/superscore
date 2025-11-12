@@ -1,17 +1,17 @@
 __all__ = ['BACKENDS']
 
 import logging
-from typing import Dict
+from typing import Dict, Type
 
 from .core import _Backend
 
 logger = logging.getLogger(__name__)
 
 
-BACKENDS: Dict[str, _Backend] = {}
+BACKENDS: Dict[str, Type[_Backend]] = {}
 
 
-def _get_backend(backend: str) -> _Backend:
+def _get_backend(backend: str) -> Type[_Backend]:
     if backend == 'filestore':
         from .filestore import FilestoreBackend
         return FilestoreBackend
@@ -25,7 +25,7 @@ def _get_backend(backend: str) -> _Backend:
     raise ValueError(f"Unknown backend {backend}")
 
 
-def _init_backends() -> Dict[str, _Backend]:
+def _init_backends() -> Dict[str, Type[_Backend]]:
     backends = {}
 
     try:
@@ -46,7 +46,7 @@ def _init_backends() -> Dict[str, _Backend]:
     return backends
 
 
-def get_backend(backend_name: str) -> _Backend:
+def get_backend(backend_name: str) -> Type[_Backend]:
     try:
         backend = BACKENDS[backend_name]
     except KeyError:

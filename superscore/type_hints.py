@@ -1,3 +1,4 @@
+import pathlib
 from typing import TYPE_CHECKING, Callable, Dict, Protocol, Union
 
 if TYPE_CHECKING:
@@ -15,3 +16,4 @@ class AnyDataclass(Protocol):
 
 
 OpenPageSlot = Callable[["Entry"], "DataWidget"]
+AnyPath = Union[str, pathlib.Path]

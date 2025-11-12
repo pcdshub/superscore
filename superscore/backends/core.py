@@ -25,6 +25,9 @@ class _Backend:
     Base class for data storage backend.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def get_entry(self, meta_id: Union[UUID, str]) -> Entry:
         """
         Get entry with ``meta_id``

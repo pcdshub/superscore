@@ -2,6 +2,8 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+from superscore.type_hints import AnyPath
+
 SUPERSCORE_SOURCE_PATH = Path(__file__).parent
 
 
@@ -9,7 +11,7 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-def build_abs_path(basedir: str, path: str) -> str:
+def build_abs_path(basedir: AnyPath, path: AnyPath) -> AnyPath:
     """
     Builds an abs path starting at basedir if path is not already absolute.
     ~ and ~user constructions will be expanded, so ~/path is considered absolute.

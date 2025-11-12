@@ -18,7 +18,7 @@ from ._base_shim import _BaseShim
 logger = logging.getLogger(__name__)
 
 # available communication shim layers
-SHIMS = {
+SHIMS: Dict[str, _BaseShim] = {
     'ca': AiocaShim()
 }
 
@@ -76,7 +76,11 @@ class ControlLayer:
         return shim
 
     @singledispatchmethod
-    def get(self, address: Union[str, Iterable[str]]) -> Union[EpicsData, Iterable[EpicsData]]:
+    def get(
+        self,
+        address: Union[str, Iterable[str]]
+    ) -> Union[Union[EpicsData, CommunicationError],
+               Iterable[Union[EpicsData, CommunicationError]]]:
         """
         Get the value(s) in ``address``.
         If a single pv is provided, will return a single value.
@@ -93,7 +97,7 @@ class ControlLayer:
             The requested data
         """
         # Dispatches to _get_single and _get_list depending on type
-        print(f"PV is of an unsupported type: {type(address)}. Provide either "
+        raise ValueError(f"PV is of an unsupported type: {type(address)}. Provide either "
               "a string or list of strings")
 
     @get.register
@@ -104,8 +108,8 @@ class ControlLayer:
         except CommunicationError as e:
             return e
 
-    @get.register
-    def _get_list(self, address: Iterable) -> Iterable[Union[EpicsData, CommunicationError]]:
+    @get.register(Iterable)
+    def _get_list(self, address: Iterable[str]) -> Iterable[Union[EpicsData, CommunicationError]]:
         """Synchronously get a list of ``address``"""
         async def gathered_coros():
             coros = []
@@ -115,7 +119,7 @@ class ControlLayer:
 
         return asyncio.run(gathered_coros())
 
-    async def _get_one(self, address: str):
+    async def _get_one(self, address: str) -> EpicsData:
         """
         Base async get function.  Use this to construct higher-level get methods
         """
@@ -150,7 +154,7 @@ class ControlLayer:
             The TaskStatus object(s) for the put operation
         """
         # Dispatches to _put_single and _put_list depending on type
-        print(f"PV is of an unsupported type: {type(address)}. Provide either "
+        raise ValueError(f"PV is of an unsupported type: {type(address)}. Provide either "
               "a string or list of strings")
 
     @put.register
@@ -189,7 +193,7 @@ class ControlLayer:
         if not (len(address) == len(value) == cb_length):
             raise ValueError(
                 'Arguments are of different length: '
-                f'addresses({len(address)}), values({len(value)}), cbs({len(cb)})'
+                f'addresses({len(address)}), values({len(value)}), cbs({cb_length})'
             )
 
         async def status_coros():
