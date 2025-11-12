@@ -222,7 +222,9 @@ class EntryItem:
 
     def tooltip(self) -> str:
         """Construct the tooltip based on the stored entry"""
-        return self._data.uuid
+        if isinstance(self._data, UUID):
+            return str(self._data)
+        return str(self._data.uuid)
 
     def columnCount(self) -> int:
         """Return the item's column count"""
@@ -236,6 +238,7 @@ class EntryItem:
         """Return the item's child"""
         if row >= 0 and row < self.childCount():
             return self._children[row]
+        raise ValueError(f"Entry item has no child at index {row}")
 
     def get_children(self) -> Generator[EntryItem, None, None]:
         """Yield this item's children"""

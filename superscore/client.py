@@ -98,7 +98,7 @@ class Client:
                       if key != "type"}
             backend_class = get_backend(backend_type)
             if 'path' in kwargs:
-                kwargs['path'] = build_abs_path(Path(cfg_path).parent, kwargs['path'])
+                kwargs['path'] = str(build_abs_path(Path(cfg_path).parent, kwargs['path']))
             backend = backend_class(**kwargs)
         else:
             logger.warning('No backend specified, loading an empty test backend')

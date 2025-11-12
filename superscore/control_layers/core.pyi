@@ -1,14 +1,18 @@
-from typing import Any, Callable, Optional, overload
+from collections.abc import Iterable
+from typing import Any, Callable, List, Optional, overload
 
 from superscore.control_layers.status import TaskStatus
 
 class ControlLayer:
+
+    def __init__(self, shims: Optional[List[str]] = None) -> None: ...
+
     @overload
     def get(self, address: str) -> Any:
         ...
 
     @overload
-    def get(self, address: list[str]) -> list[Any]:
+    def get(self, address: Iterable[str]) -> list[Any]:
         ...
 
     @overload
