@@ -750,7 +750,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     """
     entries: List[Entry]
     headers: List[str]
-    header_enum: HeaderEnum
+    header_enum: type[HeaderEnum]
     _editable_cols: Dict[int, bool] = {}
     _button_cols: List[HeaderEnum]
     _header_to_field: Dict[HeaderEnum, str]
@@ -962,7 +962,7 @@ class LivePVTableModel(BaseTableEntryModel):
 
         self._poll_thread.start()
 
-    def stop_polling(self, wait_time: float = 0.0) -> None:
+    def stop_polling(self, wait_time: int = 0) -> None:
         """
         stop the polling thread, and mark it as stopped.
         wait time in ms
@@ -973,7 +973,7 @@ class LivePVTableModel(BaseTableEntryModel):
         logger.debug(f"stopping and de-referencing thread @ {id(self._poll_thread)}")
         # does not remove reference to avoid premature python garbage collection
         self._poll_thread.stop()
-        if wait_time > 0.0:
+        if wait_time > 0:
             self._poll_thread.wait(wait_time)
         self._poll_thread.data = {}
 
