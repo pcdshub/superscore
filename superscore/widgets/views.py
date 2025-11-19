@@ -1041,6 +1041,9 @@ class LivePVTableModel(BaseTableEntryModel):
                 skipped_readbacks.append(entry)
             else:
                 new_entries.append(entry)
+                if entry.readback:
+                    new_entries.append(entry.readback)
+                    self._linked_readbacks.append(entry.readback)
 
         for rbv in skipped_readbacks:
             if rbv not in new_entries:
