@@ -1436,7 +1436,6 @@ class _PVPollThread(QtCore.QThread):
         self.req_pv_remove.connect(self.worker.remove_pv)
         # stop worker when the thread stops
         self.stop_requested.connect(self.worker.stop_worker_polling)
-        self.finished.connect(self.deleteLater)
 
     def stop(self) -> None:
         """Stop the polling thread."""
