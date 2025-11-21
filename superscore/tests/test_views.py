@@ -11,8 +11,8 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import (Collection, Nestable, Parameter, Root, Severity,
-                              Status)
+from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
+                              Setpoint, Severity, Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -202,6 +202,29 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
     assert stat_delegate.count() == len(Status)
     for stat in Status:
         assert stat_delegate.itemText(stat.value).lower() == stat.name.lower()
+
+
+def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixture: Setpoint):
+    # already has parameter_with_readback loaded
+    assert isinstance(pv_poll_model.entries[0], Parameter)
+    assert isinstance(pv_poll_model.entries[1], Parameter)
+    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[0], 'Pv Name')
+    assert "↳" not in pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)
+
+    # associated readback should have "↳" prepended
+    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[1], 'Pv Name')
+    assert "↳" == pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)[0]
+
+    pv_poll_model.set_entries([setpoint_with_readback_fixture])
+    assert len(pv_poll_model.entries) == 2
+    assert isinstance(pv_poll_model.entries[0], Setpoint)
+    assert isinstance(pv_poll_model.entries[1], Readback)
+    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[0], 'Pv Name')
+    assert "↳" not in pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)
+
+    # associated readback should have "↳" prepended
+    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[1], 'Pv Name')
+    assert "↳" == pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)[0]
 
 
 def test_fill_uuids_pvs(
