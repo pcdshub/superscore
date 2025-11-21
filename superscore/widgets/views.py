@@ -25,6 +25,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import QtSingleton, WindowLinker
+from superscore.widgets.thread_helpers import get_qthread_cache
 
 logger = logging.getLogger(__name__)
 
@@ -973,8 +974,11 @@ class LivePVTableModel(BaseTableEntryModel):
         # does not remove reference to avoid premature python garbage collection
 
         def _finalize_cleanup():
+            if self._poll_thread is None:
+                return
             self._poll_thread.quit()
-            self._poll_thread.wait()
+            self._poll_thread.wait(wait_time)
+            get_qthread_cache().remove(self._poll_thread)
 
         self._poll_thread.finished.connect(_finalize_cleanup)
         self._poll_thread.stop()
@@ -1436,6 +1440,9 @@ class _PVPollThread(QtCore.QThread):
         self.req_pv_remove.connect(self.worker.remove_pv)
         # stop worker when the thread stops
         self.stop_requested.connect(self.worker.stop_worker_polling)
+
+        # register self with qthread cache
+        get_qthread_cache().add(self)
 
     def stop(self) -> None:
         """Stop the polling thread."""
