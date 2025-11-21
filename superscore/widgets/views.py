@@ -1680,7 +1680,7 @@ class LivePVTableView(BaseDataTableView):
             self.sub_entries = [self.data]
 
     @BaseDataTableView.client.setter
-    def client(self, client: Optional[Client]):
+    def client(self, client: Client):
         super()._set_client(client)
         # reset model poll thread
         if self._model is not None:
