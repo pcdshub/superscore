@@ -978,7 +978,10 @@ class LivePVTableModel(BaseTableEntryModel):
                 return
             self._poll_thread.quit()
             self._poll_thread.wait(wait_time)
-            get_qthread_cache().remove(self._poll_thread)
+            try:
+                get_qthread_cache().remove(self._poll_thread)
+            except KeyError:
+                return
 
         self._poll_thread.finished.connect(_finalize_cleanup)
         self._poll_thread.stop()
@@ -1443,6 +1446,7 @@ class _PVPollThread(QtCore.QThread):
 
         # register self with qthread cache
         get_qthread_cache().add(self)
+        print(get_qthread_cache())
 
     def stop(self) -> None:
         """Stop the polling thread."""

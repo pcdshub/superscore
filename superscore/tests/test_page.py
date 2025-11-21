@@ -29,7 +29,7 @@ def collection_page(qtbot: QtBot, test_client: Client):
     yield page
 
     view = page.sub_pv_table_view
-    view._model.stop_polling()
+    page.close()
     qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
@@ -41,7 +41,7 @@ def snapshot_page(qtbot: QtBot, test_client: Client):
     yield page
 
     view = page.sub_pv_table_view
-    view._model.stop_polling()
+    page.close()
     qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
