@@ -95,6 +95,7 @@ def restore_page(
     qtbot.addWidget(page)
     yield page
     page.close()
+    qtbot.waitUntil(lambda: page.tableView._model._poll_thread.isFinished())
 
 
 @pytest.fixture
@@ -281,7 +282,7 @@ def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
     toggle_live_button = restore_page.compareLiveButton
 
     toggle_live_button.click()
-    qtbot.waitUntil(lambda: tableView._model._poll_thread.running)
+    qtbot.waitUntil(lambda: tableView._model._poll_thread.isRunning())
     qtbot.waitUntil(lambda: all((not tableView.isColumnHidden(column) for column in live_columns)))
 
     toggle_live_button.click()

@@ -34,8 +34,12 @@ def pv_poll_model(
     )
 
     # Make sure we never actually call EPICS
-    model.client.cl.get = MagicMock(return_value=EpicsData(1))
-    qtbot.wait_until(lambda: model._poll_thread.running)
+    def length_aware_mock(arg: list[str]):
+        return [EpicsData(data=1) for _ in range(len(arg))]
+
+    get_mock = MagicMock(side_effect=length_aware_mock)
+    model.client.cl.get = get_mock
+    qtbot.wait_until(lambda: model._poll_thread.isRunning())
     yield model
 
     model.stop_polling()
@@ -63,8 +67,8 @@ def pv_table_view(
         "MY:ENUM": EpicsData(data=0, enums=["OUT", "IN", "UNKNOWN"])
     }
 
-    def simple_coll_return_vals(pv_name: str):
-        return ret_vals[pv_name]
+    def simple_coll_return_vals(pv_names: list[str]):
+        return [ret_vals[name] for name in pv_names]
 
     test_client.cl.get = MagicMock(side_effect=simple_coll_return_vals)
 
@@ -72,25 +76,27 @@ def pv_table_view(
     view.client = test_client
     view.set_data(simple_snapshot_fixture)
 
-    qtbot.wait_until(lambda: view.model()._poll_thread.isRunning())
+    qtbot.wait_until(lambda: view._model._poll_thread.isRunning())
     yield view
 
-    view.model().stop_polling()
-    qtbot.wait_until(lambda: not view.model()._poll_thread.isRunning())
+    view._model.stop_polling()
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
 def test_pvmodel_polling(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     thread = pv_poll_model._poll_thread
     pv_poll_model.stop_polling()
     qtbot.wait_until(lambda: thread.isFinished(), timeout=10000)
-    assert not thread.running
+    assert not thread.isRunning()
 
 
 def test_pvmodel_update(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     assert pv_poll_model._data_cache
 
     # make the mock cl return a new value
-    pv_poll_model.client.cl.get = MagicMock(return_value=EpicsData(3))
+    def new_length_aware_mock(arg: list[str]):
+        return [EpicsData(data=3) for _ in range(len(arg))]
+    pv_poll_model.client.cl.get = MagicMock(side_effect=new_length_aware_mock)
 
     qtbot.wait_signal(pv_poll_model.dataChanged)
 
