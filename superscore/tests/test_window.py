@@ -6,6 +6,7 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
+from superscore.widgets.page.entry import SnapshotPage
 from superscore.widgets.views import EntryItem
 from superscore.widgets.window import Window
 
@@ -80,10 +81,12 @@ def test_add_collection_refresh(qtbot: QtBot, test_client: Client):
     new_top_level_entries = new_entry_item.childCount()
 
     assert new_top_level_entries > orig_top_level_entries
+    coll_builder_page.close()
+    qtbot.waitUntil(coll_builder_page.sub_pv_table_view._model._poll_thread.isFinished)
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
-def test_take_snapshot(qtbot, test_client):
+def test_take_snapshot(qtbot: QtBot, test_client):
     window = Window(client=test_client)
     qtbot.addWidget(window)
     collection = tuple(test_client.search(("uuid", "eq", UUID("a9f289d4-3421-4107-8e7f-2fe0daab77a5"))))[0]
@@ -96,13 +99,18 @@ def test_take_snapshot(qtbot, test_client):
     assert new_snapshot == search_result[0]
 
     snapshot_page = window.open_page(snapshot)
+    assert isinstance(snapshot_page, SnapshotPage)
     result = snapshot_page.take_snapshot()
     assert result is None
     snapshot_page.close()
+    qtbot.waitUntil(snapshot_page.sub_pv_table_view._model._poll_thread.isFinished)
 
     snapshot.origin_collection = collection.uuid
     snapshot_page = window.open_page(snapshot)
+    assert isinstance(snapshot_page, SnapshotPage)
     new_snapshot = snapshot_page.take_snapshot()
     snapshot_page.children()[-1].done(1)
     search_result = tuple(test_client.search(("uuid", 'eq', new_snapshot.uuid)))
     assert new_snapshot == search_result[0]
+    snapshot_page.close()
+    qtbot.waitUntil(snapshot_page.sub_pv_table_view._model._poll_thread.isFinished)
