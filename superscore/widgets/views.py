@@ -1311,6 +1311,7 @@ class _PVPollWorker(QtCore.QObject):
         self.data = {}
         self.pvs = []
         self.poll_period = poll_period
+        self.running = False
         self._timer = QtCore.QTimer(self)
 
     @QtCore.Slot()
@@ -1360,7 +1361,7 @@ class _PVPollWorker(QtCore.QObject):
     @QtCore.Slot(str)
     def remove_pv(self, pv_name: str):
         """Slot to receive 'remove' pvs."""
-        if pv_name not in self.data:
+        if pv_name in self.data:
             self.pvs.remove(pv_name)
             self.data.pop(pv_name)
 
@@ -1452,7 +1453,6 @@ class _PVPollThread(QtCore.QThread):
         """Stop the polling thread."""
         self.worker.finished.connect(self.quit)
         self.stop_requested.emit()
-        self.running = False
 
     def add_pv(self, pv_name: str) -> None:
         # emit signals rather than directly calling method on another thread
