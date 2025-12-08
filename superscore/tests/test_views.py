@@ -208,19 +208,24 @@ def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixtu
     # already has parameter_with_readback loaded
     setpoint = pv_poll_model.entries[0]
     readback = pv_poll_model.entries[1]
-    assert isinstance(setpoint , Parameter)
+    assert isinstance(setpoint, Parameter)
     assert isinstance(readback, Parameter)
     assert setpoint.readback is readback
     data_index_setpoint = pv_poll_model.index_from_item(setpoint, 'Pv Name')
     data_index_readback = pv_poll_model.index_from_item(readback, 'Pv Name')
     assert data_index_setpoint.row() == (data_index_readback.row() - 1)
 
-    pv_poll_model.set_entries([setpoint_with_readback_fixture])
-    setpoint_2 = pv_poll_model.entries[0]
-    readback_2 = pv_poll_model.entries[1]
-    assert len(pv_poll_model.entries) == 2
+    # clear entries
+    pv_poll_model.set_entries([])
+
+    setpoint_2 = setpoint_with_readback_fixture
+    readback_2 = setpoint_2.readback
     assert isinstance(setpoint_2, Setpoint)
     assert isinstance(readback_2, Readback)
+    pv_poll_model.add_entry(readback_2)
+    pv_poll_model.add_entry(Setpoint(pv_name="MY:OTHEDR:LONELY:PV"))
+    pv_poll_model.add_entry(setpoint_2)
+    assert len(pv_poll_model.entries) == 3
     data_index_setpoint_2 = pv_poll_model.index_from_item(setpoint_2, 'Pv Name')
     data_index_readback_2 = pv_poll_model.index_from_item(readback_2, 'Pv Name')
     assert data_index_setpoint_2.row() == (data_index_readback_2.row() - 1)

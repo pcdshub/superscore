@@ -856,7 +856,8 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
             return
 
         self.layoutAboutToBeChanged.emit()
-        self.entries.append[entry]
+        self.entries.append(entry)
+        self.set_entries(self.entries)
         self.layoutChanged.emit()
 
     def remove_row(self, row_index: int) -> None:
@@ -869,6 +870,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         except ValueError:
             logger.debug(f"Entry of type ({type(entry).__name__})"
                          "not found in table, could not remove.")
+        self.set_entries(self.entries)
         self.layoutChanged.emit()
 
     def icon(self, entry: Entry) -> Optional[QtGui.QIcon]:
