@@ -206,25 +206,24 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
 
 def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixture: Setpoint):
     # already has parameter_with_readback loaded
-    assert isinstance(pv_poll_model.entries[0], Parameter)
-    assert isinstance(pv_poll_model.entries[1], Parameter)
-    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[0], 'Pv Name')
-    assert "↳" not in pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)
-
-    # associated readback should have "↳" prepended
-    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[1], 'Pv Name')
-    assert "↳" == pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)[0]
+    setpoint = pv_poll_model.entries[0]
+    readback = pv_poll_model.entries[1]
+    assert isinstance(setpoint , Parameter)
+    assert isinstance(readback, Parameter)
+    assert setpoint.readback is readback
+    data_index_setpoint = pv_poll_model.index_from_item(setpoint, 'Pv Name')
+    data_index_readback = pv_poll_model.index_from_item(readback, 'Pv Name')
+    assert data_index_setpoint.row() == (data_index_readback.row() - 1)
 
     pv_poll_model.set_entries([setpoint_with_readback_fixture])
+    setpoint_2 = pv_poll_model.entries[0]
+    readback_2 = pv_poll_model.entries[1]
     assert len(pv_poll_model.entries) == 2
-    assert isinstance(pv_poll_model.entries[0], Setpoint)
-    assert isinstance(pv_poll_model.entries[1], Readback)
-    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[0], 'Pv Name')
-    assert "↳" not in pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)
-
-    # associated readback should have "↳" prepended
-    data_index = pv_poll_model.index_from_item(pv_poll_model.entries[1], 'Pv Name')
-    assert "↳" == pv_poll_model.data(data_index, QtCore.Qt.DisplayRole)[0]
+    assert isinstance(setpoint_2, Setpoint)
+    assert isinstance(readback_2, Readback)
+    data_index_setpoint_2 = pv_poll_model.index_from_item(setpoint_2, 'Pv Name')
+    data_index_readback_2 = pv_poll_model.index_from_item(readback_2, 'Pv Name')
+    assert data_index_setpoint_2.row() == (data_index_readback_2.row() - 1)
 
 
 def test_fill_uuids_pvs(
