@@ -38,6 +38,7 @@ test:
     - numpy
     - pytest
     - pytest-asyncio
+    - pytest-cov
     - pytest-qt
     - sphinx
     - sphinx_rtd_theme
