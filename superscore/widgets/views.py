@@ -1449,7 +1449,6 @@ class _PVPollThread(QtCore.QThread):
 
         # register self with qthread cache
         get_qthread_cache().add(self)
-        print(get_qthread_cache())
 
     def stop(self) -> None:
         """Stop the polling thread."""

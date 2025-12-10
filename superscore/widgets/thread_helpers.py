@@ -3,6 +3,7 @@ from typing import ClassVar, Set
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import QEvent
 
+# Gathering point for QThreads that may need to be cleaned up
 qthread_cache: Set[QtCore.QThread] = set()
 
 
