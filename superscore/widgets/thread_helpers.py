@@ -1,7 +1,13 @@
-from typing import ClassVar
+from typing import ClassVar, Set
 
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import QEvent
+
+qthread_cache: Set[QtCore.QThread] = set()
+
+
+def get_qthread_cache() -> Set[QtCore.QThread]:
+    return qthread_cache
 
 
 def set_wait_cursor():

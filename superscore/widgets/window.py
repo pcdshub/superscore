@@ -21,6 +21,7 @@ from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.thread_helpers import get_qthread_cache
 from superscore.widgets.views import DiffDispatcher, RootTreeView
 
 logger = logging.getLogger(__name__)
@@ -170,6 +171,14 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         return menu
 
     def closeEvent(self, a0: QCloseEvent) -> None:
+        # hide to mimic closing, and prevent confusion
+        self.hide()
         while self.tab_widget.count() > 0:
             self.remove_tab(0)
+
+        # use a copy of the cache, threads may finalize and be removed during iter
+        for remaining_thread in list(get_qthread_cache()):
+            if not remaining_thread.isFinished():
+                remaining_thread.wait(5000)
+                logger.debug(f"cleaned up remaining thread: {remaining_thread}")
         super().closeEvent(a0)

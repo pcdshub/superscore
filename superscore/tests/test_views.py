@@ -11,8 +11,8 @@ from qtpy import QtCore, QtWidgets
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import (Collection, Nestable, Parameter, Root, Severity,
-                              Status)
+from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
+                              Setpoint, Severity, Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -34,8 +34,12 @@ def pv_poll_model(
     )
 
     # Make sure we never actually call EPICS
-    model.client.cl.get = MagicMock(return_value=EpicsData(1))
-    qtbot.wait_until(lambda: model._poll_thread.running)
+    def length_aware_mock(arg: list[str]):
+        return [EpicsData(data=1) for _ in range(len(arg))]
+
+    get_mock = MagicMock(side_effect=length_aware_mock)
+    model.client.cl.get = get_mock
+    qtbot.wait_until(lambda: model._poll_thread.isRunning())
     yield model
 
     model.stop_polling()
@@ -63,8 +67,8 @@ def pv_table_view(
         "MY:ENUM": EpicsData(data=0, enums=["OUT", "IN", "UNKNOWN"])
     }
 
-    def simple_coll_return_vals(pv_name: str):
-        return ret_vals[pv_name]
+    def simple_coll_return_vals(pv_names: list[str]):
+        return [ret_vals[name] for name in pv_names]
 
     test_client.cl.get = MagicMock(side_effect=simple_coll_return_vals)
 
@@ -72,25 +76,27 @@ def pv_table_view(
     view.client = test_client
     view.set_data(simple_snapshot_fixture)
 
-    qtbot.wait_until(lambda: view.model()._poll_thread.isRunning())
+    qtbot.wait_until(lambda: view._model._poll_thread.isRunning())
     yield view
 
-    view.model().stop_polling()
-    qtbot.wait_until(lambda: not view.model()._poll_thread.isRunning())
+    view._model.stop_polling()
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
 def test_pvmodel_polling(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     thread = pv_poll_model._poll_thread
     pv_poll_model.stop_polling()
     qtbot.wait_until(lambda: thread.isFinished(), timeout=10000)
-    assert not thread.running
+    assert not thread.isRunning()
 
 
 def test_pvmodel_update(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     assert pv_poll_model._data_cache
 
     # make the mock cl return a new value
-    pv_poll_model.client.cl.get = MagicMock(return_value=EpicsData(3))
+    def new_length_aware_mock(arg: list[str]):
+        return [EpicsData(data=3) for _ in range(len(arg))]
+    pv_poll_model.client.cl.get = MagicMock(side_effect=new_length_aware_mock)
 
     qtbot.wait_signal(pv_poll_model.dataChanged)
 
@@ -196,6 +202,33 @@ def test_stat_sev_enums(pv_table_view: LivePVTableView):
     assert stat_delegate.count() == len(Status)
     for stat in Status:
         assert stat_delegate.itemText(stat.value).lower() == stat.name.lower()
+
+
+def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixture: Setpoint):
+    # already has parameter_with_readback loaded
+    setpoint = pv_poll_model.entries[0]
+    readback = pv_poll_model.entries[1]
+    assert isinstance(setpoint, Parameter)
+    assert isinstance(readback, Parameter)
+    assert setpoint.readback is readback
+    data_index_setpoint = pv_poll_model.index_from_item(setpoint, 'Pv Name')
+    data_index_readback = pv_poll_model.index_from_item(readback, 'Pv Name')
+    assert data_index_setpoint.row() == (data_index_readback.row() - 1)
+
+    # clear entries
+    pv_poll_model.set_entries([])
+
+    setpoint_2 = setpoint_with_readback_fixture
+    readback_2 = setpoint_2.readback
+    assert isinstance(setpoint_2, Setpoint)
+    assert isinstance(readback_2, Readback)
+    pv_poll_model.add_entry(readback_2)
+    pv_poll_model.add_entry(Setpoint(pv_name="MY:OTHEDR:LONELY:PV"))
+    pv_poll_model.add_entry(setpoint_2)
+    assert len(pv_poll_model.entries) == 3
+    data_index_setpoint_2 = pv_poll_model.index_from_item(setpoint_2, 'Pv Name')
+    data_index_readback_2 = pv_poll_model.index_from_item(readback_2, 'Pv Name')
+    assert data_index_setpoint_2.row() == (data_index_readback_2.row() - 1)
 
 
 def test_fill_uuids_pvs(

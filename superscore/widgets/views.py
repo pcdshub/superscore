@@ -5,11 +5,10 @@ Qt tree model and item classes for visualizing Entry dataclasses
 from __future__ import annotations
 
 import logging
-import time
 from enum import Enum, IntEnum, auto
 from functools import partial
 from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
-                    Union)
+                    Type, Union)
 from uuid import UUID
 from weakref import WeakValueDictionary
 
@@ -26,6 +25,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import QtSingleton, WindowLinker
+from superscore.widgets.thread_helpers import get_qthread_cache
 
 logger = logging.getLogger(__name__)
 
@@ -750,7 +750,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
     """
     entries: List[Entry]
     headers: List[str]
-    header_enum: HeaderEnum
+    header_enum: type[HeaderEnum]
     _editable_cols: Dict[int, bool] = {}
     _button_cols: List[HeaderEnum]
     _header_to_field: Dict[HeaderEnum, str]
@@ -856,7 +856,8 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
             return
 
         self.layoutAboutToBeChanged.emit()
-        self.entries.append[entry]
+        self.entries.append(entry)
+        self.set_entries(self.entries)
         self.layoutChanged.emit()
 
     def remove_row(self, row_index: int) -> None:
@@ -869,6 +870,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         except ValueError:
             logger.debug(f"Entry of type ({type(entry).__name__})"
                          "not found in table, could not remove.")
+        self.set_entries(self.entries)
         self.layoutChanged.emit()
 
     def icon(self, entry: Entry) -> Optional[QtGui.QIcon]:
@@ -905,7 +907,8 @@ class LivePVTableModel(BaseTableEntryModel):
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
     headers: List[str]
-    _data_cache: Dict[str, EpicsData]
+    entries: List[PVEntry]
+    _data_cache: Dict[str, Optional[EpicsData]]
     _poll_thread: Optional[_PVPollThread]
     _button_cols: List[LivePVHeader] = [LivePVHeader.OPEN, LivePVHeader.REMOVE]
     _header_to_field: Dict[LivePVHeader, str] = {
@@ -924,6 +927,7 @@ class LivePVTableModel(BaseTableEntryModel):
         **kwargs
     ) -> None:
         super().__init__(*args, entries=entries, **kwargs)
+        self._selected_entry: Optional[PVEntry] = None
         self.header_enum = LivePVHeader
         self.headers = [h.header_name() for h in LivePVHeader]
 
@@ -936,7 +940,12 @@ class LivePVTableModel(BaseTableEntryModel):
         self._data_cache = {e.pv_name: None for e in entries}
         self._poll_thread = None
 
+        self._linked_readbacks: list[Readback] = []
+
         self.start_polling()
+
+        # set entries again to process readbacks properly
+        self.set_entries(entries)
 
     def start_polling(self) -> None:
         """Start the polling thread"""
@@ -955,7 +964,7 @@ class LivePVTableModel(BaseTableEntryModel):
 
         self._poll_thread.start()
 
-    def stop_polling(self, wait_time: float = 0.0) -> None:
+    def stop_polling(self, wait_time: int = 0) -> None:
         """
         stop the polling thread, and mark it as stopped.
         wait time in ms
@@ -965,10 +974,19 @@ class LivePVTableModel(BaseTableEntryModel):
 
         logger.debug(f"stopping and de-referencing thread @ {id(self._poll_thread)}")
         # does not remove reference to avoid premature python garbage collection
-        self._poll_thread.stop()
-        if wait_time > 0.0:
+
+        def _finalize_cleanup():
+            if self._poll_thread is None:
+                return
+            self._poll_thread.quit()
             self._poll_thread.wait(wait_time)
-        self._poll_thread.data = {}
+            try:
+                get_qthread_cache().remove(self._poll_thread)
+            except KeyError:
+                return
+
+        self._poll_thread.finished.connect(_finalize_cleanup)
+        self._poll_thread.stop()
 
     @QtCore.Slot()
     def _poll_thread_finished(self):
@@ -1007,11 +1025,46 @@ class LivePVTableModel(BaseTableEntryModel):
             )
 
     def set_entries(self, entries: list[PVEntry]) -> None:
-        """Set the entries for this table, reset data cache"""
+        """
+        Set the entries for this table, make readback links, reset data cache
+        """
         self.layoutAboutToBeChanged.emit()
-        self.entries = entries
-        self._data_cache = {e.pv_name: None for e in entries}
-        self._poll_thread.data = self._data_cache
+        # Organize setpoint/readback links
+        new_entries = []
+        skipped_readbacks = []
+        self._linked_readbacks = []
+        for entry in entries:
+            # We may have already added a readback
+            if entry in new_entries:
+                continue
+
+            if (
+                isinstance(entry, Setpoint)
+                and entry.readback is not None
+                and entry.readback in entries
+            ):
+                new_entries.append(entry)
+                # Add readback right after
+                new_entries.append(entry.readback)
+                self._linked_readbacks.append(entry.readback)
+            elif isinstance(entry, Readback):
+                # skip adding and add them to readbacks
+                skipped_readbacks.append(entry)
+            else:
+                new_entries.append(entry)
+                if entry.readback:
+                    new_entries.append(entry.readback)
+                    self._linked_readbacks.append(entry.readback)
+
+        for rbv in skipped_readbacks:
+            if rbv not in new_entries:
+                new_entries.append(rbv)
+
+        self.entries = new_entries
+
+        for entry in self.entries:
+            self._poll_thread.add_pv(entry.pv_name)
+
         self.dataChanged.emit(
             self.createIndex(0, 0),
             self.createIndex(self.rowCount(), self.columnCount()),
@@ -1083,11 +1136,29 @@ class LivePVTableModel(BaseTableEntryModel):
         if index.column() == LivePVHeader.PV_NAME:
             if role == QtCore.Qt.DecorationRole:
                 return self.icon(entry)
-            elif role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-                name_text = getattr(entry, 'pv_name')
-                return name_text
             elif role == CustRoles.DisplayTypeRole:
                 return DisplayType.PV_NAME
+
+            name_text = getattr(entry, 'pv_name')
+            if role == QtCore.Qt.DisplayRole:
+                if entry in self._linked_readbacks:
+                    name_text = "↳" + name_text
+                return name_text
+            elif role == QtCore.Qt.EditRole:
+                # make sure we don't carry vanity return character
+                return name_text
+
+        if role == QtCore.Qt.BackgroundColorRole and index.column() != LivePVHeader.LIVE_VALUE:
+            # highlight current row and linked row rbv pairing exists
+            if (
+                entry == self.selected_entry
+                or (isinstance(self.selected_entry, Setpoint)
+                    and self.selected_entry.readback is entry)
+                or (isinstance(entry, Setpoint)
+                    and self.selected_entry in self._linked_readbacks
+                    and entry.readback is self.selected_entry)
+            ):
+                return QtGui.QColor(59, 134, 255, 30)
 
         if role not in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole,
                         QtCore.Qt.BackgroundRole, CustRoles.DisplayTypeRole,
@@ -1210,12 +1281,111 @@ class LivePVTableModel(BaseTableEntryModel):
         else:
             return data
 
+    @property
+    def selected_entry(self):
+        return self._selected_entry
+
+    @selected_entry.setter
+    def selected_entry(self, value: Entry):
+        self._selected_entry = value
+
+    def update_selected(self, index: QtCore.QModelIndex):
+        self.layoutAboutToBeChanged.emit()
+        self._selected_entry = self.entries[index.row()]
+        self.layoutChanged.emit()
+
+
+class _PVPollWorker(QtCore.QObject):
+    data_ready: ClassVar[QtCore.Signal] = QtCore.Signal()
+    data_changed: ClassVar[QtCore.Signal] = QtCore.Signal(str)
+    running: bool
+
+    finished: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    # keys match pvs
+    data: Dict[str, Optional[EpicsData]]
+    pvs: list[str]
+    poll_period: float
+
+    def __init__(self, client: Client, poll_period: float):
+        super().__init__()
+        self.client = client
+        self.data = {}
+        self.pvs = []
+        self.poll_period = poll_period
+        self.running = False
+        self._timer = QtCore.QTimer(self)
+
+    @QtCore.Slot()
+    def start_polling(self):
+        """Set up the polling action and start the timer"""
+        self.running = True
+        self._timer.timeout.connect(self._perform_poll)
+        self._timer.start(int(self.poll_period * 1000))
+
+    @QtCore.Slot()
+    def _perform_poll(self):
+        """
+        Update the internal data cache with new data from EPICS.
+        Emit self.data_changed signal if data has changed
+        """
+        if not self.pvs:
+            return
+
+        # Iterate over a copy to be safe
+        targets = list(self.pvs)
+        try:
+            # TODO: Mark timeout PVs to not wait for timeout every poll loop
+            data = self.client.cl.get(targets)
+        except Exception as e:
+            logger.warning(f'Unable to get data from PVs: {e}')
+            return
+
+        for pv_name, val in zip(targets, data):
+            if not self.running:
+                logger.debug("Polling stopped mid loop, returning early")
+                break
+            # ControlLayer.get may return CommunicationError instead of raising
+            if not isinstance(val, Exception) and self.data[pv_name] != val:
+                self.data_changed.emit(pv_name)
+                self.data[pv_name] = val
+
+        if not self.running:
+            self.finished.emit()
+
+    @QtCore.Slot(str)
+    def add_pv(self, pv_name: str):
+        """Slot to receive 'add' pvs."""
+        if pv_name not in self.pvs:
+            self.pvs.append(pv_name)
+            self.data[pv_name] = None
+
+    @QtCore.Slot(str)
+    def remove_pv(self, pv_name: str):
+        """Slot to receive 'remove' pvs."""
+        if pv_name in self.data:
+            self.pvs.remove(pv_name)
+            self.data.pop(pv_name)
+
+    @QtCore.Slot()
+    def stop_worker_polling(self):
+        self.running = False
+        self._timer.stop()
+        self.finished.emit()
+
 
 class _PVPollThread(QtCore.QThread):
     """
-    Polling thread for LivePVTableModel
+    Polling thread for LivePVTableModel.  Sets up a _PVPollWorker and moves its
+    operation to this thread.  Listens to signals on this worker to determine
+    when the polling loop has been properly shut down.
 
     Emits ``data_changed(pv: str)`` when a pv has new data
+
+    Data is passed through the `.data` dictionary, a shared reference.
+    You must not modify this dictionary, otherwise bad things will happen.
+    Instead use the add_pv and remove_pv methods.
+
     Parameters
     ----------
     client : superscore.client.Client
@@ -1234,15 +1404,17 @@ class _PVPollThread(QtCore.QThread):
     """
     data_ready: ClassVar[QtCore.Signal] = QtCore.Signal()
     data_changed: ClassVar[QtCore.Signal] = QtCore.Signal(str)
-    running: bool
+    stop_requested: ClassVar[QtCore.Signal] = QtCore.Signal()
+    req_pv_add: ClassVar[QtCore.Signal] = QtCore.Signal(str)
+    req_pv_remove: ClassVar[QtCore.Signal] = QtCore.Signal(str)
 
-    data: Dict[str, EpicsData]
+    data: Dict[str, Optional[EpicsData]]
     poll_period: float
 
     def __init__(
         self,
         client: Client,
-        data: Dict[str, EpicsData],
+        data: Dict[str, Optional[EpicsData]],
         poll_period: float,
         *,
         parent: Optional[QtWidgets.QWidget] = None
@@ -1251,49 +1423,46 @@ class _PVPollThread(QtCore.QThread):
         self.data = data
         self.poll_period = poll_period
         self.client = client
-        self.running = False
-        self._attrs = set()
+
+        self.worker = _PVPollWorker(client, poll_period=self.poll_period)
+
+        if self.data:
+            for pvname in data:
+                self.worker.add_pv(pvname)
+
+        # shared reference
+        self.data = self.worker.data
+
+        self.worker.moveToThread(self)
+        # start the worker when the thread starts
+        self.started.connect(self.worker.start_polling)
+        self.started.connect(self.data_ready)
+        # pass through data signals
+        # We could just subscribe to the worker signals, but encapsulating in
+        # thread helps keep API consistent
+        self.worker.data_changed.connect(self.data_changed)
+        self.worker.data_ready.connect(self.data_ready)
+        self.req_pv_add.connect(self.worker.add_pv)
+        self.req_pv_remove.connect(self.worker.remove_pv)
+        # stop worker when the thread stops
+        self.stop_requested.connect(self.worker.stop_worker_polling)
+
+        # register self with qthread cache
+        get_qthread_cache().add(self)
+        print(get_qthread_cache())
 
     def stop(self) -> None:
         """Stop the polling thread."""
-        self.running = False
+        self.worker.finished.connect(self.quit)
+        self.stop_requested.emit()
 
-    def _update_data(self, pv_name):
-        """
-        Update the internal data cache with new data from EPICS.
-        Emit self.data_changed signal if data has changed
-        """
-        try:
-            val = self.client.cl.get(pv_name)
-        except Exception as e:
-            logger.warning(f'Unable to get data from {pv_name}: {e}')
-            return
+    def add_pv(self, pv_name: str) -> None:
+        # emit signals rather than directly calling method on another thread
+        self.req_pv_add.emit(pv_name)
 
-        # ControlLayer.get may return CommunicationError instead of raising
-        if not isinstance(val, Exception) and self.data[pv_name] != val:
-            self.data_changed.emit(pv_name)
-            self.data[pv_name] = val
-
-    def run(self):
-        """The thread polling loop."""
-        self.running = True
-
-        self.data_ready.emit()
-
-        while self.running:
-            t0 = time.monotonic()
-            for pv_name in self.data:
-                self._update_data(pv_name)
-                if not self.running:
-                    break
-                time.sleep(0)
-
-            if self.poll_period <= 0.0:
-                # A zero or below means "single shot" updates.
-                break
-
-            elapsed = time.monotonic() - t0
-            time.sleep(max((0, self.poll_period - elapsed)))
+    def remove_pv(self, pv_name: str) -> None:
+        # emit signals rather than directly calling method on another thread
+        self.req_pv_remove.emit(pv_name)
 
 
 class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
@@ -1303,7 +1472,7 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
     # signal indicating the contained has been updated
     data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
     _model: Optional[Union[LivePVTableModel, NestableTableModel]] = None
-    _model_cls: Union[LivePVTableModel, NestableTableModel] = LivePVTableModel
+    _model_cls: Union[Type[LivePVTableModel], Type[NestableTableModel]] = LivePVTableModel
     open_column: int = 0
     remove_column: int = 0
 
@@ -1337,6 +1506,9 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
         self.remove_delegate = ButtonDelegate(button_text='remove')
         self.setItemDelegateForColumn(self.remove_column, self.remove_delegate)
         self.remove_delegate.clicked.connect(self.remove_row)
+
+        self.horizontalHeader().setSectionsMovable(True)
+        self.horizontalHeader().setStretchLastSection(True)
 
         # set context menu
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -1520,13 +1692,29 @@ class LivePVTableView(BaseDataTableView):
             self.sub_entries = [self.data]
 
     @BaseDataTableView.client.setter
-    def client(self, client: Optional[Client]):
+    def client(self, client: Client):
         super()._set_client(client)
         # reset model poll thread
         if self._model is not None:
             self._model.stop_polling()
             self._model.client = self._client
             self._model.start_polling()
+
+    def maybe_setup_model(self):
+        super().maybe_setup_model()
+        sel_model = self.selectionModel()
+        # Selection model only exists if model is set
+        if sel_model:
+            # Look for "current" index, which has keyboard focus.
+            # "Selection" is not updated unless... other settings are changed
+            sel_model.currentChanged.connect(self.selection_update_slot)
+
+    def selection_update_slot(
+        self,
+        selected: QtCore.QModelIndex,
+        deselected: QtCore.QModelIndex,
+    ) -> None:
+        self._model.update_selected(selected)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
