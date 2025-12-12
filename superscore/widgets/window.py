@@ -120,8 +120,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         try:
             page = PAGE_MAP[type(entry)]
         except KeyError:
-            logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
-            return
+            raise TypeError(f'No page widget for {type(entry)}, cannot open in tab')
 
         page_widget = page(data=entry, client=self.client)
         icon = qta.icon(ICON_MAP[type(entry)])
