@@ -108,6 +108,10 @@ class _Backend:
         """Return the Root Entry in this backend"""
         raise NotImplementedError
 
+    def entry_writable(self, entry: Entry) -> bool:
+        """return if `entry` is editable in the backend"""
+        raise NotImplementedError
+
 
 def populate_backend(backend: _Backend, sources: Iterable[Union[Callable, str, Root, Entry]]) -> None:
     """

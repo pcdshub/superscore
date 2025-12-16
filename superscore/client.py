@@ -1,5 +1,6 @@
 """Client for superscore.  Used for programmatic interactions with superscore"""
 import configparser
+import getpass
 import logging
 import os
 from pathlib import Path
@@ -23,6 +24,8 @@ class Client:
     backend: _Backend
     cl: ControlLayer
 
+    recent_entry_cache: set[UUID]
+
     def __init__(
         self,
         backend: Optional[_Backend] = None,
@@ -37,6 +40,7 @@ class Client:
 
         self.backend = backend
         self.cl = control_layer
+        self.recent_entry_cache = set()
 
     @classmethod
     def from_config(cls, cfg: Optional[Path] = None):
@@ -177,14 +181,73 @@ class Client:
                 new_search_terms.append(search_term)
         return self.backend.search(*new_search_terms)
 
+    def get_user(self) -> str:
+        return getpass.getuser()
+
+    def is_user_authorized(self, user: str) -> bool:
+        # TODO: actually implement authentication
+        return True
+
+    def is_editable(self, entry: Entry) -> bool:
+        """
+        Can the provided `entry` be modified, given the current authenticated
+        user and backend.  Only returns the editability of the top level entry,
+        not its children.
+
+        Any entries that were created while this client instance exists will
+        remain editable until the session is over.
+
+        Parameters
+        ----------
+        entry : Entry
+            The entry to return editability for
+
+        Returns
+        -------
+        bool
+            if `entry` is writable
+        """
+        # get authenticated user, maybe eventually through kerberos?
+        # authentication here should only be used to verify user is correct
+        user = self.get_user()
+        authorized = self.is_user_authorized(user)
+
+        if not authorized:
+            return False
+
+        if not self.backend.entry_writable(entry):
+            return False
+
+        # new entries are always allowed
+        if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+            return True
+
+        if entry.uuid in self.recent_entry_cache:
+            return True
+
+        return False
+
     def save(self, entry: Entry):
         """Save information in ``entry`` to database"""
         # validate entry is valid
-        self.backend.save_entry(entry)
+        # if exists, try to update
+        # check permissions?
+        if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+            self.backend.save_entry(entry)
+            self.recent_entry_cache.add(entry.uuid)
+
+        if not self.is_editable(entry):
+            return
+
+        self.backend.update_entry(entry)
 
     def delete(self, entry: Entry) -> None:
         """Remove item from backend, depending on backend"""
         # check for references to ``entry`` in other objects?
+        # check permissions?
+        if not self.is_editable(entry):
+            return
+
         self.backend.delete_entry(entry)
 
     def compare(self, entry_l: Entry, entry_r: Entry) -> EntryDiff:
