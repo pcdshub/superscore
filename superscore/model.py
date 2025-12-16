@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum, auto
-from typing import ClassVar, List, Optional, Set, Union
+from typing import Any, ClassVar, Generator, List, Optional, Set, Union
 from uuid import UUID, uuid4
 
 import apischema
@@ -182,6 +182,9 @@ class Readback(Entry):
 
 class Nestable:
     """Mix-in class that provides methods for nested container Entries"""
+
+    children: List[Union[UUID, Entry]]
+
     def validate(self, toplevel: bool = True):
         """
         Validates self and all children. If toplevel, also validates structure
@@ -205,6 +208,14 @@ class Nestable:
                 if isinstance(child, type(self)) and child.has_cycle(parents=parents_including_self):
                     return True
             return False
+
+    def walk_children(self) -> Generator[Any, None, None]:
+        yield self
+        for child in self.children:
+            if isinstance(child, Nestable):
+                yield from child.walk_children()
+            else:
+                yield child
 
 
 @dataclass
