@@ -35,6 +35,8 @@ class FilestoreBackend(_Backend):
     _entry_cache: Dict[UUID, Entry]
     _root: Root
 
+    _is_writable: bool
+
     def __init__(
         self,
         path: str,
@@ -46,8 +48,9 @@ class FilestoreBackend(_Backend):
         if cfg_path is not None:
             cfg_dir = os.path.dirname(cfg_path)
             self.path = build_abs_path(cfg_dir, path)
+        self._is_writable = os.access(self.path, os.W_OK)
 
-    def _load_or_initialize(self) -> Dict[str, Any]:
+    def _load_or_initialize(self) -> Dict[UUID, Any]:
         """
         Load an existing database or initialize a new one.
         Returns the entry cache for this backend
@@ -246,6 +249,10 @@ class FilestoreBackend(_Backend):
         """Refresh the cache and return the root object"""
         with self._load_and_store_context():
             return self._root
+
+    def entry_writable(self, entry: Entry) -> bool:
+        # Presuming permissions don't change before write attempts
+        return self._is_writable
 
     def get_entry(self, uuid: Union[UUID, str]) -> Entry:
         """Return the entry with ``uuid``"""
