@@ -232,9 +232,21 @@ class Client:
         # validate entry is valid
         # if exists, try to update
         # check permissions?
+        self.fill(entry)
+        if isinstance(entry, Nestable):
+            entry_ids = [e.uuid for e in entry.walk_children()]
+        else:
+            entry_ids = [entry.uuid]
+
+        # allow edits to entries that have been added in this session
+        for entry_id in entry_ids:
+            if not list(self.search(SearchTerm("uuid", "eq", entry_id))):
+                self.recent_entry_cache.add(entry_id)
+
+        # actually write the entry and its children
         if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
             self.backend.save_entry(entry)
-            self.recent_entry_cache.add(entry.uuid)
+            return
 
         if not self.is_editable(entry):
             return
@@ -303,11 +315,10 @@ class Client:
             for child in entry.children:
                 if isinstance(child, UUID):
                     search_condition = SearchTerm('uuid', 'eq', child)
-                    filled_child = list(self.search(search_condition))[0]
-                    self.fill(filled_child, fill_depth)
-                    new_children.append(filled_child)
-                else:
-                    new_children.append(child)
+                    child = list(self.search(search_condition))[0]
+
+                self.fill(child, fill_depth)
+                new_children.append(child)
 
             entry.children = new_children
 
