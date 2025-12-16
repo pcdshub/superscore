@@ -1,6 +1,7 @@
 import inspect
 import itertools
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 from unittest.mock import MagicMock
@@ -243,6 +244,10 @@ def test_backend(
 
     for entry in test_data.entries:
         backend.save_entry(entry)
+
+    if isinstance(backend, FilestoreBackend):
+        # file only appears writable once written to once?...
+        backend._is_writable = os.access(backend.path, os.W_OK)
 
     return backend
 
