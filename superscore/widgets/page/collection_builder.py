@@ -120,7 +120,11 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         self.data.title = self.meta_widget.name_edit.text()
         self.data.description = self.meta_widget.desc_edit.toPlainText()
         # children should have been updated along the way
+        if self.client is None:
+            return
+
         self.client.save(self.data)
+
         self.refresh_window()
         logger.info(f"Collection saved ({self.data.uuid})")
 
@@ -183,5 +187,6 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
-        self.sub_pv_table_view._model.stop_polling(wait_time=5000)
+        if self.sub_pv_table_view._model:
+            self.sub_pv_table_view._model.stop_polling(wait_time=5000)
         return super().closeEvent(a0)
