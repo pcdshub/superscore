@@ -10,7 +10,7 @@ import superscore.tests.conftest_data
 from superscore.model import Entry, Root
 from superscore.type_hints import AnyEpicsType
 
-SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
+SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...], UUID]
 SearchTermType = tuple[str, str, SearchTermValue]
 
 
