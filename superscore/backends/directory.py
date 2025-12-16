@@ -44,9 +44,12 @@ class DirectoryBackend(_Backend):
         except PermissionError:
             pass
 
-    @functools.lru_cache(maxsize=10000)
     def entry_writable(self, entry: Entry) -> bool:
-        path = self._find_entry_path(entry.uuid)
+        return self._entry_writable(entry.uuid)
+
+    @functools.lru_cache(maxsize=10000)
+    def _entry_writable(self, entry_id: UUID) -> bool:
+        path = self._find_entry_path(entry_id)
         # Presuming permissions don't change before write attempts
         return os.access(path, os.W_OK)
 
