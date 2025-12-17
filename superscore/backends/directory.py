@@ -50,6 +50,9 @@ class DirectoryBackend(_Backend):
     @functools.lru_cache(maxsize=10000)
     def _entry_writable(self, entry_id: UUID) -> bool:
         path = self._find_entry_path(entry_id)
+        # assume that if we create the file, we will retain write permissions
+        if not os.path.exists(path):
+            return True
         # Presuming permissions don't change before write attempts
         return os.access(path, os.W_OK)
 
