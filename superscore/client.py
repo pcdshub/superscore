@@ -24,12 +24,14 @@ class Client:
     backend: _Backend
     cl: ControlLayer
 
+    enable_editing_past: bool
     recent_entry_cache: set[UUID]
 
     def __init__(
         self,
         backend: Optional[_Backend] = None,
         control_layer: Optional[ControlLayer] = None,
+        enable_editing_past: bool = False,
     ) -> None:
         if backend is None:
             # set up a temp backend with temp file
@@ -40,6 +42,8 @@ class Client:
 
         self.backend = backend
         self.cl = control_layer
+        # Let this be a setting for now, may be more strictly enforced in future
+        self.enable_editing_past = enable_editing_past
         self.recent_entry_cache = set()
 
     @classmethod
@@ -215,17 +219,22 @@ class Client:
         if not authorized:
             return False
 
+        # If backend does not allow writing, all else is moot
         if not self.backend.entry_writable(entry):
             return False
 
-        # new entries are always allowed
-        if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
-            return True
+        # preventing editing of past entries adds additional constraints
+        if not self.enable_editing_past:
+            # Recent entries are allowed...
+            if entry.uuid in self.recent_entry_cache:
+                return True
 
-        if entry.uuid in self.recent_entry_cache:
-            return True
+            # while past entries are restricted
+            if list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+                return False
 
-        return False
+        # Default is to allow writing, previous conditions veto this
+        return True
 
     def save(self, entry: Entry):
         """Save information in ``entry`` to database"""
