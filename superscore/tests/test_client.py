@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from superscore.backends.core import SearchTerm
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -288,7 +289,7 @@ def test_find_origin_collection(test_client):
 
 @setup_test_stack(
     sources=["linac_with_comparison_snapshot"],
-    backend_type=[TestBackend, FilestoreBackend],
+    backend_type=[TestBackend, FilestoreBackend, DirectoryBackend],
 )
 def test_recents_cache(test_client):
     coll = Collection()
@@ -315,5 +316,11 @@ def test_recents_cache(test_client):
 
     assert test_client.is_editable(snap)
     test_client.save(snap)
+    assert snap.uuid in test_client.recent_entry_cache
+    assert existing_entry.uuid not in test_client.recent_entry_cache
     assert test_client.is_editable(snap)
+    assert not test_client.enable_editing_past
     assert not test_client.is_editable(existing_entry)
+
+    test_client.enable_editing_past = True
+    assert test_client.is_editable(existing_entry)
