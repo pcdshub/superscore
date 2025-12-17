@@ -1,12 +1,14 @@
 from uuid import UUID
 
+import pytest
 from pytestqt.qtbot import QtBot
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
-from superscore.widgets.page.entry import SnapshotPage
+from superscore.widgets.page.entry import (CollectionPage, ParameterPage,
+                                           SetpointPage, SnapshotPage)
 from superscore.widgets.views import EntryItem
 from superscore.widgets.window import Window
 
@@ -114,3 +116,34 @@ def test_take_snapshot(qtbot: QtBot, test_client):
     assert new_snapshot == search_result[0]
     snapshot_page.close()
     qtbot.waitUntil(snapshot_page.sub_pv_table_view._model._poll_thread.isFinished)
+
+
+@pytest.mark.parametrize("editable,", [True, False])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_open_page_editability(qtbot, test_client: Client, editable: bool,):
+    """Test that opened pages respect the editability provided by the client"""
+    test_client.enable_editing_past = editable
+    window = Window(client=test_client)
+    qtbot.addWidget(window)
+    collection = tuple(test_client.search(
+        ("uuid", "eq", UUID("a9f289d4-3421-4107-8e7f-2fe0daab77a5"))
+    ))[0]
+    snapshot = tuple(test_client.search(
+        ("uuid", "eq", UUID("ffd668d3-57d9-404e-8366-0778af7aee61"))
+    ))[0]
+    setpoint = tuple(test_client.search(
+        ("uuid", "eq", UUID("be3c5e5c-faca-4b19-ab6c-70323abc9f24"))
+    ))[0]
+    parameter = tuple(test_client.search(
+        ("uuid", "eq", UUID("514790d9-3261-4583-a326-9be08d7edf48"))
+    ))[0]
+
+    for entry, page_cls in zip(
+        [collection, snapshot, setpoint, parameter],
+        [CollectionPage, SnapshotPage, SetpointPage, ParameterPage]
+    ):
+        page = window.open_page(entry)
+        assert isinstance(page, page_cls)
+        assert page.editable == editable
+        # close the polling loops so we don't wait for them all at once
+        page.close()

@@ -76,6 +76,7 @@ class NestablePage(Display, DataWidget, WindowLinker):
         self.set_editable(self.editable)
 
     def set_editable(self, editable: bool) -> None:
+        self.meta_widget.setEnabled(editable)
         for col in self.sub_pv_table_view._model.header_enum:
             self.sub_pv_table_view.set_editable(col, editable)
 
@@ -153,9 +154,6 @@ class SnapshotPage(NestablePage):
 
 class BaseParameterPage(Display, DataWidget, WindowLinker):
     filename = 'parameter_page.ui'
-
-    meta_placeholder: QtWidgets.QWidget
-    meta_widget: NameDescTagsWidget
 
     # Container widgets
     pv_value_widget: QtWidgets.QWidget
