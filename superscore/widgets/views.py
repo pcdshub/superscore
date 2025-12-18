@@ -861,7 +861,9 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         self.layoutChanged.emit()
 
     def remove_row(self, row_index: int) -> None:
+        self.beginRemoveRows(QtCore.QModelIndex(), row_index, row_index)
         self.remove_entry(self.entries[row_index])
+        self.endRemoveRows()
 
     def remove_entry(self, entry: Entry) -> None:
         self.layoutAboutToBeChanged.emit()
@@ -1075,6 +1077,7 @@ class LivePVTableModel(BaseTableEntryModel):
         """Remove ``entry`` from the table model"""
         super().remove_entry(entry)
         self.layoutAboutToBeChanged.emit()
+        self._poll_thread.remove_pv(entry.pv_name)
         self._data_cache = {e.pv_name: None for e in self.entries}
         self._poll_thread.data = self._data_cache
         self.layoutChanged.emit()

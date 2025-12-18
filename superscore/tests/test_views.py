@@ -16,7 +16,7 @@ from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
-                                      NestableTableView, RootTree,
+                                      NestableTableView, PVEntry, RootTree,
                                       RootTreeView)
 
 
@@ -76,6 +76,7 @@ def pv_table_view(
     view.client = test_client
     view.set_data(simple_snapshot_fixture)
 
+    assert isinstance(view._model, LivePVTableModel)
     qtbot.wait_until(lambda: view._model._poll_thread.isRunning())
     yield view
 
@@ -104,6 +105,22 @@ def test_pvmodel_update(pv_poll_model: LivePVTableModel, qtbot: QtBot):
     qtbot.wait_until(
         lambda: pv_poll_model.data(data_index, QtCore.Qt.DisplayRole) == '3'
     )
+
+
+def test_pvmodel_remove(pv_poll_model: LivePVTableModel, qtbot: QtBot):
+    def check_entry_removed(entry: PVEntry, expected_rows):
+        assert pv_poll_model.rowCount() == expected_rows
+        assert entry not in pv_poll_model.entries
+        assert entry.pv_name not in pv_poll_model._data_cache
+        assert entry.pv_name not in pv_poll_model._poll_thread.data
+        assert entry.pv_name not in pv_poll_model._poll_thread.worker.data.keys()
+
+    while pv_poll_model.rowCount():
+        orig_num_entries = pv_poll_model.rowCount()
+        entry = pv_poll_model.entries[0]
+        pv_poll_model.remove_entry(entry)
+
+        qtbot.waitUntil(lambda: check_entry_removed(entry, orig_num_entries - 1))
 
 
 @pytest.mark.parametrize("row,widget_cls,", [
@@ -179,6 +196,24 @@ def test_set_data(
     # data should not be the same as at beginning of test
     assert orig_data != pv_table_view.data
     assert orig_ser != new_ser
+
+
+def test_remove_pv_view(pv_table_view: LivePVTableView, qtbot: QtBot):
+    model = pv_table_view.model()
+    assert isinstance(model, LivePVTableModel)
+
+    def check_entry_removed(entry: PVEntry, expeted_rows: int):
+        assert model.rowCount() == expeted_rows
+        assert entry not in model.entries
+        assert entry.pv_name not in model._data_cache
+        assert entry.pv_name not in model._poll_thread.data
+        assert entry.pv_name not in model._poll_thread.worker.data.keys()
+
+    while model.rowCount():
+        orig_num_entries = model.rowCount()
+        entry = model.entries[0]
+        pv_table_view.remove_row(model.index(0, 0))
+        qtbot.waitUntil(lambda: check_entry_removed(entry, orig_num_entries - 1))
 
 
 def test_stat_sev_enums(pv_table_view: LivePVTableView):
