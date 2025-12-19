@@ -188,10 +188,22 @@ def test_coll_builder_add(test_client, collection_builder_page: CollectionBuilde
     assert "THIS:PV" in page.data.children[0].pv_name
     assert isinstance(page.data.children[0], Parameter)
     assert page.sub_pv_table_view._model.rowCount() == 1
+    assert page.pv_line_edit.text() == ""
 
     page.coll_combo_box.setCurrentIndex(0)
     added_collection = page._coll_options[0]
     page.add_collection_button.clicked.emit()
+    assert added_collection is page.data.children[1]
+    assert page.sub_coll_table_view._model.rowCount() == 1
+
+    # add another PV, make sure collection is not readded
+    page.pv_line_edit.setText("ANOTHER:PV")
+    page.add_pvs_button.clicked.emit()
+    assert len(page.data.children) == 3
+    assert "ANOTHER:PV" == page.data.children[2].pv_name
+    assert isinstance(page.data.children[2], Parameter)
+    assert page.sub_pv_table_view._model.rowCount() == 2
+    assert page.pv_line_edit.text() == ""
     assert added_collection is page.data.children[1]
     assert page.sub_coll_table_view._model.rowCount() == 1
 
