@@ -109,7 +109,7 @@ class _Backend:
         raise NotImplementedError
 
     def entry_writable(self, entry: Entry) -> bool:
-        """return if `entry` is editable in the backend"""
+        """Return True if `entry` is editable in the backend"""
         raise NotImplementedError
 
 

@@ -7,7 +7,7 @@ API Breaks
 
 Features
 --------
-- Vendor's the exception handler from PyDM and install it in the main GUI
+- Vendors the exception handler from PyDM and install it in the main GUI
 - Added an `_Backend.is_writable()` method for determining if a given entry can be written to.
 
   - For `FilestoreBackend` this is always `True` (if you can write to the file)
