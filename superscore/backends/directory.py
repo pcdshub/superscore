@@ -51,7 +51,7 @@ class DirectoryBackend(_Backend):
     def _entry_writable(self, entry_id: UUID) -> bool:
         path = self._find_entry_path(entry_id)
         # assume that if we create the file, we will retain write permissions
-        if not os.path.exists(path):
+        if not os.path.exists(path) and os.access(self.path, os.W_OK):
             return True
         # Presuming permissions don't change before write attempts
         return os.access(path, os.W_OK)
