@@ -37,6 +37,9 @@ class TestBackend(_Backend):
             if isinstance(entry, Nestable):
                 stack.extend(entry.children)
 
+    def entry_writable(self, entry: Entry) -> bool:
+        return True
+
     def save_entry(self, entry: Entry) -> None:
         try:
             self.get_entry(entry.uuid)

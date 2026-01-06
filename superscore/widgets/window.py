@@ -39,6 +39,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
     # Diff dispatcher singleton, used to notify when diffs are ready
     diff_dispatcher: DiffDispatcher = DiffDispatcher()
+    client: Client
 
     def __init__(self, *args, client: Optional[Client] = None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,10 +121,10 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         try:
             page = PAGE_MAP[type(entry)]
         except KeyError:
-            logger.debug(f'No page widget for {type(entry)}, cannot open in tab')
-            return
+            raise TypeError(f'No page widget for {type(entry)}, cannot open in tab')
 
-        page_widget = page(data=entry, client=self.client)
+        page_widget = page(data=entry, client=self.client,
+                           editable=self.client.is_editable(entry))
         icon = qta.icon(ICON_MAP[type(entry)])
         tab_name = getattr(
             entry, 'title', getattr(entry, 'pv_name', f'<{type(entry).__name__}>')

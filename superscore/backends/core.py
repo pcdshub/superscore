@@ -10,7 +10,7 @@ import superscore.tests.conftest_data
 from superscore.model import Entry, Root
 from superscore.type_hints import AnyEpicsType
 
-SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...]]
+SearchTermValue = Union[AnyEpicsType, Container[AnyEpicsType], tuple[AnyEpicsType, ...], UUID]
 SearchTermType = tuple[str, str, SearchTermValue]
 
 
@@ -106,6 +106,10 @@ class _Backend:
     @property
     def root(self) -> Root:
         """Return the Root Entry in this backend"""
+        raise NotImplementedError
+
+    def entry_writable(self, entry: Entry) -> bool:
+        """Return True if `entry` is editable in the backend"""
         raise NotImplementedError
 
 

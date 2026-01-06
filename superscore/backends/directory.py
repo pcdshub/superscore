@@ -2,6 +2,7 @@
 Backend for configurations backed by files within a directory
 """
 
+import functools
 import json
 import logging
 import os
@@ -42,6 +43,18 @@ class DirectoryBackend(_Backend):
             self.initialize()
         except PermissionError:
             pass
+
+    def entry_writable(self, entry: Entry) -> bool:
+        return self._entry_writable(entry.uuid)
+
+    @functools.lru_cache(maxsize=10000)
+    def _entry_writable(self, entry_id: UUID) -> bool:
+        path = self._find_entry_path(entry_id)
+        # assume that if we create the file, we will retain write permissions
+        if not os.path.exists(path) and os.access(self.path, os.W_OK):
+            return True
+        # Presuming permissions don't change before write attempts
+        return os.access(path, os.W_OK)
 
     def get_entry(self, uuid: Union[UUID, str]) -> Entry:
         path = self._find_entry_path(uuid)

@@ -1,5 +1,6 @@
 """Client for superscore.  Used for programmatic interactions with superscore"""
 import configparser
+import getpass
 import logging
 import os
 from pathlib import Path
@@ -23,10 +24,14 @@ class Client:
     backend: _Backend
     cl: ControlLayer
 
+    enable_editing_past: bool
+    recent_entry_cache: set[UUID]
+
     def __init__(
         self,
         backend: Optional[_Backend] = None,
         control_layer: Optional[ControlLayer] = None,
+        enable_editing_past: bool = False,
     ) -> None:
         if backend is None:
             # set up a temp backend with temp file
@@ -37,6 +42,9 @@ class Client:
 
         self.backend = backend
         self.cl = control_layer
+        # Let this be a setting for now, may be more strictly enforced in future
+        self.enable_editing_past = enable_editing_past
+        self.recent_entry_cache = set()
 
     @classmethod
     def from_config(cls, cfg: Optional[Path] = None):
@@ -177,14 +185,90 @@ class Client:
                 new_search_terms.append(search_term)
         return self.backend.search(*new_search_terms)
 
+    def get_user(self) -> str:
+        return getpass.getuser()
+
+    def is_user_authorized(self, user: str) -> bool:
+        # TODO: actually implement authentication
+        return True
+
+    def is_editable(self, entry: Entry) -> bool:
+        """
+        Can the provided `entry` be modified, given the current authenticated
+        user and backend.  Only returns the editability of the top level entry,
+        not its children.
+
+        Any entries that were created while this client instance exists will
+        remain editable until the session is over.
+
+        Parameters
+        ----------
+        entry : Entry
+            The entry to return editability for
+
+        Returns
+        -------
+        bool
+            if `entry` is writable
+        """
+        # get authenticated user, maybe eventually through kerberos?
+        # authentication here should only be used to verify user is correct
+        user = self.get_user()
+        authorized = self.is_user_authorized(user)
+
+        if not authorized:
+            return False
+
+        # If backend does not allow writing, all else is moot
+        if not self.backend.entry_writable(entry):
+            return False
+
+        # preventing editing of past entries adds additional constraints
+        if not self.enable_editing_past:
+            # Recent entries are allowed...
+            if entry.uuid in self.recent_entry_cache:
+                return True
+
+            # while past entries are restricted
+            if list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+                return False
+
+        # Default is to allow writing, previous conditions veto this
+        return True
+
     def save(self, entry: Entry):
         """Save information in ``entry`` to database"""
         # validate entry is valid
-        self.backend.save_entry(entry)
+        # if exists, try to update
+        # check permissions?
+        self.fill(entry)
+        if isinstance(entry, Nestable):
+            entry_ids = [e.uuid for e in entry.walk_children()]
+        else:
+            entry_ids = [entry.uuid]
+
+        # allow edits to entries that have been added in this session
+        for entry_id in entry_ids:
+            if not list(self.search(SearchTerm("uuid", "eq", entry_id))):
+                self.recent_entry_cache.add(entry_id)
+
+        # actually write the entry and its children
+        if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+            self.backend.save_entry(entry)
+            return
+
+        if not self.is_editable(entry):
+            return
+
+        self.backend.update_entry(entry)
 
     def delete(self, entry: Entry) -> None:
         """Remove item from backend, depending on backend"""
         # check for references to ``entry`` in other objects?
+        # check permissions?
+        if not self.is_editable(entry):
+            return
+
         self.backend.delete_entry(entry)
 
     def compare(self, entry_l: Entry, entry_r: Entry) -> EntryDiff:
@@ -240,11 +324,10 @@ class Client:
             for child in entry.children:
                 if isinstance(child, UUID):
                     search_condition = SearchTerm('uuid', 'eq', child)
-                    filled_child = list(self.search(search_condition))[0]
-                    self.fill(filled_child, fill_depth)
-                    new_children.append(filled_child)
-                else:
-                    new_children.append(child)
+                    child = list(self.search(search_condition))[0]
+
+                self.fill(child, fill_depth)
+                new_children.append(child)
 
             entry.children = new_children
 

@@ -4,7 +4,7 @@ Core widget classes for qt-based GUIs.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar, List, Optional
+from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
 from weakref import WeakValueDictionary
 
 from pcdsutils.qt.designer_display import DesignerDisplay
@@ -17,6 +17,9 @@ from superscore.utils import SUPERSCORE_SOURCE_PATH
 from superscore.widgets import get_window
 from superscore.widgets.manip_helpers import (FrameOnEditFilter,
                                               match_line_edit_text_width)
+
+if TYPE_CHECKING:
+    from superscore.widgets.views import RootTree
 
 
 class Display(DesignerDisplay):
@@ -474,5 +477,9 @@ class WindowLinker:
         """Refresh window ui elements"""
         # tree view
         window = get_window()
+        if window is None:
+            return
         window.tree_view.set_data(self.client.backend.root)
-        window.tree_view.model().refresh_tree()
+        tree_model = window.tree_view.model()
+        tree_model = cast("RootTree", tree_model)
+        tree_model.refresh_tree()

@@ -8,6 +8,7 @@ from typing import Optional
 
 from qtpy.QtWidgets import QApplication
 
+from superscore import exception
 from superscore.client import Client
 from superscore.widgets.window import Window
 
@@ -30,4 +31,6 @@ def main(cfg_path: Optional[str] = None):
     delta = main_window.geometry().center()
     main_window.move(center - delta)
     main_window.show()
+
+    exception.install()
     app.exec()

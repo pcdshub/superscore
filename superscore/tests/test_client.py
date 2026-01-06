@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from superscore.backends.core import SearchTerm
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
@@ -284,3 +285,42 @@ def test_find_origin_collection(test_client):
         test_client.find_origin_collection(snapshot)
     snapshot.origin_collection = collection.uuid
     assert test_client.find_origin_collection(snapshot) == collection
+
+
+@setup_test_stack(
+    sources=["linac_with_comparison_snapshot"],
+    backend_type=[TestBackend, FilestoreBackend, DirectoryBackend],
+)
+def test_recents_cache(test_client):
+    coll = Collection()
+    sub_coll1 = Collection()
+    sub_coll2 = Collection()
+    coll.children = [sub_coll1, sub_coll2]
+
+    assert test_client.is_editable(coll)
+    test_client.save(coll)
+    assert test_client.is_editable(coll)
+    assert test_client.is_editable(sub_coll1)
+    assert test_client.is_editable(sub_coll2)
+    colls_in_cache = all([
+        (entry.uuid in test_client.recent_entry_cache) for entry
+        in [coll, sub_coll1, sub_coll2]
+    ])
+    assert colls_in_cache
+
+    snap = Snapshot()
+    existing_entry = test_client.backend.get_entry(
+        UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")
+    )
+    snap.children = [existing_entry]
+
+    assert test_client.is_editable(snap)
+    test_client.save(snap)
+    assert snap.uuid in test_client.recent_entry_cache
+    assert existing_entry.uuid not in test_client.recent_entry_cache
+    assert test_client.is_editable(snap)
+    assert not test_client.enable_editing_past
+    assert not test_client.is_editable(existing_entry)
+
+    test_client.enable_editing_past = True
+    assert test_client.is_editable(existing_entry)
