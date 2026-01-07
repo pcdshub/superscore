@@ -172,7 +172,7 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         """update collection choices based on line edit"""
         search_term = ('entry_type', 'eq', Collection)
         self._coll_options = [res for res in self.client.search(search_term)
-                              if res not in (self.data.children, self)]
+                              if (res not in self.data.children and res is not self)]
         logger.debug(f"Gathered {len(self._coll_options)} collections")
         self.coll_combo_box.clear()
         self.coll_combo_box.addItems([c.title for c in self._coll_options])

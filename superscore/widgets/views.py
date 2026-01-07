@@ -1799,6 +1799,7 @@ class NestableTableView(BaseDataTableView):
         super().__init__(*args, **kwargs)
 
     def gather_sub_entries(self):
+        self.sub_entries = []
         if isinstance(self.data, UUID):
             self.data = self.client.backend.get_entry(self.data)
 
