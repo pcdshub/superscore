@@ -3,8 +3,10 @@ import configparser
 import getpass
 import logging
 import os
+from enum import StrEnum, auto
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import (Any, Callable, Dict, Generator, Iterable, List, Optional,
+                    Union)
 from uuid import UUID
 
 from superscore.backends import get_backend
@@ -20,12 +22,22 @@ from superscore.utils import build_abs_path
 logger = logging.getLogger(__name__)
 
 
+class CallbackType(StrEnum):
+    ENTRY_SAVED = auto()
+    ENTRY_DELETED = auto()
+    ENTRY_UPDATED = auto()
+
+
 class Client:
     backend: _Backend
     cl: ControlLayer
 
     enable_editing_past: bool
     recent_entry_cache: set[UUID]
+
+    # central data caches
+    _entries: dict[UUID, Entry]
+    _dirty: set[UUID]
 
     def __init__(
         self,
@@ -45,6 +57,22 @@ class Client:
         # Let this be a setting for now, may be more strictly enforced in future
         self.enable_editing_past = enable_editing_past
         self.recent_entry_cache = set()
+
+        # internal collections for data caching and management
+        self._entries = {}
+        self._dirty = set()
+        self._callbacks: dict[CallbackType, list[Callable[[UUID], None]]] = {
+            CallbackType.ENTRY_SAVED: [],
+            CallbackType.ENTRY_DELETED: [],
+            CallbackType.ENTRY_UPDATED: [],
+        }
+
+    def run_callbacks(self, cb_type: CallbackType, *args, **kwargs):
+        for cb in self._callbacks[cb_type]:
+            cb(*args, **kwargs)
+
+    def register_callback(self, cb_type: CallbackType, cb: Callable[[UUID], None]):
+        self._callbacks[cb_type].append(cb)
 
     @classmethod
     def from_config(cls, cfg: Optional[Path] = None):
@@ -255,12 +283,14 @@ class Client:
         # actually write the entry and its children
         if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
             self.backend.save_entry(entry)
+            self.run_callbacks(CallbackType.ENTRY_SAVED, entry.uuid)
             return
 
         if not self.is_editable(entry):
             return
 
         self.backend.update_entry(entry)
+        self.run_callbacks(CallbackType.ENTRY_UPDATED, entry.uuid)
 
     def delete(self, entry: Entry) -> None:
         """Remove item from backend, depending on backend"""
@@ -270,6 +300,7 @@ class Client:
             return
 
         self.backend.delete_entry(entry)
+        self.run_callbacks(CallbackType.ENTRY_DELETED, entry.uuid)
 
     def compare(self, entry_l: Entry, entry_r: Entry) -> EntryDiff:
         """
