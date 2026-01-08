@@ -10,7 +10,6 @@ from functools import partial
 from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
                     Type, Union)
 from uuid import UUID
-from weakref import WeakValueDictionary
 
 import numpy as np
 import qtawesome as qta
@@ -24,7 +23,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge
 from superscore.widgets import ICON_MAP, get_window
-from superscore.widgets.core import QtSingleton, WindowLinker
+from superscore.widgets.core import BridgeRegistry, QtSingleton, WindowLinker
 from superscore.widgets.thread_helpers import get_qthread_cache
 
 logger = logging.getLogger(__name__)
@@ -130,9 +129,6 @@ class CustRoles(IntEnum):
 
 class EntryItem:
     """Node representing one Entry"""
-    _bridge_cache: ClassVar[
-        WeakValueDictionary[int, QDataclassBridge]
-    ] = WeakValueDictionary()
     bridge: QDataclassBridge
     _data: Entry
 
@@ -151,16 +147,9 @@ class EntryItem:
         if tree_parent:
             tree_parent.addChild(self)
 
-        # Assign bridge, for updating the entry properties when data changes?
-        # For this to be relevant we need to subscribe to the bridge,
-        # for example to change icons on type update
-        if self._data:
-            try:
-                self.bridge = self._bridge_cache[id(data)]
-            except KeyError:
-                bridge = QDataclassBridge(data)
-                self._bridge_cache[id(data)] = bridge
-                self.bridge = bridge
+        # Assign bridge, for updating the entry properties when data changes
+        if isinstance(self._data, (Entry, Root)):
+            self.bridge = BridgeRegistry().get_bridge(self._data)
 
     def fill_uuids(
         self,
@@ -177,6 +166,7 @@ class EntryItem:
         if isinstance(self._data, UUID):
             search_results = client.search(SearchTerm('uuid', 'eq', self._data))
             self._data = list(search_results)[0]
+            self.bridge = BridgeRegistry().get_bridge(self._data)
 
         if isinstance(self._data, Nestable):
             if any(isinstance(child, UUID) for child in self._data.children):

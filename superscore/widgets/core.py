@@ -5,12 +5,14 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
+from uuid import UUID
 from weakref import WeakValueDictionary
 
 from pcdsutils.qt.designer_display import DesignerDisplay
 from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
+from superscore.model import Entry
 from superscore.qt_helpers import QDataclassBridge, QDataclassList
 from superscore.type_hints import AnyDataclass, OpenPageSlot
 from superscore.utils import SUPERSCORE_SOURCE_PATH
@@ -22,10 +24,59 @@ if TYPE_CHECKING:
     from superscore.widgets.views import RootTree
 
 
+class QtSingleton(type(QtCore.QObject), type):
+    """
+    Qt specific singleton implementation, needed to ensure signals are shared
+    between instances.  Adapted from
+    https://stackoverflow.com/questions/59459770/receiving-pyqtsignal-from-singleton
+
+    The more common __new__ - based singleton pattern does result in the QObject
+    being a singleton, but the bound signals lose their connections whenever the
+    instance is re-acquired.  I do not understand but this works
+
+    To use this, specify `QtSingleton` as a metaclass:
+
+    .. code-block:: python
+        class SingletonClass(QtCore.QObject, metaclass=QtSingleton):
+            shared_signal: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    """
+    def __init__(cls, name, bases, dict):
+        super().__init__(name, bases, dict)
+        cls._instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__call__(*args, **kwargs)
+        return cls._instance
+
+
 class Display(DesignerDisplay):
     """Helper class for loading designer .ui files and adding logic"""
 
     ui_dir: Path = SUPERSCORE_SOURCE_PATH / 'ui'
+
+
+class BridgeRegistry(QtCore.QObject, metaclass=QtSingleton):
+    """
+    Centralized registry for QDataclassBridge objects.  Data must subclass Entry
+    """
+
+    # TODO: If this doesn't have signals, doesn't need to be QtSingleton
+    _bridge_cache: ClassVar[
+        WeakValueDictionary[UUID, QDataclassBridge]
+    ] = WeakValueDictionary()
+
+    def get_bridge(self, data: Entry) -> QDataclassBridge:
+        uuid = data.uuid
+        try:
+            # TODO figure out better way to cache these
+            # TODO worried about strange deallocation timing race conditions
+            return self._bridge_cache[uuid]
+        except KeyError:
+            bridge = QDataclassBridge(data)
+            self._bridge_cache[uuid] = bridge
+            return bridge
 
 
 class DataWidget(QtWidgets.QWidget):
@@ -50,24 +101,14 @@ class DataWidget(QtWidgets.QWidget):
         Even parent is unlikely to see use because parent is set automatically
         when a widget is inserted into a layout.
     """
-    # QDataclassBridge for this widget, other bridges may live in EntryItem
-    _bridge_cache: ClassVar[
-        WeakValueDictionary[int, QDataclassBridge]
-    ] = WeakValueDictionary()
+    # QDataclassBridge for this widget
     bridge: QDataclassBridge
-    data: AnyDataclass
+    data: Entry
 
-    def __init__(self, data: AnyDataclass, **kwargs):
+    def __init__(self, data: Entry, **kwargs):
         super().__init__(**kwargs)
         self.data = data
-        try:
-            # TODO figure out better way to cache these
-            # TODO worried about strange deallocation timing race conditions
-            self.bridge = self._bridge_cache[id(data)]
-        except KeyError:
-            bridge = QDataclassBridge(data)
-            self._bridge_cache[id(data)] = bridge
-            self.bridge = bridge
+        self.bridge = BridgeRegistry().get_bridge(self.data)
 
 
 class NameMixin:
@@ -401,33 +442,6 @@ class TagsElem(Display, QtWidgets.QWidget):
         Tell the QTagsWidget when our delete button is clicked.
         """
         self.tags_widget.remove_item(self)
-
-
-class QtSingleton(type(QtCore.QObject), type):
-    """
-    Qt specific singleton implementation, needed to ensure signals are shared
-    between instances.  Adapted from
-    https://stackoverflow.com/questions/59459770/receiving-pyqtsignal-from-singleton
-
-    The more common __new__ - based singleton pattern does result in the QObject
-    being a singleton, but the bound signals lose their connections whenever the
-    instance is re-acquired.  I do not understand but this works
-
-    To use this, specify `QtSingleton` as a metaclass:
-
-    .. code-block:: python
-        class SingletonClass(QtCore.QObject, metaclass=QtSingleton):
-            shared_signal: ClassVar[QtCore.Signal] = QtCore.Signal()
-
-    """
-    def __init__(cls, name, bases, dict):
-        super().__init__(name, bases, dict)
-        cls._instance = None
-
-    def __call__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__call__(*args, **kwargs)
-        return cls._instance
 
 
 class WindowLinker:
