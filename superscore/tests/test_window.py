@@ -2,6 +2,7 @@ from uuid import UUID
 
 import pytest
 from pytestqt.qtbot import QtBot
+from qtpy import QtWidgets
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
@@ -88,7 +89,15 @@ def test_add_collection_refresh(qtbot: QtBot, test_client: Client):
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
-def test_take_snapshot(qtbot: QtBot, test_client):
+def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
+    def no_question_boxes_allowed(*args, **kwargs):
+        # We now open message boxes if entries are updated in the client
+        # We are only creating new entries, so we should never get the QMessageBox
+        # asking if we want to sync
+        raise RuntimeError
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "question", no_question_boxes_allowed)
+
     window = Window(client=test_client)
     qtbot.addWidget(window)
     collection = tuple(test_client.search(("uuid", "eq", UUID("a9f289d4-3421-4107-8e7f-2fe0daab77a5"))))[0]

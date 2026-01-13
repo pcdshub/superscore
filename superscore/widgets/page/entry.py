@@ -2,7 +2,6 @@
 Widgets for visualizing and editing core model dataclasses
 """
 import logging
-from copy import deepcopy
 from functools import partial
 from typing import Optional, Union
 
@@ -15,8 +14,7 @@ from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Nestable, Parameter, Readback,
                               Setpoint, Severity, Snapshot, Status)
 from superscore.type_hints import AnyEpicsType
-from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
-                                     WindowLinker)
+from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
@@ -27,7 +25,7 @@ from superscore.widgets.views import (LivePVTableView, NestableTableView,
 logger = logging.getLogger(__name__)
 
 
-class NestablePage(Display, DataWidget, WindowLinker):
+class NestablePage(Display, DataWidget):
     filename = 'nestable_page.ui'
 
     meta_placeholder: QtWidgets.QWidget
@@ -50,11 +48,11 @@ class NestablePage(Display, DataWidget, WindowLinker):
     ):
         super().__init__(*args, data=data, **kwargs)
         self.editable = editable
-        self._last_data = deepcopy(self.data)
         self.setup_ui()
 
     def setup_ui(self):
         self.meta_widget = NameDescTagsWidget(data=self.data)
+        self.meta_widget.set_data(data=self.data, is_independent=False)
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         # show tree view
@@ -63,16 +61,18 @@ class NestablePage(Display, DataWidget, WindowLinker):
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
-        self.sub_pv_table_view.data_updated.connect(self.track_changes)
+        self.sub_pv_table_view.data_updated.connect(self.update_dirty_status)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
-        self.sub_coll_table_view.data_updated.connect(self.track_changes)
+        self.sub_coll_table_view.data_updated.connect(self.update_dirty_status)
 
         self.save_button.clicked.connect(self.save)
         self.snapshot_button.clicked.connect(self.take_snapshot)
         self.snapshot_button.setText("Take new Snapshot")
 
+        self.data_modified.connect(self.update_dirty_status)
+        self.update_dirty_status()
         self.set_editable(self.editable)
 
     def set_editable(self, editable: bool) -> None:
@@ -92,10 +92,11 @@ class NestablePage(Display, DataWidget, WindowLinker):
 
     def save(self):
         self.client.save(self.data)
-        self._last_data = deepcopy(self.data)
+        self.set_data(self.client.get_entry(self.data.uuid))
+        self.update_dirty_status()
 
-    def track_changes(self):
-        if not self.data == self._last_data:
+    def update_dirty_status(self):
+        if self.dirty:
             self.save_button.setText("Save *")
             self.save_button.setEnabled(True)
         else:
@@ -152,7 +153,7 @@ class SnapshotPage(NestablePage):
     data: Snapshot
 
 
-class BaseParameterPage(Display, DataWidget, WindowLinker):
+class BaseParameterPage(Display, DataWidget):
     filename = 'parameter_page.ui'
 
     # Container widgets
@@ -201,14 +202,13 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
         self.value_stored_widget = None
         self.edata = None
         self._edata_thread: Optional[BusyCursorThread] = None
-        self._last_data = deepcopy(self.data)
         self.setup_ui()
 
     def setup_ui(self):
         # initialize values
         self.pv_edit.setText(self.data.pv_name)
         self.pv_edit.textChanged.connect(self.update_pv_name)
-        self.update_pv_name(self.data.pv_name)
+        match_line_edit_text_width(self.pv_edit, text=self.data.pv_name)
 
         # setup data thread
         self._edata_thread = BusyCursorThread(func=self._get_edata)
@@ -270,7 +270,22 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
         else:
             self.setup_rbv_widget()
 
-        self.track_changes()
+        try:
+            self.bridge.status
+        except AttributeError:
+            self.status_combobox.hide()
+        else:
+            self.status_combobox.currentTextChanged.connect(self.update_status)
+
+        try:
+            self.bridge.severity
+        except AttributeError:
+            self.severity_combobox.hide()
+        else:
+            self.severity_combobox.currentTextChanged.connect(self.update_severity)
+
+        self.data_modified.connect(self.update_dirty_status)
+        self.update_dirty_status()
         self.set_editable(self.editable)
 
     def get_edata(self) -> None:
@@ -319,12 +334,15 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
 
         insert_widget(new_widget, self.value_stored_placeholder)
         self.value_stored_widget = new_widget
+        self.value_stored_widget.setToolTip("Stored Value")
 
         # update edit status in case new widgets created
         self.set_editable(self.editable)
 
     def update_live_value(self):
+        # TODO: fix display for enums
         data = self.edata
+        self.value_live_label.setToolTip("Live Value")
         if not isinstance(data, EpicsData):
             self.value_live_label.setText("(-)")
         else:
@@ -370,6 +388,16 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
         if hasattr(self.data, "timeout"):
             self.bridge.timeout.put(self.timeout_spinbox.value())
 
+    def update_status(self, *args, **kwargs):
+        if hasattr(self.data, "status"):
+            curr_status = getattr(Status, self.status_combobox.currentText())
+            self.bridge.status.put(curr_status)
+
+    def update_severity(self, *args, **kwargs):
+        if hasattr(self.data, "severity"):
+            curr_sev = getattr(Severity, self.severity_combobox.currentText())
+            self.bridge.severity.put(curr_sev)
+
     def open_rbv_page(self) -> DataWidget:
         if self.open_page_slot:
             widget = self.open_page_slot(self.data.readback)
@@ -391,10 +419,11 @@ class BaseParameterPage(Display, DataWidget, WindowLinker):
 
     def save(self):
         self.client.save(self.data)
-        self._last_data = deepcopy(self.data)
+        self.set_data(self.client.get_entry(self.data.uuid))
+        self.update_dirty_status()
 
-    def track_changes(self):
-        if not self.data == self._last_data:
+    def update_dirty_status(self):
+        if self.dirty:
             self.save_button.setText("Save *")
             self.save_button.setEnabled(True)
         else:

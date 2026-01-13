@@ -131,6 +131,7 @@ class EntryItem:
     """Node representing one Entry"""
     bridge: QDataclassBridge
     _data: Entry
+    model: Optional[RootTree] = None
 
     def __init__(
         self,
@@ -150,6 +151,12 @@ class EntryItem:
         # Assign bridge, for updating the entry properties when data changes
         if isinstance(self._data, (Entry, Root)):
             self.bridge = BridgeRegistry().get_bridge(self._data)
+
+        # Note that these are specific to the dataclass being used, deepcopies break
+        # connect to bridge children
+        # title/description reference data object directly, no update needed
+        if isinstance(self._data, Nestable):
+            self.bridge.children.updated.connect(self.refresh_children)
 
     def fill_uuids(
         self,
@@ -312,6 +319,32 @@ class EntryItem:
 
         return children
 
+    def refresh_children(self) -> None:
+        """Update children based on self._data"""
+        print("refreshing children")
+        if not isinstance(self._data, Nestable):
+            return
+        model = self.get_model()
+        # signal to root item to indicate a change has been made?
+        if model is not None:
+            model.layoutAboutToBeChanged.emit()
+            print("signaling for model to change")
+
+        self.takeChildren()
+        for child_entry in self._data.children:
+            self.addChild(build_tree(child_entry))
+
+        if model is not None:
+            model.layoutChanged.emit()
+
+    def get_model(self) -> Optional[RootTree]:
+        """Walk to top most parent and attempt to return the associated model."""
+        curr_item = self
+        while curr_item.parent():
+            curr_item = curr_item.parent()
+
+        return curr_item.model
+
     def icon(self):
         """return icon for this item"""
         icon_id = ICON_MAP.get(type(self._data), None)
@@ -379,6 +412,9 @@ class RootTree(QtCore.QAbstractItemModel):
         super().__init__(*args, **kwargs)
         self.base_entry = base_entry
         self.root_item = build_tree(base_entry)
+        # Cross reference to give item some knowledge of model
+        # This seems highly coupled but it'll work...
+        self.root_item.model = self
         self.client = client
         # ensure at least the first set of children are filled
         self.root_item.fill_uuids(self.client)
@@ -1482,6 +1518,8 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
         """need to set open_column, close_column in subclass"""
         super().__init__(*args, **kwargs)
         self.data = data
+        if self.data is not None:
+            self.set_data(self.data)
         self.sub_entries = []
         self.model_kwargs = {}
 

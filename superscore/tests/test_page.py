@@ -1,5 +1,6 @@
 """Largely smoke tests for various pages"""
 
+from copy import deepcopy
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -15,8 +16,9 @@ from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
-                                           ParameterPage, ReadbackPage,
-                                           SetpointPage, SnapshotPage)
+                                           NestablePage, ParameterPage,
+                                           ReadbackPage, SetpointPage,
+                                           SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
 
@@ -329,3 +331,92 @@ def test_restore_dialog_remove_pv(
     assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
     items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
     assert item_to_remove not in items_left
+
+
+@pytest.mark.parametrize(
+    'page',
+    [
+        "parameter_page",
+        "setpoint_page",
+        "readback_page",
+        "collection_page",
+        "snapshot_page",
+    ]
+)
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_base_page_client_desync(
+    test_client,
+    page: str,
+    request: pytest.FixtureRequest,
+    monkeypatch,
+):
+    page_widget = request.getfixturevalue(page)
+    assert isinstance(page_widget, (BaseParameterPage, NestablePage))
+    client = page_widget.client
+    assert isinstance(client, Client)
+    assert test_client is client
+
+    responded_yes = False
+
+    def respond_and_record_yes(*args, **kwargs):
+        nonlocal responded_yes
+        responded_yes = True
+        return QtWidgets.QMessageBox.Yes
+    monkeypatch.setattr(QtWidgets.QMessageBox, "question", respond_and_record_yes)
+
+    prev_data = page_widget.data
+
+    # save the previous data so subsequent saves give an update callback
+    client.save(prev_data)
+    assert not responded_yes  # Not an update, no callback trigger
+    new_data = deepcopy(prev_data)
+
+    responded_yes = False
+    client.save(new_data)
+
+    # Page data has been updated after client sees an update
+    assert page_widget.data is not prev_data
+    # Is not same as client's cached data either, but is a deep copy
+    assert page_widget.data is not new_data
+    assert responded_yes
+
+
+@pytest.mark.parametrize(
+    'page',
+    [
+        "parameter_page",
+        "setpoint_page",
+        "readback_page",
+        "collection_page",
+        "snapshot_page",
+    ]
+)
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_base_page_dirty_save(
+    test_client: Client,
+    page: str,
+    request: pytest.FixtureRequest,
+    qtbot: QtBot,
+    monkeypatch,
+):
+    page_widget = request.getfixturevalue(page)
+    assert isinstance(page_widget, (BaseParameterPage, NestablePage))
+    client = page_widget.client
+    assert test_client is client
+    assert isinstance(client, Client)
+    assert not page_widget.dirty
+
+    if isinstance(page_widget, BaseParameterPage):
+        with qtbot.waitSignal(page_widget.bridge.pv_name.updated):
+            page_widget.pv_edit.setText("NEW:PV:TEXT")
+    elif isinstance(page_widget, NestablePage):
+        with qtbot.waitSignal(page_widget.bridge.description.updated):
+            page_widget.meta_widget.desc_edit.setPlainText("New Description")
+
+    assert page_widget.dirty
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                        lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+    page_widget.save()
+
+    assert not page_widget.dirty
