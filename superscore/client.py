@@ -150,7 +150,14 @@ class Client:
             logger.debug('No control layer shims specified, loading all available')
             control_layer = ControlLayer()
 
-        return cls(backend=backend, control_layer=control_layer)
+        # If not found, default to False
+        if "client" in cfg_parser.sections():
+            enable_editing_past = bool(cfg_parser["client"].get("enable_editing_past"))
+        else:
+            enable_editing_past = False
+
+        return cls(backend=backend, control_layer=control_layer,
+                   enable_editing_past=enable_editing_past)
 
     @staticmethod
     def find_config() -> Path:
@@ -192,6 +199,31 @@ class Client:
         # If found nothing
         raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
+    def get_entry(self, uuid: UUID, fill: bool = True, force_reload: bool = False):
+        """
+        Get entry corresponding to `uuid`, optionally filling children UUIDs.
+        By attempts to return the cached entry, unless `force_reload` is True.
+
+        Parameters
+        ----------
+        uuid : UUID
+            the UUID for the requested Entry
+        fill : bool, optional
+            whether or not to fill child UUIDS, by default True
+        force_reload : bool, optional
+            whether or not to update an Entry that already exists in the cache,
+            by default False
+        """
+        if (uuid not in self._entries) or force_reload:
+            # TODO: remove all references to backend.get_entry in gui app
+            entry = self.backend.get_entry(uuid)
+            if fill:
+                self.fill(entry)
+            self._entries[uuid] = entry
+            self.run_callbacks(CallbackType.ENTRY_UPDATED, uuid)
+
+        return self._entries[uuid]
+
     def search(self, *post: SearchTermType) -> Generator[Entry, None, None]:
         """
         Search backend for entries matching all SearchTerms in ``post``.  Can search by any
@@ -211,7 +243,15 @@ class Client:
                 new_search_terms.append(SearchTerm(search_term.attr, 'lt', upper))
             else:
                 new_search_terms.append(search_term)
-        return self.backend.search(*new_search_terms)
+        results = self.backend.search(*new_search_terms)
+
+        # run callbacks for any new entries
+        # TODO: possibly check for diffs before emitting?
+        for entry in results:
+            if (entry.uuid in self._entries) and (entry != self._entries[entry.uuid]):
+                self.run_callbacks(CallbackType.ENTRY_UPDATED, entry.uuid)
+            self._entries[entry.uuid] = entry
+            yield entry
 
     def get_user(self) -> str:
         return getpass.getuser()
