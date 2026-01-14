@@ -5,14 +5,15 @@ from __future__ import annotations
 
 import logging
 from functools import partial
-from typing import Optional
+from typing import ClassVar, Optional
+from uuid import UUID
 
 import qtawesome as qta
 from pcdsutils.qt.callbacks import WeakPartialMethodSlot
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.client import Client
+from superscore.client import CallbackType, Client
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display, QtSingleton
@@ -36,6 +37,10 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
     tab_widget: QtWidgets.QTabWidget
 
     action_new_coll: QtWidgets.QAction
+
+    entry_saved: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
+    entry_deleted: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
+    entry_updated: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
 
     # Diff dispatcher singleton, used to notify when diffs are ready
     diff_dispatcher: DiffDispatcher = DiffDispatcher()
@@ -72,6 +77,12 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
 
+        # subscribe global entry signals to client.  Other widgets can then sub
+        # to these signals to keep signaling within Qt
+        self.client.register_callback(CallbackType.ENTRY_SAVED, self.entry_saved.emit)
+        self.client.register_callback(CallbackType.ENTRY_DELETED, self.entry_deleted.emit)
+        self.client.register_callback(CallbackType.ENTRY_UPDATED, self.entry_updated.emit)
+
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
         widget = self.tab_widget.widget(tab_index)
@@ -80,7 +91,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.tab_widget.removeTab(tab_index)
 
     def _update_tab_title(self, tab_index: int) -> None:
-        """Update a DataWidget tab title.  Assumes widget.title exists"""
+        """Update a DataWidget tab title.  Assumes widget._title exists"""
+        # TODO: fix for entry pages to have ._title
         title_text = self.tab_widget.widget(tab_index)._title
         self.tab_widget.setTabText(tab_index, title_text)
 
