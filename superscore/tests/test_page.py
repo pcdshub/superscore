@@ -21,10 +21,24 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.window import Window
+
+
+@pytest.fixture(scope="function")
+def mock_window(qtbot: QtBot, test_client: Client):
+    """
+    Set up a window for signal subscriptions.
+    As long as a Window exists, DataWidget Pages will discover the window singleton
+    test_client must be configured with a non-mock backend in the final test to
+    initialize properly
+    """
+    window = Window(client=test_client)
+    qtbot.add_widget(window)
+    return window
 
 
 @pytest.fixture(scope='function')
-def collection_page(qtbot: QtBot, test_client: Client):
+def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     data = Collection()
     page = CollectionPage(data=data, client=test_client)
     qtbot.addWidget(page)
@@ -36,7 +50,7 @@ def collection_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope="function")
-def snapshot_page(qtbot: QtBot, test_client: Client):
+def snapshot_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     data = Snapshot()
     page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
@@ -48,7 +62,7 @@ def snapshot_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope="function")
-def parameter_page(qtbot: QtBot, test_client: Client):
+def parameter_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     data = Parameter()
     page = ParameterPage(data=data, client=test_client)
     qtbot.addWidget(page)
@@ -56,7 +70,7 @@ def parameter_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope="function")
-def setpoint_page(qtbot: QtBot, test_client: Client):
+def setpoint_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     data = Setpoint()
     page = SetpointPage(data=data, client=test_client)
     qtbot.addWidget(page)
@@ -64,7 +78,7 @@ def setpoint_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope="function")
-def readback_page(qtbot: QtBot, test_client: Client):
+def readback_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     data = Readback()
     page = ReadbackPage(data=data, client=test_client)
     qtbot.addWidget(page)
@@ -72,14 +86,14 @@ def readback_page(qtbot: QtBot, test_client: Client):
 
 
 @pytest.fixture(scope='function')
-def search_page(qtbot: QtBot, test_client: Client):
+def search_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     page = SearchPage(client=test_client)
     qtbot.addWidget(page)
     return page
 
 
 @pytest.fixture(scope="function")
-def collection_builder_page(qtbot: QtBot, test_client: Client):
+def collection_builder_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     page = CollectionBuilderPage(client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -91,7 +105,8 @@ def collection_builder_page(qtbot: QtBot, test_client: Client):
 def restore_page(
     qtbot: QtBot,
     test_client: Client,
-    simple_snapshot_fixture: Snapshot
+    simple_snapshot_fixture: Snapshot,
+    mock_window: Window,
 ):
     page = RestorePage(data=simple_snapshot_fixture, client=test_client)
     qtbot.addWidget(page)
@@ -101,7 +116,7 @@ def restore_page(
 
 
 @pytest.fixture
-def diff_page(qtbot: QtBot, test_client: Client):
+def diff_page(qtbot: QtBot, test_client: Client, mock_window: Window):
     l_snapshot = Snapshot(
         title="l_snap",
         description="l desc",
@@ -127,6 +142,8 @@ def diff_page(qtbot: QtBot, test_client: Client):
     qtbot.addWidget(page)
     yield page
     page.close()
+    qtbot.waitUntil(lambda: page.r_pv_table_view._model._poll_thread.isFinished())
+    qtbot.waitUntil(lambda: page.l_pv_table_view._model._poll_thread.isFinished())
 
 
 @pytest.mark.parametrize(
@@ -143,7 +160,8 @@ def diff_page(qtbot: QtBot, test_client: Client):
         "diff_page",
     ]
 )
-def test_page_smoke(page: str, request: pytest.FixtureRequest):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_page_smoke(page: str, request: pytest.FixtureRequest, test_client):
     """smoke test, just create each page and see if they fail"""
     print(type(request.getfixturevalue(page)))
 
@@ -240,9 +258,11 @@ def test_coll_builder_edit(
 
 
 @pytest.mark.parametrize("page_fixture,", ["parameter_page", "setpoint_page"])
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_open_page_slot(
     page_fixture: str,
     request: pytest.FixtureRequest,
+    test_client,
 ):
     with patch("superscore.widgets.page.entry.BaseParameterPage.open_page_slot",
                new_callable=PropertyMock):
@@ -255,10 +275,12 @@ def test_open_page_slot(
     "page_fixture,",
     ["parameter_page", "setpoint_page", "readback_page"]
 )
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_stored_widget_swap(
     page_fixture: str,
     request: pytest.FixtureRequest,
     qtbot: QtBot,
+    test_client,
 ):
     ret_vals = {
         "MY:FLOAT": EpicsData(data=0.5, precision=3,
@@ -290,7 +312,8 @@ def test_stored_widget_swap(
         )
 
 
-def test_restore_page_toggle_live(qtbot: QtBot, restore_page):
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
+def test_restore_page_toggle_live(qtbot: QtBot, restore_page, test_client):
     tableView = restore_page.tableView
     live_columns = tableView.live_headers
     toggle_live_button = restore_page.compareLiveButton
