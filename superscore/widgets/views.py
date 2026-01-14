@@ -1493,6 +1493,14 @@ class _PVPollThread(QtCore.QThread):
         self.req_pv_remove.emit(pv_name)
 
 
+def remove_matching_uuid_from_list(entry_list: list[Entry], uuid: UUID):
+    for entry in entry_list:
+        if isinstance(entry, UUID):
+            entry_list.remove(entry)
+        if hasattr(entry, "uuid") and entry.uuid == uuid:
+            entry_list.remove(entry)
+
+
 class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
     """
     Base TableView for holding and manipulating an entry / list of entries
@@ -1555,9 +1563,9 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
         self._model.remove_row(index.row())
 
         if isinstance(self.data, list):
-            self.data.remove(entry)
+            remove_matching_uuid_from_list(self.data, entry.uuid)
         elif isinstance(self.data, Nestable):
-            self.data.children.remove(entry)
+            remove_matching_uuid_from_list(self.data.children, entry.uuid)
         # edit data held by widget
         self.data_updated.emit()
 
