@@ -14,7 +14,7 @@ from weakref import WeakValueDictionary
 from pcdsutils.qt.designer_display import DesignerDisplay
 from qtpy import QtCore, QtWidgets
 
-from superscore.client import CallbackType, Client
+from superscore.client import Client
 from superscore.model import Entry
 from superscore.qt_helpers import (QDataclassBridge, QDataclassElem,
                                    QDataclassList)
@@ -251,10 +251,10 @@ class DataWidget(QtWidgets.QWidget, DataTracker):
         self.setup_desync_notifier()
 
     def setup_desync_notifier(self):
-        if self.client is None:
+        window = self.get_window()
+        if window is None:
             return
-        self.client.register_callback(CallbackType.ENTRY_UPDATED,
-                                      self.check_changes)
+        window.entry_updated.connect(self.check_changes)
 
     def check_changes(self, uuid: UUID):
         if uuid not in self._uuid_watch_list:
