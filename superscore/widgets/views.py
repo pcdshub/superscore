@@ -7,8 +7,8 @@ from __future__ import annotations
 import logging
 from enum import Enum, IntEnum, auto
 from functools import partial
-from typing import (Any, Callable, ClassVar, Dict, Generator, List, Optional,
-                    Type, Union)
+from typing import (Any, Callable, ClassVar, Dict, Generator, Generic, List,
+                    Optional, Sequence, Type, TypeVar, Union)
 from uuid import UUID
 
 import numpy as np
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 PVEntry = Union[Parameter, Setpoint, Readback]
+NestableEntry = Union[Collection, Snapshot]
 
 
 def add_open_page_to_menu(
@@ -752,7 +753,13 @@ class HeaderEnum(IntEnum):
         return cls[name.upper().replace(' ', '_')]
 
 
-class BaseTableEntryModel(QtCore.QAbstractTableModel):
+HeaderGeneric = TypeVar("HeaderGeneric", bound=HeaderEnum)
+EntryGeneric = TypeVar("EntryGeneric", bound=Entry)
+
+
+class BaseTableEntryModel(
+    QtCore.QAbstractTableModel, Generic[HeaderGeneric, EntryGeneric]
+):
     """
     Common methods for table model that holds onto entries.
     To subclass this:
@@ -769,29 +776,29 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         A list of Entry objects to display in the table, by default None
 
     """
-    entries: List[Entry]
+    entries: List[EntryGeneric]
     headers: List[str]
-    header_enum: type[HeaderEnum]
+    header_enum: type[HeaderGeneric]
     _editable_cols: Dict[int, bool] = {}
-    _button_cols: List[HeaderEnum]
-    _header_to_field: Dict[HeaderEnum, str]
+    _button_cols: List[HeaderGeneric]
+    _header_to_field: Dict[HeaderGeneric, str]
 
     def __init__(
         self,
         *args,
-        entries: Optional[List[Entry]] = None,
+        entries: Optional[Sequence[Entry]] = None,
         **kwargs
     ) -> None:
         self.entries = entries or []
         super().__init__(*args, **kwargs)
 
-    def rowCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
+    def rowCount(self, parent: Optional[QtCore.QModelIndex] = None):
         return len(self.entries)
 
-    def columnCount(self, parent_index: Optional[QtCore.QModelIndex] = None):
+    def columnCount(self, parent: Optional[QtCore.QModelIndex] = None):
         return len(self.headers)
 
-    def set_entries(self, entries: List[Entry]):
+    def set_entries(self, entries: List[EntryGeneric]):
         """
         Set the entries for this table.  Subclasses will need to override
         in order to encapsulate all logic between `layoutAboutToBeChanged` and
@@ -886,7 +893,7 @@ class BaseTableEntryModel(QtCore.QAbstractTableModel):
         self.remove_entry(self.entries[row_index])
         self.endRemoveRows()
 
-    def remove_entry(self, entry: Entry) -> None:
+    def remove_entry(self, entry: EntryGeneric) -> None:
         self.layoutAboutToBeChanged.emit()
         try:
             self.entries.remove(entry)
@@ -925,7 +932,7 @@ class LivePVHeader(HeaderEnum):
     REMOVE = auto()
 
 
-class LivePVTableModel(BaseTableEntryModel):
+class LivePVTableModel(BaseTableEntryModel[LivePVHeader, PVEntry]):
     # Takes PV-entries
     # shows live details (current PV status, severity)
     # shows setpoints (can be blank)
@@ -1760,7 +1767,7 @@ class NestableHeader(HeaderEnum):
     REMOVE = auto()
 
 
-class NestableTableModel(BaseTableEntryModel):
+class NestableTableModel(BaseTableEntryModel[NestableHeader, NestableEntry]):
     # Shows simplified details (created time, description, # pvs, # child colls)
     # Open details delegate
     headers: List[str]
