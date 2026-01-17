@@ -8,6 +8,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
@@ -266,40 +267,44 @@ def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixtu
     assert data_index_setpoint_2.row() == (data_index_readback_2.row() - 1)
 
 
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_fill_uuids_pvs(
     test_client: Client,
     simple_snapshot_fixture: Collection,
     qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
+    test_client.save(simple_snapshot_fixture)
     simple_snapshot_fixture.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     view = LivePVTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend
     view.client = test_client
-    view.set_data(simple_snapshot_fixture)
+    view.set_data(simple_snapshot_fixture, is_independent=False)
 
     assert all(not isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     print(view.model()._poll_thread)
-    view.model().stop_polling()
+    view._model.stop_polling()
     print(view.model()._poll_thread)
-    qtbot.wait_until(lambda: not view.model()._poll_thread.isRunning())
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_fill_uuids_nestable(
     test_client: Client,
     linac_backend: TestBackend,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
     nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+    test_client.save(nested_coll)
     nested_coll.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in nested_coll.children)
     view = NestableTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend.  (entries will be "filled" with mock data)
     view.client = test_client
-    view.set_data(nested_coll)
+    view.set_data(nested_coll, is_independent=False)
 
     assert all(not isinstance(c, UUID) for c in nested_coll.children)
 
@@ -352,7 +357,7 @@ def test_roottree_setup(sample_database_fixture: Root):
 def test_root_tree_view_setup_init_args(test_client: Client):
     tree_view = RootTreeView(
         client=test_client,
-        entry=test_client.backend.root
+        data=test_client.backend.root
     )
     assert isinstance(tree_view.model().root_item, EntryItem)
     assert isinstance(tree_view.model(), RootTree)

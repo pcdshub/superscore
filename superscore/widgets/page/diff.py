@@ -1,5 +1,5 @@
 import logging
-from enum import Flag
+from enum import Flag, auto
 from functools import partial
 from typing import Any, Dict, Optional
 from uuid import UUID
@@ -239,9 +239,9 @@ class DiffNestableTableModel(DiffTableModel, NestableTableModel):
 
 
 class Side(Flag):
-    """Simple right/left side enum, where inversion gives the other side"""
-    LEFT = True
-    RIGHT = False
+    """Simple right/left side enum, where inversion `~` gives the other side"""
+    LEFT = auto()
+    RIGHT = auto()
 
 
 class DiffPage(Display, QtWidgets.QWidget, WindowLinker):
