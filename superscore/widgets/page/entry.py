@@ -61,11 +61,11 @@ class NestablePage(Display, DataWidget):
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data)
-        self.sub_pv_table_view.data_updated.connect(self.update_dirty_status)
+        self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.data)
-        self.sub_coll_table_view.data_updated.connect(self.update_dirty_status)
+        self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
 
         self.save_button.clicked.connect(self.save)
         self.snapshot_button.clicked.connect(self.take_snapshot)

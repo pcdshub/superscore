@@ -21,9 +21,10 @@ from superscore.control_layers import EpicsData
 from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Root, Setpoint, Severity, Snapshot, Status)
-from superscore.qt_helpers import QDataclassBridge
+from superscore.qt_helpers import QDataclassBridge, QDataclassList
 from superscore.widgets import ICON_MAP, get_window
-from superscore.widgets.core import BridgeRegistry, QtSingleton, WindowLinker
+from superscore.widgets.core import (BridgeRegistry, DataTracker, QtSingleton,
+                                     WindowLinker)
 from superscore.widgets.thread_helpers import get_qthread_cache
 
 logger = logging.getLogger(__name__)
@@ -321,14 +322,12 @@ class EntryItem:
 
     def refresh_children(self) -> None:
         """Update children based on self._data"""
-        print("refreshing children")
         if not isinstance(self._data, Nestable):
             return
         model = self.get_model()
         # signal to root item to indicate a change has been made?
         if model is not None:
             model.layoutAboutToBeChanged.emit()
-            print("signaling for model to change")
 
         self.takeChildren()
         for child_entry in self._data.children:
@@ -634,7 +633,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self.endInsertRows()
 
 
-class RootTreeView(QtWidgets.QTreeView, WindowLinker):
+class RootTreeView(QtWidgets.QTreeView, DataTracker):
     """
     Tree view for displaying an Entry.
     Contains a standard context menu and action set
@@ -642,7 +641,6 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
     _model_cls = RootTree
 
     _model: Optional[RootTree] = None
-    data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
 
     context_menu_options: Dict[MenuOption, bool] = {
         MenuOption.OPEN_PAGE: True,
@@ -653,12 +651,11 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
         self,
         *args,
         client: Optional[Client] = None,
-        entry: Optional[Entry] = None,
+        data: Optional[Entry] = None,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, client=client, data=data, **kwargs)
         self._client = client
-        self.data = entry
 
         self.setup_ui()
 
@@ -671,6 +668,8 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
         self.setExpandsOnDoubleClick(False)
         self.doubleClicked.connect(self.open_index)
 
+        self.data_modified.connect(self.maybe_setup_model)
+
     @WindowLinker.client.setter
     def client(self, client: Client):
         if not isinstance(client, Client):
@@ -679,19 +678,17 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
         if client is self._client:
             return
 
-        if not isinstance(client, Client):
-            raise ValueError("Provided client is not a superscore Client")
-
         self._client = client
         self.maybe_setup_model()
 
-    def set_data(self, data: Any):
-        """Set the data for this view, re-setup ui"""
+    def set_data(self, data: Entry, is_independent: bool = True) -> None:
+        """Set the data for this view, re-setup ui."""
+        super().set_data(data, is_independent)
+
         if not isinstance(data, (Root, Entry)):
             raise ValueError(
                 f"Attempted to set an incompatable data type ({type(data)})"
             )
-        self.data = data
         self.maybe_setup_model()
 
     def maybe_setup_model(self):
@@ -705,9 +702,7 @@ class RootTreeView(QtWidgets.QTreeView, WindowLinker):
 
         self._model = self._model_cls(base_entry=self.data, client=self.client)
         self.setModel(self._model)
-        self._model.dataChanged.connect(self.data_updated)
-
-        self.data_updated.emit()
+        self._model.dataChanged.connect(self.data_modified)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index: QtCore.QModelIndex = self.indexAt(pos)
@@ -937,7 +932,7 @@ class LivePVTableModel(BaseTableEntryModel):
     headers: List[str]
     entries: List[PVEntry]
     _data_cache: Dict[str, Optional[EpicsData]]
-    _poll_thread: Optional[_PVPollThread]
+    _poll_thread: _PVPollThread
     _button_cols: List[LivePVHeader] = [LivePVHeader.OPEN, LivePVHeader.REMOVE]
     _header_to_field: Dict[LivePVHeader, str] = {
         LivePVHeader.PV_NAME: 'pv_name',
@@ -954,6 +949,7 @@ class LivePVTableModel(BaseTableEntryModel):
         poll_period: float = 1.0,
         **kwargs
     ) -> None:
+        entries = entries or []
         super().__init__(*args, entries=entries, **kwargs)
         self._selected_entry: Optional[PVEntry] = None
         self.header_enum = LivePVHeader
@@ -1493,20 +1489,12 @@ class _PVPollThread(QtCore.QThread):
         self.req_pv_remove.emit(pv_name)
 
 
-def remove_matching_uuid_from_list(entry_list: list[Entry], uuid: UUID):
-    for entry in entry_list:
-        if isinstance(entry, UUID):
-            entry_list.remove(entry)
-        if hasattr(entry, "uuid") and entry.uuid == uuid:
-            entry_list.remove(entry)
-
-
-class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
+class BaseDataTableView(QtWidgets.QTableView, DataTracker):
     """
-    Base TableView for holding and manipulating an entry / list of entries
+    Base TableView for holding and manipulating an entry.
+    The view should always hold the Nestable Entry itself
     """
-    # signal indicating the contained has been updated
-    data_updated: ClassVar[QtCore.Signal] = QtCore.Signal()
+    # data_modified signal indicating the contained has been updated
     _model: Optional[Union[LivePVTableModel, NestableTableModel]] = None
     _model_cls: Union[Type[LivePVTableModel], Type[NestableTableModel]] = LivePVTableModel
     open_column: int = 0
@@ -1520,14 +1508,11 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
     def __init__(
         self,
         *args,
-        data: Optional[Union[Entry, List[Entry]]] = None,
+        data: Optional[Nestable] = None,
         **kwargs,
     ) -> None:
         """need to set open_column, close_column in subclass"""
-        super().__init__(*args, **kwargs)
-        self.data = data
-        if self.data is not None:
-            self.set_data(self.data)
+        super().__init__(*args, data=data, **kwargs)
         self.sub_entries = []
         self.model_kwargs = {}
 
@@ -1558,24 +1543,33 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
             entry = self._model.entries[index.row()]
             self.open_page_slot(entry)
 
+    def remove_matching_uuid_from_children(
+        self, uuid: UUID
+    ):
+        assert isinstance(self.bridge.children, QDataclassList)
+        for entry in self.data.children:
+            if isinstance(entry, UUID):
+                self.bridge.children.remove_value(entry)
+            if hasattr(entry, "uuid") and entry.uuid == uuid:
+                self.bridge.children.remove_value(entry)
+
     def remove_row(self, index: QtCore.QModelIndex) -> None:
         entry = self._model.entries[index.row()]
         self._model.remove_row(index.row())
 
-        if isinstance(self.data, list):
-            remove_matching_uuid_from_list(self.data, entry.uuid)
-        elif isinstance(self.data, Nestable):
-            remove_matching_uuid_from_list(self.data.children, entry.uuid)
+        # TODO: remove with bridge
+        if isinstance(self.data, Nestable):
+            self.remove_matching_uuid_from_children(entry.uuid)
         # edit data held by widget
-        self.data_updated.emit()
+        self.data_modified.emit()
 
-    def set_data(self, data: Any):
+    def set_data(self, data: Any, is_independent: bool = True):
         """Set the data for this view, re-setup ui"""
+        super().set_data(data, is_independent)
         if not isinstance(data, (list, Entry)):
             raise ValueError(
                 f"Attempted to set an incompatable data type ({type(data)})"
             )
-        self.data = data
         self.maybe_setup_model()
 
     def maybe_setup_model(self):
@@ -1599,11 +1593,11 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
                 **self.model_kwargs
             )
             self.setModel(self._model)
-            self._model.dataChanged.connect(self.data_updated)
+            self._model.dataChanged.connect(self.data_modified)
         else:
             self._model.set_entries(self.sub_entries)
 
-        self.data_updated.emit()
+        self.data_modified.emit()
 
     def gather_sub_entries(self):
         """
@@ -1622,9 +1616,6 @@ class BaseDataTableView(QtWidgets.QTableView, WindowLinker):
 
         if client is self._client:
             return
-
-        if not isinstance(client, Client):
-            raise ValueError("Provided client is not a superscore Client")
 
         self._client = client
         self.maybe_setup_model()
@@ -1715,7 +1706,8 @@ class LivePVTableView(BaseDataTableView):
             for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
                     child = self._client.backend.get_entry(child)
-                    self.data.children[i] = child
+                    # add via bridge
+                    self.bridge.children.put_to_index(i, child)
                 else:
                     child = child
 
@@ -1726,8 +1718,8 @@ class LivePVTableView(BaseDataTableView):
                 if not isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
-        elif isinstance(self.data, (Parameter, Setpoint, Readback)):
-            self.sub_entries = [self.data]
+        # elif isinstance(self.data, (Parameter, Setpoint, Readback)):
+        #     self.sub_entries = [self.data]
 
     @BaseDataTableView.client.setter
     def client(self, client: Client):
@@ -1844,7 +1836,7 @@ class NestableTableView(BaseDataTableView):
             for i, child in enumerate(self.data.children):
                 if isinstance(child, UUID):
                     child = self._client.backend.get_entry(child)
-                    self.data.children[i] = child
+                    self.bridge.children.put_to_index(i, child)
                 else:
                     child = child
 

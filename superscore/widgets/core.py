@@ -186,9 +186,12 @@ class DataTracker(WindowLinker):
 
     # TODO: evaluate refactoring to use composition, avoiding multiple inheritance
     # shenanigans.  Currently unsure of cost-benefit / disruption
-    def __init__(self, data: Entry, **kwargs):
-        super().__init__(**kwargs)
-        self.set_data(data)
+    def __init__(self, *args, data: Optional[Entry] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if data is not None:
+            self.set_data(data)
+        else:
+            self.data = None
 
     @property
     def dirty(self):
@@ -210,7 +213,7 @@ class DataTracker(WindowLinker):
                 return
             bridge_field.updated.connect(self._on_change_detected)
 
-    def reset(self, force_reload: bool = False):
+    def reset_data(self, force_reload: bool = False):
         """Pull changes from Client and discard accumulated changes"""
         if self.client is None:
             return
@@ -266,7 +269,6 @@ class DataWidget(QtWidgets.QWidget, DataTracker):
         # TODO: implement dialog, and option to reset entry
         # either fully re-initialize the page or pick which parts to update
         logger.info("The backend shows changes different from the current version")
-        print(self, uuid)
         result = QtWidgets.QMessageBox.question(
             self,
             "Change detected",
