@@ -5,18 +5,17 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.model import Collection, Entry, Parameter
-from superscore.widgets.core import (DataWidget, Display, NameDescTagsWidget,
-                                     WindowLinker)
+from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.enhanced import FilterComboBox
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
-                                      LivePVTableView, NestableTableView,
-                                      RootTree, RootTreeView)
+                                      LivePVTableView, NestableHeader,
+                                      NestableTableView, RootTreeView)
 
 logger = logging.getLogger(__name__)
 
 
-class CollectionBuilderPage(Display, DataWidget, WindowLinker):
+class CollectionBuilderPage(Display, DataWidget):
     filename = 'collection_builder_page.ui'
     data: Collection
 
@@ -51,7 +50,6 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         if data is None:
             data = Collection()
         super().__init__(*args, data=data, **kwargs)
-        self.tree_model = None
         self._coll_options: list[Collection] = []
         self._title = self.data.title
         # TODO: fill uuids here
@@ -74,21 +72,27 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
 
         # set up views
         self.sub_pv_table_view.client = self.client
-        self.sub_pv_table_view.set_data(self.data)
+        self.sub_pv_table_view.set_data(self.data, is_independent=False)
         for i in [LivePVHeader.STORED_VALUE, LivePVHeader.STORED_SEVERITY,
                   LivePVHeader.STORED_STATUS]:
             self.sub_pv_table_view.setColumnHidden(i, True)
         self.sub_pv_table_view.set_editable(LivePVHeader.PV_NAME, True)
+        self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
 
         self.sub_coll_table_view.client = self.client
-        self.sub_coll_table_view.set_data(self.data)
+        self.sub_coll_table_view.set_data(self.data, is_independent=False)
+        self.sub_coll_table_view.set_editable(NestableHeader.OPEN, True)
+        self.sub_coll_table_view.set_editable(NestableHeader.REMOVE, True)
+        # TODO: either have subtables talk bridge or proclaim dirty when these updates happen
+
+        self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
 
         self.tree_view.client = self.client
-        self.tree_view.set_data(self.data)
-        self.tree_model: RootTree = self.tree_view.model()
+        self.tree_view.set_data(self.data, is_independent=False)
 
-        self.sub_coll_table_view.data_updated.connect(self.tree_model.refresh_tree)
-        self.sub_pv_table_view.data_updated.connect(self.tree_model.refresh_tree)
+        # TODO: address whether we want this coarse of an update structure
+        self.sub_coll_table_view.data_modified.connect(self.refresh_tree)
+        self.sub_pv_table_view.data_modified.connect(self.refresh_tree)
 
     def _update_title(self):
         """Set title attribute for access by containing widgets"""
@@ -107,26 +111,44 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
         self.rbv_line_edit.clear()
         self.rbv_line_edit.setEnabled(not bool(state))
 
+    def refresh_tree(self):
+        self.tree_view._model.refresh_tree()
+
     def update_model_data(self):
         """
         Update the model data.  Signal the models to re-read the data
         """
-        self.tree_model.refresh_tree()
-        self.sub_pv_table_view.set_data(self.data)
-        self.sub_coll_table_view.set_data(self.data)
+        self.tree_view.set_data(self.data, is_independent=False)
+        self.sub_pv_table_view.set_data(self.data, is_independent=False)
+        self.sub_coll_table_view.set_data(self.data, is_independent=False)
 
     def save_collection(self):
         """Save current collection to database via Client"""
-        self.data.title = self.meta_widget.name_edit.text()
-        self.data.description = self.meta_widget.desc_edit.toPlainText()
+        self.bridge.title.put(self.meta_widget.name_edit.text())
+        self.bridge.description.put(self.meta_widget.desc_edit.toPlainText())
         # children should have been updated along the way
         if self.client is None:
             return
 
+        # Will run callbacks and signal to rest of app, in theory
+        # TODO: verify data before saving?
+        # TODO: block desync callback from updating, or add equality check
         self.client.save(self.data)
+        self.set_data(self.client.get_entry(self.data.uuid))
+        self.update_model_data()
+        self.update_dirty_status()
 
+        # TODO: remove when window watches for client updates
         self.refresh_window()
         logger.info(f"Collection saved ({self.data.uuid})")
+
+    def update_dirty_status(self):
+        if self.dirty:
+            self.save_button.setText("Save Collection *")
+            self.save_button.setEnabled(True)
+        else:
+            self.save_button.setText("Save Collection")
+            self.save_button.setEnabled(False)
 
     def check_valid(self, entry: Entry) -> bool:
         """Check if adding ``entry`` to the collection is valid"""
@@ -152,14 +174,14 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
             setpoint = Parameter(pv_name=pv_name, readback=readback)
             # ignore read-only flag for setpoint-rbv pairs
             logger.debug(f'Adding {setpoint} with readback {readback}')
-            self.data.children.append(setpoint)
+            self.bridge.children.append(setpoint)
 
         for pv_idx in range(len(rbvs), len(pvs)):
             # Create single parameters for any leftover PVs
             param = Parameter(pv_name=pvs[pv_idx],
                               read_only=self.ro_checkbox.isChecked())
             logger.debug(f"Adding stand-alone parameter ({param})")
-            self.data.children.append(param)
+            self.bridge.children.append(param)
 
         # re-generate pv_model data (keep in sync)
         self.update_model_data()
@@ -180,7 +202,7 @@ class CollectionBuilderPage(Display, DataWidget, WindowLinker):
     def add_sub_collection(self):
         """read combo box, add collection to model and list, refresh"""
         selected = self._coll_options[self.coll_combo_box.currentIndex()]
-        self.data.children.append(selected)
+        self.bridge.children.append(selected)
         logger.debug(f"Added {selected.title}({selected.uuid}) to the collection")
         self.update_collection_choices()
         self.update_model_data()
