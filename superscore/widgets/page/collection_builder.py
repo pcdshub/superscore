@@ -56,11 +56,10 @@ class CollectionBuilderPage(Display, DataWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.meta_widget = NameDescTagsWidget(data=self.data)
+        self.meta_widget = NameDescTagsWidget(data=self.data, is_independent=False)
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         self.bridge.title.updated.connect(self._update_title)
-
         # wire add-buttons
         self.coll_combo_box = FilterComboBox()
         insert_widget(self.coll_combo_box, self.coll_combo_box_placeholder)
@@ -132,9 +131,9 @@ class CollectionBuilderPage(Display, DataWidget):
 
         # Will run callbacks and signal to rest of app, in theory
         # TODO: verify data before saving?
-        # TODO: block desync callback from updating, or add equality check
-        self.client.save(self.data)
-        self.set_data(self.client.get_entry(self.data.uuid))
+        with self.ignore_check_changes(), self.meta_widget.ignore_check_changes():
+            self.client.save(self.data)
+            self.set_data(self.client.get_entry(self.data.uuid))
         self.update_model_data()
         self.update_dirty_status()
 

@@ -4,6 +4,7 @@ Core widget classes for qt-based GUIs.
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import fields
 from pathlib import Path
@@ -186,10 +187,16 @@ class DataTracker(WindowLinker):
 
     # TODO: evaluate refactoring to use composition, avoiding multiple inheritance
     # shenanigans.  Currently unsure of cost-benefit / disruption
-    def __init__(self, *args, data: Optional[Entry] = None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        data: Optional[Entry] = None,
+        is_independent: bool = True,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         if data is not None:
-            self.set_data(data)
+            self.set_data(data, is_independent)
         else:
             self.data = None
 
@@ -259,7 +266,7 @@ class DataWidget(QtWidgets.QWidget, DataTracker):
             return
         window.entry_updated.connect(self.check_changes)
 
-    def check_changes(self, uuid: UUID):
+    def check_changes(self, uuid: UUID) -> None:
         if uuid not in self._uuid_watch_list:
             return
 
@@ -277,6 +284,19 @@ class DataWidget(QtWidgets.QWidget, DataTracker):
         )
         if result == QtWidgets.QMessageBox.Yes:
             self.set_data(self.client.get_entry(uuid))
+
+    @contextmanager
+    def ignore_check_changes(self):
+        """
+        Temporarily clear the uuid watch list to ignore
+        Meant to wrap DataWidget.check_changes and any client actions that might
+        signal the entry has refreshed
+        # TODO: block desync callback from updating, or add equality check
+        """
+        old_watch_list = self._uuid_watch_list
+        self._uuid_watch_list = []
+        yield
+        self._uuid_watch_list = old_watch_list
 
 
 class NameMixin:
