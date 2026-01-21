@@ -51,20 +51,19 @@ class NestablePage(Display, DataWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.meta_widget = NameDescTagsWidget(data=self.data)
-        self.meta_widget.set_data(data=self.data, is_independent=False)
+        self.meta_widget = NameDescTagsWidget(data=self.data, is_independent=False)
         insert_widget(self.meta_widget, self.meta_placeholder)
 
         # show tree view
         self.tree_view.client = self.client
-        self.tree_view.set_data(self.data)
+        self.tree_view.set_data(self.data, is_independent=False)
 
         self.sub_pv_table_view.client = self.client
-        self.sub_pv_table_view.set_data(self.data)
+        self.sub_pv_table_view.set_data(self.data, is_independent=False)
         self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
 
         self.sub_coll_table_view.client = self.client
-        self.sub_coll_table_view.set_data(self.data)
+        self.sub_coll_table_view.set_data(self.data, is_independent=False)
         self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
 
         self.save_button.clicked.connect(self.save)
@@ -91,8 +90,9 @@ class NestablePage(Display, DataWidget):
         self.editable = editable
 
     def save(self):
-        self.client.save(self.data)
-        self.set_data(self.client.get_entry(self.data.uuid))
+        with self.ignore_check_changes(), self.meta_widget.ignore_check_changes():
+            self.client.save(self.data)
+            self.set_data(self.client.get_entry(self.data.uuid))
         self.update_dirty_status()
 
     def update_dirty_status(self):
@@ -418,8 +418,9 @@ class BaseParameterPage(Display, DataWidget):
             self.open_rbv_button.clicked.connect(self.open_rbv_page)
 
     def save(self):
-        self.client.save(self.data)
-        self.set_data(self.client.get_entry(self.data.uuid))
+        with self.ignore_check_changes():
+            self.client.save(self.data)
+            self.set_data(self.client.get_entry(self.data.uuid))
         self.update_dirty_status()
 
     def update_dirty_status(self):
