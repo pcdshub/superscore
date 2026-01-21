@@ -740,6 +740,40 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker):
         if self.open_page_slot is not None:
             self.open_page_slot(entry)
 
+    def get_item_by_uuid(self, uuid: UUID) -> Optional[EntryItem]:
+        """
+        Returns the first EntryItem in the tree whose internal data matches
+        `uuid`.  Returns None if no such item is found.
+        """
+        if self._model is None:
+            return
+        stack: list[EntryItem] = []
+        stack.append(self._model.root_item)
+        curr_item = None
+        while stack:
+            curr_item = stack.pop()
+            if (
+                (isinstance(curr_item._data, UUID) and curr_item._data == uuid)
+                or (isinstance(curr_item._data, Entry) and curr_item._data.uuid == uuid)
+            ):
+                return curr_item
+
+            for child in curr_item.get_children():
+                stack.append(child)
+
+    def update_uuid(self, uuid: UUID):
+        """
+        Walk through the tree and update the leaf with data matching `uuid`
+        if it exists.  Does nothing if there is no client set.
+        """
+        if self.client is None:
+            return
+        curr_item = self.get_item_by_uuid(uuid)
+        if curr_item is None:
+            return
+        curr_item._data = self.client.get_entry(uuid)
+        curr_item.refresh_children()
+
 
 class HeaderEnum(IntEnum):
     """

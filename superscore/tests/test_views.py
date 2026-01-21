@@ -13,7 +13,7 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
-                              Setpoint, Severity, Status)
+                              Setpoint, Severity, Snapshot, Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -294,6 +294,7 @@ def test_fill_uuids_pvs(
 def test_fill_uuids_nestable(
     test_client: Client,
     linac_backend: TestBackend,
+    qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
     nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
@@ -354,7 +355,7 @@ def test_roottree_setup(sample_database_fixture: Root):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_view_setup_init_args(test_client: Client):
+def test_root_tree_view_setup_init_args(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView(
         client=test_client,
         data=test_client.backend.root
@@ -364,7 +365,7 @@ def test_root_tree_view_setup_init_args(test_client: Client):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_view_setup_post_init(test_client: Client):
+def test_root_tree_view_setup_post_init(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView()
     tree_view.client = test_client
     tree_view.set_data(test_client.backend.root)
@@ -374,7 +375,7 @@ def test_root_tree_view_setup_post_init(test_client: Client):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_fetchmore(test_client: Client):
+def test_root_tree_fetchmore(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView()
     tree_view.client = test_client
     for entry in test_client.backend.root.entries:
@@ -406,3 +407,62 @@ def test_root_tree_fetchmore(test_client: Client):
     assert model.canFetchMore(child_index)
     model.fetchMore(child_index)
     assert not model.canFetchMore(child_index)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_update_uuid(test_client: Client, qtbot: QtBot):
+    tree_view = RootTreeView()
+    tree_view.client = test_client
+    tree_view.set_data(test_client.backend.root)
+
+    # grab and modify a snapshot's children
+    snap_uuid = UUID("ffd668d3-57d9-404e-8366-0778af7aee61")
+    snap = test_client.get_entry(snap_uuid)
+    assert isinstance(snap, Snapshot)
+    assert len(snap.children) == 3
+    snap.children.pop()
+    assert len(snap.children) == 2
+    test_client.save(snap)
+
+    # Tree doesn't update unless we call for it to
+    snap_item = tree_view.get_item_by_uuid(snap_uuid)
+    assert isinstance(snap_item, EntryItem)
+    assert snap_item.childCount() == 3
+    tree_view.update_uuid(snap_uuid)
+
+    assert snap_item.childCount() == 2
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_update_uuid_unfilled(test_client: Client, qtbot: QtBot):
+    tree_view = RootTreeView()
+    tree_view.client = test_client
+    for entry in test_client.backend.root.entries:
+        entry.swap_to_uuids()
+    tree_view.set_data(test_client.backend.root)
+
+    model = tree_view.model()
+    assert isinstance(model, RootTree)
+    child_index = model.index_from_item(model.root_item.child(2))
+    # check that we have filling to do
+    child_item = tree_view.get_item_by_uuid(child_index.internalPointer()._data.uuid)
+    assert isinstance(child_item, EntryItem)
+    assert isinstance(child_index.internalPointer()._data, Nestable)
+    assert any(isinstance(child, UUID) for child
+               in child_index.internalPointer()._data.children)
+
+    # I know uuids of the sub-children here, let's grab it from the client and
+    # modify.  The tree has not yet been filled.
+    sub_child_uuid = UUID("74126a1e-b626-462b-81b2-6f56913cf1f2")
+    sub_child_item = tree_view.get_item_by_uuid(sub_child_uuid)
+    assert isinstance(sub_child_item, EntryItem)
+    assert isinstance(sub_child_item._data, UUID)
+    param = test_client.get_entry(sub_child_uuid)
+    param.description = "another silly uuid"
+    test_client.save(param)
+
+    tree_view.update_uuid(sub_child_uuid)
+    sub_child_item = tree_view.get_item_by_uuid(sub_child_uuid)
+    assert isinstance(sub_child_item, EntryItem)
+    assert isinstance(sub_child_item._data, Parameter)
+    assert sub_child_item._data.description == "another silly uuid"

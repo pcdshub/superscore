@@ -68,6 +68,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         # setup tree view
         self.tree_view.client = self.client
         self.tree_view.set_data(self.client.backend.root)
+        self.entry_updated.connect(self.tree_view.update_uuid)
+        self.entry_saved.connect(self.tree_view.update_uuid)
         # override context menu
         self.tree_view.create_context_menu = self._window_context_menu
 
@@ -101,6 +103,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         page = CollectionBuilderPage(client=self.client)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
+        # This will be left dangling after a collection is saved, since bridges
+        # will be refreshed
         update_slot = WeakPartialMethodSlot(
             page.bridge.title, page.bridge.title.updated,
             self._update_tab_title,
