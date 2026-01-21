@@ -9,7 +9,6 @@ from typing import ClassVar, Optional
 from uuid import UUID
 
 import qtawesome as qta
-from pcdsutils.qt.callbacks import WeakPartialMethodSlot
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
@@ -85,6 +84,9 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.client.register_callback(CallbackType.ENTRY_DELETED, self.entry_deleted.emit)
         self.client.register_callback(CallbackType.ENTRY_UPDATED, self.entry_updated.emit)
 
+        self.entry_saved.connect(self._update_tab_title)
+        self.entry_updated.connect(self._update_tab_title)
+
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
         widget = self.tab_widget.widget(tab_index)
@@ -92,10 +94,21 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         widget.deleteLater()
         self.tab_widget.removeTab(tab_index)
 
-    def _update_tab_title(self, tab_index: int) -> None:
-        """Update a DataWidget tab title.  Assumes widget._title exists"""
+    def _update_tab_title(self, uuid: UUID) -> None:
+        """
+        Update a DataWidget tab title for page containing data with `uuid`.
+        Assumes widget._title exists
+        """
         # TODO: fix for entry pages to have ._title
-        title_text = self.tab_widget.widget(tab_index)._title
+        page_widget = None
+        tab_index = 0
+        for tab_index in range(self.tab_widget.count()):
+            page_widget = self.tab_widget.widget(tab_index)
+            if isinstance(page_widget, DataWidget) and page_widget.data.uuid == uuid:
+                break
+        title_text = getattr(page_widget, "_title", None)
+        if title_text is None:
+            return
         self.tab_widget.setTabText(tab_index, title_text)
 
     def open_collection_builder(self):
@@ -103,14 +116,6 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         page = CollectionBuilderPage(client=self.client)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
-        # This will be left dangling after a collection is saved, since bridges
-        # will be refreshed
-        update_slot = WeakPartialMethodSlot(
-            page.bridge.title, page.bridge.title.updated,
-            self._update_tab_title,
-            tab_index=self.tab_widget.indexOf(page),
-        )
-        self._partial_slots.append(update_slot)
 
     def open_page(self, entry: Entry) -> DataWidget:
         """
@@ -179,7 +184,6 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         open_action = menu.addAction(
             f'&Open Detailed {type(entry).__name__} page'
         )
-        # WeakPartialMethodSlot may not be needed, menus are transient
         open_action.triggered.connect(partial(self.open_page, entry))
         if isinstance(entry, Snapshot):
             restore_page_action = menu.addAction('Inspect values')

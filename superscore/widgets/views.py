@@ -45,7 +45,6 @@ def add_open_page_to_menu(
     open_action = menu.addAction(
         f'&Open Detailed {type(entry).__name__} page'
     )
-    # WeakPartialMethodSlot may not be needed, menus are transients
     open_action.triggered.connect(partial(window.open_page, entry))
 
 
