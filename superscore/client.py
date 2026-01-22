@@ -3,6 +3,7 @@ import configparser
 import getpass
 import logging
 import os
+from copy import deepcopy
 from enum import StrEnum, auto
 from pathlib import Path
 from typing import (Any, Callable, Dict, Generator, Iterable, List, Optional,
@@ -221,8 +222,7 @@ class Client:
                 self.fill(entry)
             self._entries[uuid] = entry
             self.run_callbacks(CallbackType.ENTRY_UPDATED, uuid)
-
-        return self._entries[uuid]
+        return deepcopy(self._entries[uuid])
 
     def search(self, *post: SearchTermType) -> Generator[Entry, None, None]:
         """
@@ -251,7 +251,7 @@ class Client:
             if (entry.uuid in self._entries) and (entry != self._entries[entry.uuid]):
                 self.run_callbacks(CallbackType.ENTRY_UPDATED, entry.uuid)
             self._entries[entry.uuid] = entry
-            yield entry
+            yield deepcopy(entry)
 
     def get_user(self) -> str:
         return getpass.getuser()
@@ -323,6 +323,7 @@ class Client:
         # actually write the entry and its children
         if not list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
             self.backend.save_entry(entry)
+            self._entries[entry.uuid] = entry
             self.run_callbacks(CallbackType.ENTRY_SAVED, entry.uuid)
             return
 
@@ -330,6 +331,7 @@ class Client:
             return
 
         self.backend.update_entry(entry)
+        self._entries[entry.uuid] = entry
         self.run_callbacks(CallbackType.ENTRY_UPDATED, entry.uuid)
 
     def delete(self, entry: Entry) -> None:

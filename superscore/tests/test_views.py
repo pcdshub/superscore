@@ -410,7 +410,10 @@ def test_root_tree_fetchmore(test_client: Client, qtbot: QtBot):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_update_uuid(test_client: Client, qtbot: QtBot):
+def test_root_tree_update_uuid(
+    test_client: Client, qtbot: QtBot, monkeypatch
+):
+    monkeypatch.setattr(Client, "is_editable", lambda *a, **k: True)
     tree_view = RootTreeView()
     tree_view.client = test_client
     tree_view.set_data(test_client.backend.root)
@@ -434,7 +437,10 @@ def test_root_tree_update_uuid(test_client: Client, qtbot: QtBot):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_update_uuid_unfilled(test_client: Client, qtbot: QtBot):
+def test_root_tree_update_uuid_unfilled(
+    test_client: Client, qtbot: QtBot, monkeypatch
+):
+    monkeypatch.setattr(Client, "is_editable", lambda *a, **k: True)
     tree_view = RootTreeView()
     tree_view.client = test_client
     for entry in test_client.backend.root.entries:
