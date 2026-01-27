@@ -120,7 +120,9 @@ class NestablePage(Display, DataWidget):
         else:
             dest_snapshot = Snapshot(tags=origin.tags.copy(), origin_collection=origin)
             dialog = self.metadata_dialog(dest_snapshot)
-            dialog.accepted.connect(partial(self.client.snap, dest_snapshot.origin_collection, dest=dest_snapshot))
+            dialog.accepted.connect(
+                partial(self.client.snap, dest_snapshot.origin_collection, dest=dest_snapshot)
+            )
             dialog.accepted.connect(partial(self.client.save, dest_snapshot))
             dialog.accepted.connect(self.refresh_window)
 
@@ -134,7 +136,7 @@ class NestablePage(Display, DataWidget):
         """Construct dialog prompting the user to enter metadata for the given entry"""
         metadata_dialog = QtWidgets.QDialog(parent=self)
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(NameDescTagsWidget(data=dest))
+        layout.addWidget(NameDescTagsWidget(data=dest, is_independent=False))
         buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
         )
