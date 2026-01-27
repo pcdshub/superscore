@@ -200,7 +200,7 @@ class Client:
         # If found nothing
         raise OSError("No superscore configuration file found. Check SUPERSCORE_CFG.")
 
-    def get_entry(self, uuid: UUID, fill: bool = True, force_reload: bool = False):
+    def get_entry(self, uuid: UUID, fill: bool = True, force_reload: bool = False) -> Entry:
         """
         Get entry corresponding to `uuid`, optionally filling children UUIDs.
         By attempts to return the cached entry, unless `force_reload` is True.
