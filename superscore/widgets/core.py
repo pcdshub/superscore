@@ -3,15 +3,22 @@ Core widget classes for qt-based GUIs.
 """
 from __future__ import annotations
 
+import logging
+from contextlib import contextmanager
+from copy import deepcopy
+from dataclasses import fields
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
+from uuid import UUID
 from weakref import WeakValueDictionary
 
 from pcdsutils.qt.designer_display import DesignerDisplay
 from qtpy import QtCore, QtWidgets
 
 from superscore.client import Client
-from superscore.qt_helpers import QDataclassBridge, QDataclassList
+from superscore.model import Entry
+from superscore.qt_helpers import (QDataclassBridge, QDataclassElem,
+                                   QDataclassList)
 from superscore.type_hints import AnyDataclass, OpenPageSlot
 from superscore.utils import SUPERSCORE_SOURCE_PATH
 from superscore.widgets import get_window
@@ -22,15 +29,127 @@ if TYPE_CHECKING:
     from superscore.widgets.views import RootTree
 
 
+logger = logging.getLogger(__name__)
+
+
+class QtSingleton(type(QtCore.QObject), type):
+    """
+    Qt specific singleton implementation, needed to ensure signals are shared
+    between instances.  Adapted from
+    https://stackoverflow.com/questions/59459770/receiving-pyqtsignal-from-singleton
+
+    The more common __new__ - based singleton pattern does result in the QObject
+    being a singleton, but the bound signals lose their connections whenever the
+    instance is re-acquired.  I do not understand but this works
+
+    To use this, specify `QtSingleton` as a metaclass:
+
+    .. code-block:: python
+        class SingletonClass(QtCore.QObject, metaclass=QtSingleton):
+            shared_signal: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    """
+    def __init__(cls, name, bases, dict):
+        super().__init__(name, bases, dict)
+        cls._instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__call__(*args, **kwargs)
+        return cls._instance
+
+
 class Display(DesignerDisplay):
     """Helper class for loading designer .ui files and adding logic"""
 
     ui_dir: Path = SUPERSCORE_SOURCE_PATH / 'ui'
 
 
-class DataWidget(QtWidgets.QWidget):
+class BridgeRegistry(QtCore.QObject, metaclass=QtSingleton):
+    """
+    Centralized registry for QDataclassBridge objects.  Data must subclass Entry
+    """
+
+    # TODO: If this doesn't have signals, doesn't need to be QtSingleton
+    _bridge_cache: ClassVar[
+        WeakValueDictionary[int, QDataclassBridge]
+    ] = WeakValueDictionary()
+
+    def get_bridge(self, data: AnyDataclass) -> QDataclassBridge:
+        try:
+            # TODO figure out better way to cache these
+            # TODO worried about strange deallocation timing race conditions
+            return self._bridge_cache[id(data)]
+        except KeyError:
+            bridge = QDataclassBridge(data)
+            self._bridge_cache[id(data)] = bridge
+            return bridge
+
+
+class WindowLinker:
+    """
+    Mixin class that provides access methods for resources held by the main Window.
+    These include:
+    - client: first attempts to grab the client set at init, if none exists use
+              the Window's client
+    - open_page_slot: grabs the slot from the Window
+    """
+
+    def __init__(self, *args, client: Optional[Client] = None, **kwargs) -> None:
+        self._client = client
+        super().__init__(*args, **kwargs)
+
+    @property
+    def client(self) -> Optional[Client]:
+        # Return the provided client if it exists, grab the Window's otherwise
+        if self._client is not None:
+            return self._client
+        else:
+            window = get_window()
+            if window is not None:
+                return window.client
+
+    @client.setter
+    def client(self, client: Client):
+        if not isinstance(client, Client):
+            raise TypeError(f"Cannot set a {type(client)} as a client")
+
+        if client is self._client:
+            return
+
+        self._client = client
+
+    @property
+    def open_page_slot(self) -> Optional[OpenPageSlot]:
+        window = get_window()
+        if window is not None:
+            return window.open_page
+
+    def get_window(self):
+        """Return the singleton Window instance"""
+        return get_window()
+
+    def refresh_window(self):
+        """Refresh window ui elements"""
+        # TODO: Deprecate with more specific signals being emitted from the
+        # Window class.  page widgets should not have to care about the window
+        # holding it
+
+        # grab and modify tree view
+        window = get_window()
+        if window is None:
+            return
+        window.tree_view.set_data(self.client.backend.root)
+        tree_model = window.tree_view.model()
+        tree_model = cast("RootTree", tree_model)
+        tree_model.refresh_tree()
+
+
+class DataTracker(WindowLinker):
     """
     Base class for widgets that manipulate dataclasses.
+    NOTE: this must eventually inherit from a QObject in order to support the
+    data_modified signal
 
     Defines the init args for all data widgets and handles synchronization
     of the ``QDataclassBridge`` instances. This is done so that only data
@@ -38,6 +157,14 @@ class DataWidget(QtWidgets.QWidget):
     simply need to pass in data structures, rather than needing to keep track
     of how two widgets editing the same data structure must share the same
     bridge object.
+
+    In this application, the client should be considered the single source of
+    truth for information.  Thus `.data` will ALWAYS be a deep copy of the
+    dataclass provided at init, and pushing that information to the rest of the
+    system will be an intentional action, e.g. a save using Client.
+
+    Here we will keep track of when changes to `data` are made, emitting
+    signals and stashing a `.dirty` bool for future reference.
 
     Parameters
     ----------
@@ -50,24 +177,126 @@ class DataWidget(QtWidgets.QWidget):
         Even parent is unlikely to see use because parent is set automatically
         when a widget is inserted into a layout.
     """
-    # QDataclassBridge for this widget, other bridges may live in EntryItem
-    _bridge_cache: ClassVar[
-        WeakValueDictionary[int, QDataclassBridge]
-    ] = WeakValueDictionary()
+    # QDataclassBridge for this widget
     bridge: QDataclassBridge
-    data: AnyDataclass
+    data: Entry
 
-    def __init__(self, data: AnyDataclass, **kwargs):
-        super().__init__(**kwargs)
-        self.data = data
-        try:
-            # TODO figure out better way to cache these
-            # TODO worried about strange deallocation timing race conditions
-            self.bridge = self._bridge_cache[id(data)]
-        except KeyError:
-            bridge = QDataclassBridge(data)
-            self._bridge_cache[id(data)] = bridge
-            self.bridge = bridge
+    _dirty: bool = False
+
+    data_modified: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    # TODO: evaluate refactoring to use composition, avoiding multiple inheritance
+    # shenanigans.  Currently unsure of cost-benefit / disruption
+    def __init__(
+        self,
+        *args,
+        data: Optional[Entry] = None,
+        is_independent: bool = True,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        if data is not None:
+            self.set_data(data, is_independent)
+        else:
+            self.data = None
+
+    @property
+    def dirty(self):
+        # a weak attempt to disallow setting this flag manually
+        return self._dirty
+
+    def _on_change_detected(self):
+        """Mark as dirty if changes are detected"""
+        # todo, actually compare change
+        self._dirty = True
+        self.data_modified.emit()
+
+    def setup_tracking(self):
+        # techinically if we modify then revert, we still show as dirty.
+        # this is probably fine
+        for data_field in fields(self.data):
+            bridge_field = getattr(self.bridge, data_field.name)
+            if not isinstance(bridge_field, QDataclassElem):
+                return
+            bridge_field.updated.connect(self._on_change_detected)
+
+    def reset_data(self, force_reload: bool = False):
+        """Pull changes from Client and discard accumulated changes"""
+        if self.client is None:
+            return
+        new_data = self.client.get_entry(self.data.uuid, force_reload=force_reload)
+        self.set_data(new_data)
+
+    def set_data(self, data: Entry, is_independent: bool = True) -> None:
+        """
+        Set the data for this object and clear the dirty status.
+        Extend this as needed in subclasses
+
+        Parameters
+        ----------
+        data : Entry
+            Entry to set to this widget
+        is_independent : bool, optional
+            Whether or not this is a standalone object.  If this is being used
+            as a sub-component of another widget, set to False so `data` is not
+            deep-copied and bridge communication can be used, by default True
+        """
+        # TODO: determine if there is a more performant way to avoid altering
+        # single-source-of-truth dataclasses but still manipulate the datastructure
+        # without deepcopy.  For now this makes working inside the widget easier
+        if is_independent:
+            self.data = deepcopy(data)
+        else:
+            self.data = data
+        self.bridge = BridgeRegistry().get_bridge(self.data)
+        self.setup_tracking()
+        self._dirty = False
+
+
+class DataWidget(QtWidgets.QWidget, DataTracker):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._uuid_watch_list = [self.data.uuid]
+        self.setup_desync_notifier()
+
+    def setup_desync_notifier(self):
+        window = self.get_window()
+        if window is None:
+            return
+        window.entry_updated.connect(self.check_changes)
+
+    def check_changes(self, uuid: UUID) -> None:
+        if uuid not in self._uuid_watch_list:
+            return
+
+        if self.client is None:
+            return
+
+        # TODO: implement dialog, and option to reset entry
+        # either fully re-initialize the page or pick which parts to update
+        logger.info("The backend shows changes different from the current version")
+        result = QtWidgets.QMessageBox.question(
+            self,
+            "Change detected",
+            f"Data modified in the backend for uuid: ({uuid}), refresh page?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
+        if result == QtWidgets.QMessageBox.Yes:
+            self.set_data(self.client.get_entry(uuid))
+
+    @contextmanager
+    def ignore_check_changes(self):
+        """
+        Temporarily clear the uuid watch list to ignore
+        Meant to wrap DataWidget.check_changes and any client actions that might
+        signal the entry has refreshed
+        # TODO: block desync callback from updating, or add equality check
+        """
+        old_watch_list = self._uuid_watch_list
+        self._uuid_watch_list = []
+        yield
+        self._uuid_watch_list = old_watch_list
 
 
 class NameMixin:
@@ -401,85 +630,3 @@ class TagsElem(Display, QtWidgets.QWidget):
         Tell the QTagsWidget when our delete button is clicked.
         """
         self.tags_widget.remove_item(self)
-
-
-class QtSingleton(type(QtCore.QObject), type):
-    """
-    Qt specific singleton implementation, needed to ensure signals are shared
-    between instances.  Adapted from
-    https://stackoverflow.com/questions/59459770/receiving-pyqtsignal-from-singleton
-
-    The more common __new__ - based singleton pattern does result in the QObject
-    being a singleton, but the bound signals lose their connections whenever the
-    instance is re-acquired.  I do not understand but this works
-
-    To use this, specify `QtSingleton` as a metaclass:
-
-    .. code-block:: python
-        class SingletonClass(QtCore.QObject, metaclass=QtSingleton):
-            shared_signal: ClassVar[QtCore.Signal] = QtCore.Signal()
-
-    """
-    def __init__(cls, name, bases, dict):
-        super().__init__(name, bases, dict)
-        cls._instance = None
-
-    def __call__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__call__(*args, **kwargs)
-        return cls._instance
-
-
-class WindowLinker:
-    """
-    Mixin class that provides access methods for resources held by the main Window.
-    These include:
-    - client: first attempts to grab the client set at init, if none exists use
-              the Window's client
-    - open_page_slot: grabs the slot from the Window
-    """
-
-    def __init__(self, *args, client: Optional[Client] = None, **kwargs) -> None:
-        self._client = client
-        super().__init__(*args, **kwargs)
-
-    @property
-    def client(self) -> Optional[Client]:
-        # Return the provided client if it exists, grab the Window's otherwise
-        if self._client is not None:
-            return self._client
-        else:
-            window = get_window()
-            if window is not None:
-                return window.client
-
-    @client.setter
-    def client(self, client: Client):
-        if not isinstance(client, Client):
-            raise TypeError(f"Cannot set a {type(client)} as a client")
-
-        if client is self._client:
-            return
-
-        self._client = client
-
-    @property
-    def open_page_slot(self) -> Optional[OpenPageSlot]:
-        window = get_window()
-        if window is not None:
-            return window.open_page
-
-    def get_window(self):
-        """Return the singleton Window instance"""
-        return get_window()
-
-    def refresh_window(self):
-        """Refresh window ui elements"""
-        # tree view
-        window = get_window()
-        if window is None:
-            return
-        window.tree_view.set_data(self.client.backend.root)
-        tree_model = window.tree_view.model()
-        tree_model = cast("RootTree", tree_model)
-        tree_model.refresh_tree()

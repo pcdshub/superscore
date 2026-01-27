@@ -5,14 +5,14 @@ from __future__ import annotations
 
 import logging
 from functools import partial
-from typing import Optional
+from typing import ClassVar, Optional
+from uuid import UUID
 
 import qtawesome as qta
-from pcdsutils.qt.callbacks import WeakPartialMethodSlot
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.client import Client
+from superscore.client import CallbackType, Client
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display, QtSingleton
@@ -36,6 +36,10 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
     tab_widget: QtWidgets.QTabWidget
 
     action_new_coll: QtWidgets.QAction
+
+    entry_saved: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
+    entry_deleted: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
+    entry_updated: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
 
     # Diff dispatcher singleton, used to notify when diffs are ready
     diff_dispatcher: DiffDispatcher = DiffDispatcher()
@@ -63,6 +67,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         # setup tree view
         self.tree_view.client = self.client
         self.tree_view.set_data(self.client.backend.root)
+        self.entry_updated.connect(self.tree_view.update_uuid)
+        self.entry_saved.connect(self.tree_view.update_uuid)
         # override context menu
         self.tree_view.create_context_menu = self._window_context_menu
 
@@ -72,6 +78,15 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
 
+        # subscribe global entry signals to client.  Other widgets can then sub
+        # to these signals to keep signaling within Qt
+        self.client.register_callback(CallbackType.ENTRY_SAVED, self.entry_saved.emit)
+        self.client.register_callback(CallbackType.ENTRY_DELETED, self.entry_deleted.emit)
+        self.client.register_callback(CallbackType.ENTRY_UPDATED, self.entry_updated.emit)
+
+        self.entry_saved.connect(self._update_tab_title)
+        self.entry_updated.connect(self._update_tab_title)
+
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
         widget = self.tab_widget.widget(tab_index)
@@ -79,9 +94,21 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         widget.deleteLater()
         self.tab_widget.removeTab(tab_index)
 
-    def _update_tab_title(self, tab_index: int) -> None:
-        """Update a DataWidget tab title.  Assumes widget.title exists"""
-        title_text = self.tab_widget.widget(tab_index)._title
+    def _update_tab_title(self, uuid: UUID) -> None:
+        """
+        Update a DataWidget tab title for page containing data with `uuid`.
+        Assumes widget._title exists
+        """
+        # TODO: fix for entry pages to have ._title
+        page_widget = None
+        tab_index = 0
+        for tab_index in range(self.tab_widget.count()):
+            page_widget = self.tab_widget.widget(tab_index)
+            if isinstance(page_widget, DataWidget) and page_widget.data.uuid == uuid:
+                break
+        title_text = getattr(page_widget, "_title", None)
+        if title_text is None:
+            return
         self.tab_widget.setTabText(tab_index, title_text)
 
     def open_collection_builder(self):
@@ -89,12 +116,6 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         page = CollectionBuilderPage(client=self.client)
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
-        update_slot = WeakPartialMethodSlot(
-            page.bridge.title, page.bridge.title.updated,
-            self._update_tab_title,
-            tab_index=self.tab_widget.indexOf(page),
-        )
-        self._partial_slots.append(update_slot)
 
     def open_page(self, entry: Entry) -> DataWidget:
         """
@@ -163,7 +184,6 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         open_action = menu.addAction(
             f'&Open Detailed {type(entry).__name__} page'
         )
-        # WeakPartialMethodSlot may not be needed, menus are transient
         open_action.triggered.connect(partial(self.open_page, entry))
         if isinstance(entry, Snapshot):
             restore_page_action = menu.addAction('Inspect values')

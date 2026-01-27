@@ -8,11 +8,12 @@ import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
-                              Setpoint, Severity, Status)
+                              Setpoint, Severity, Snapshot, Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -266,40 +267,45 @@ def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixtu
     assert data_index_setpoint_2.row() == (data_index_readback_2.row() - 1)
 
 
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_fill_uuids_pvs(
     test_client: Client,
     simple_snapshot_fixture: Collection,
     qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
+    test_client.save(simple_snapshot_fixture)
     simple_snapshot_fixture.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     view = LivePVTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend
     view.client = test_client
-    view.set_data(simple_snapshot_fixture)
+    view.set_data(simple_snapshot_fixture, is_independent=False)
 
     assert all(not isinstance(c, UUID) for c in simple_snapshot_fixture.children)
     print(view.model()._poll_thread)
-    view.model().stop_polling()
+    view._model.stop_polling()
     print(view.model()._poll_thread)
-    qtbot.wait_until(lambda: not view.model()._poll_thread.isRunning())
+    qtbot.wait_until(lambda: not view._model._poll_thread.isRunning())
 
 
+@setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_fill_uuids_nestable(
     test_client: Client,
     linac_backend: TestBackend,
+    qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
     nested_coll = linac_backend.get_entry("441ff79f-4948-480e-9646-55a1462a5a70")
+    test_client.save(nested_coll)
     nested_coll.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in nested_coll.children)
     view = NestableTableView()
     # mock client does not ever return None, as if entries are always found
     # in the backend.  (entries will be "filled" with mock data)
     view.client = test_client
-    view.set_data(nested_coll)
+    view.set_data(nested_coll, is_independent=False)
 
     assert all(not isinstance(c, UUID) for c in nested_coll.children)
 
@@ -349,17 +355,17 @@ def test_roottree_setup(sample_database_fixture: Root):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_view_setup_init_args(test_client: Client):
+def test_root_tree_view_setup_init_args(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView(
         client=test_client,
-        entry=test_client.backend.root
+        data=test_client.backend.root
     )
     assert isinstance(tree_view.model().root_item, EntryItem)
     assert isinstance(tree_view.model(), RootTree)
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_view_setup_post_init(test_client: Client):
+def test_root_tree_view_setup_post_init(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView()
     tree_view.client = test_client
     tree_view.set_data(test_client.backend.root)
@@ -369,7 +375,7 @@ def test_root_tree_view_setup_post_init(test_client: Client):
 
 
 @setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
-def test_root_tree_fetchmore(test_client: Client):
+def test_root_tree_fetchmore(test_client: Client, qtbot: QtBot):
     tree_view = RootTreeView()
     tree_view.client = test_client
     for entry in test_client.backend.root.entries:
@@ -401,3 +407,68 @@ def test_root_tree_fetchmore(test_client: Client):
     assert model.canFetchMore(child_index)
     model.fetchMore(child_index)
     assert not model.canFetchMore(child_index)
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_update_uuid(
+    test_client: Client, qtbot: QtBot, monkeypatch
+):
+    monkeypatch.setattr(Client, "is_editable", lambda *a, **k: True)
+    tree_view = RootTreeView()
+    tree_view.client = test_client
+    tree_view.set_data(test_client.backend.root)
+
+    # grab and modify a snapshot's children
+    snap_uuid = UUID("ffd668d3-57d9-404e-8366-0778af7aee61")
+    snap = test_client.get_entry(snap_uuid)
+    assert isinstance(snap, Snapshot)
+    assert len(snap.children) == 3
+    snap.children.pop()
+    assert len(snap.children) == 2
+    test_client.save(snap)
+
+    # Tree doesn't update unless we call for it to
+    snap_item = tree_view.get_item_by_uuid(snap_uuid)
+    assert isinstance(snap_item, EntryItem)
+    assert snap_item.childCount() == 3
+    tree_view.update_uuid(snap_uuid)
+
+    assert snap_item.childCount() == 2
+
+
+@setup_test_stack(sources=['db/filestore.json'], backend_type=TestBackend)
+def test_root_tree_update_uuid_unfilled(
+    test_client: Client, qtbot: QtBot, monkeypatch
+):
+    monkeypatch.setattr(Client, "is_editable", lambda *a, **k: True)
+    tree_view = RootTreeView()
+    tree_view.client = test_client
+    for entry in test_client.backend.root.entries:
+        entry.swap_to_uuids()
+    tree_view.set_data(test_client.backend.root)
+
+    model = tree_view.model()
+    assert isinstance(model, RootTree)
+    child_index = model.index_from_item(model.root_item.child(2))
+    # check that we have filling to do
+    child_item = tree_view.get_item_by_uuid(child_index.internalPointer()._data.uuid)
+    assert isinstance(child_item, EntryItem)
+    assert isinstance(child_index.internalPointer()._data, Nestable)
+    assert any(isinstance(child, UUID) for child
+               in child_index.internalPointer()._data.children)
+
+    # I know uuids of the sub-children here, let's grab it from the client and
+    # modify.  The tree has not yet been filled.
+    sub_child_uuid = UUID("74126a1e-b626-462b-81b2-6f56913cf1f2")
+    sub_child_item = tree_view.get_item_by_uuid(sub_child_uuid)
+    assert isinstance(sub_child_item, EntryItem)
+    assert isinstance(sub_child_item._data, UUID)
+    param = test_client.get_entry(sub_child_uuid)
+    param.description = "another silly uuid"
+    test_client.save(param)
+
+    tree_view.update_uuid(sub_child_uuid)
+    sub_child_item = tree_view.get_item_by_uuid(sub_child_uuid)
+    assert isinstance(sub_child_item, EntryItem)
+    assert isinstance(sub_child_item._data, Parameter)
+    assert sub_child_item._data.description == "another silly uuid"

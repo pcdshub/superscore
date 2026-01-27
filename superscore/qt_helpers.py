@@ -48,6 +48,7 @@ class QDataclassBridge(QObject):
         super().__init__(parent=parent)
         self.data = data
         fields = get_type_hints(type(data))
+        # note that this can override builtin QObject method names
         for name, type_hint in fields.items():
             self.set_field_from_data(name, type_hint, data)
 
