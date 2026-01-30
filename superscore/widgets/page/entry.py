@@ -89,6 +89,7 @@ class NestablePage(Display, DataWidget):
         self.meta_widget.set_data(self.data, is_independent=False)
         self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
         self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
+        self._dirty = False
 
     def set_editable(self, editable: bool) -> None:
         self.meta_widget.setEnabled(editable)
@@ -126,7 +127,7 @@ class NestablePage(Display, DataWidget):
 
     def update_dirty_status(self):
         self._dirty = any((
-            self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
+            self._dirty, self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
         ))
         logger.debug(f"Entry {self.data.uuid} Dirty?: {self.dirty}")
         if self.dirty:

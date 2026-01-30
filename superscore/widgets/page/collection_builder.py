@@ -64,7 +64,7 @@ class CollectionBuilderPage(Display, DataWidget):
         self.coll_combo_box = FilterComboBox()
         insert_widget(self.coll_combo_box, self.coll_combo_box_placeholder)
         self.update_collection_choices()
-        self.save_button.clicked.connect(self.save_collection)
+        self.save_button.clicked.connect(self.save)
         self.add_collection_button.clicked.connect(self.add_sub_collection)
         self.add_pvs_button.clicked.connect(self.add_pv)
         self.ro_checkbox.stateChanged.connect(self.set_rbv_enabled)
@@ -123,8 +123,9 @@ class CollectionBuilderPage(Display, DataWidget):
         self.meta_widget.set_data(self.data, is_independent=False)
         self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
         self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
+        self._dirty = False
 
-    def save_collection(self):
+    def save(self):
         """Save current collection to database via Client"""
         self.bridge.title.put(self.meta_widget.name_edit.text())
         self.bridge.description.put(self.meta_widget.desc_edit.toPlainText())
@@ -145,6 +146,9 @@ class CollectionBuilderPage(Display, DataWidget):
         logger.info(f"Collection saved ({self.data.uuid})")
 
     def update_dirty_status(self):
+        self._dirty = any((
+            self._dirty, self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
+        ))
         if self.dirty:
             self.save_button.setText("Save Collection *")
             self.save_button.setEnabled(True)

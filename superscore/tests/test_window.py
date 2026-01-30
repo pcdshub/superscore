@@ -78,7 +78,7 @@ def test_add_collection_refresh(qtbot: QtBot, test_client: Client):
     orig_entry_item: EntryItem = window.tree_view.model().root_item
     orig_top_level_entries = orig_entry_item.childCount()
 
-    coll_builder_page.save_collection()
+    coll_builder_page.save()
 
     new_entry_item: EntryItem = window.tree_view.model().root_item
     new_top_level_entries = new_entry_item.childCount()
