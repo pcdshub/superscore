@@ -118,11 +118,6 @@ class NestablePage(Display, DataWidget):
             self.set_data(self.client.get_entry(self.data.uuid))
 
         self.update_model_data()
-        # Reset dirty flags after save
-        if self.sub_pv_table_view._model:
-            self.sub_pv_table_view._model.reset_dirty()
-        if self.sub_coll_table_view._model:
-            self.sub_coll_table_view._model.reset_dirty()
         self.update_dirty_status()
 
     def update_dirty_status(self):
