@@ -121,6 +121,8 @@ class CollectionBuilderPage(Display, DataWidget):
         self.sub_pv_table_view.set_data(self.data, is_independent=False)
         self.sub_coll_table_view.set_data(self.data, is_independent=False)
         self.meta_widget.set_data(self.data, is_independent=False)
+        self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
+        self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
 
     def save_collection(self):
         """Save current collection to database via Client"""
