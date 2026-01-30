@@ -702,7 +702,7 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker):
 
         self._model = self._model_cls(base_entry=self.data, client=self.client)
         self.setModel(self._model)
-        self._model.dataChanged.connect(self.data_modified)
+        self._model.dataChanged.connect(self.data_modified.emit)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index: QtCore.QModelIndex = self.indexAt(pos)
@@ -1633,7 +1633,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker):
                 **self.model_kwargs
             )
             self.setModel(self._model)
-            self._model.dataChanged.connect(self.data_modified)
+            self._model.dataChanged.connect(self.data_modified.emit)
         else:
             self._model.set_entries(self.sub_entries)
 
