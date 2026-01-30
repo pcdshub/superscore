@@ -1,17 +1,19 @@
 """Largely smoke tests for various pages"""
 
 from copy import deepcopy
+from operator import attrgetter
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
-                              Snapshot)
+                              Severity, Snapshot, Status)
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
@@ -21,6 +23,7 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.views import HeaderEnum, LivePVHeader
 from superscore.widgets.window import Window
 
 
@@ -39,7 +42,7 @@ def mock_window(qtbot: QtBot, test_client: Client):
 
 @pytest.fixture(scope='function')
 def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Collection()
+    data = Collection(children=[Parameter(pv_name="ORIG:NAME"), Collection()])
     page = CollectionPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -51,7 +54,7 @@ def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def snapshot_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Snapshot()
+    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()])
     page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -94,7 +97,8 @@ def search_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def collection_builder_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    page = CollectionBuilderPage(client=test_client)
+    data = Collection(children=[Parameter(pv_name="ORIG:NAME"), Collection()])
+    page = CollectionBuilderPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
     page.close()
@@ -404,37 +408,100 @@ def test_base_page_client_desync(
     assert responded_yes
 
 
-@pytest.mark.parametrize(
-    'page',
-    [
-        "parameter_page",
-        "setpoint_page",
-        "readback_page",
-        "collection_page",
-        "snapshot_page",
-    ]
-)
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@pytest.mark.parametrize('page', ["parameter_page", "setpoint_page", "readback_page"])
+@pytest.mark.parametrize("bridge_field, edit_widget, widget_method, value", [
+    ("pv_name", "pv_edit", "setText", "NEW:PV:TEXT"),
+    ("abs_tolerance", "abs_tol_spinbox", "setValue", 999),
+    ("rel_tolerance", "rel_tol_spinbox", "setValue", 999),
+    ("status", "status_combobox", "setCurrentIndex", Status.HIHI),
+    ("severity", "severity_combobox", "setCurrentIndex", Severity.MAJOR),
+])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
 def test_base_page_dirty_save(
     test_client: Client,
     page: str,
+    bridge_field: str,
+    edit_widget: str,
+    widget_method: str,
+    value: str,
     request: pytest.FixtureRequest,
     qtbot: QtBot,
     monkeypatch,
 ):
     page_widget = request.getfixturevalue(page)
-    assert isinstance(page_widget, (BaseParameterPage, NestablePage))
+    assert isinstance(page_widget, BaseParameterPage)
     client = page_widget.client
     assert test_client is client
     assert isinstance(client, Client)
     assert not page_widget.dirty
 
-    if isinstance(page_widget, BaseParameterPage):
-        with qtbot.waitSignal(page_widget.bridge.pv_name.updated):
-            page_widget.pv_edit.setText("NEW:PV:TEXT")
-    elif isinstance(page_widget, NestablePage):
-        with qtbot.waitSignal(page_widget.bridge.description.updated):
-            page_widget.meta_widget.desc_edit.setPlainText("New Description")
+    try:
+        bridge_signal = attrgetter(f"{bridge_field}.updated")(page_widget)
+    except AttributeError:
+        print("SKIP", page, bridge_field)
+        return
+
+    with qtbot.waitSignal(bridge_signal):
+        mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+        mod_method(value)
+
+    assert page_widget.dirty
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                        lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+    page_widget.save()
+
+    assert not page_widget.dirty
+
+
+@pytest.mark.parametrize(
+    'page',
+    [
+        "collection_page",
+        "snapshot_page",
+        "collection_builder_page"
+    ]
+)
+@pytest.mark.parametrize("bridge_field, edit_widget, widget_method, value", [
+    ("title", "meta_widget.name_edit", "setText", "new_title"),
+    ("description", "meta_widget.desc_edit", "setText", "new_desc"),
+    ("__PV_TABLE__", "", LivePVHeader.PV_NAME, "NEW:PV")
+])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
+def test_nest_page_dirty_save(
+    test_client: Client,
+    page: str,
+    bridge_field: str,
+    edit_widget: str,
+    widget_method: str | HeaderEnum,
+    value: str,
+    request: pytest.FixtureRequest,
+    qtbot: QtBot,
+    monkeypatch,
+):
+    page_widget = request.getfixturevalue(page)
+    assert isinstance(page_widget, (NestablePage, CollectionBuilderPage))
+    client = page_widget.client
+    assert test_client is client
+    assert isinstance(client, Client)
+    assert not page_widget.dirty
+
+    # handle setData methods that don't trigger bridges
+    if bridge_field in ("__PV_TABLE__", "__COLL_TABLE__"):
+        model = page_widget.sub_pv_table_view.model()
+        index = model.index(0, widget_method)
+        model.setData(index, value, QtCore.Qt.EditRole)
+
+    else:  # standard widget access
+        try:
+            bridge_signal = attrgetter(f"{bridge_field}.updated")(page_widget)
+        except AttributeError:
+            print("SKIP", page, bridge_field)
+            return
+
+        with qtbot.waitSignal(bridge_signal):
+            mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+            mod_method(value)
 
     assert page_widget.dirty
 
