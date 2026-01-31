@@ -702,7 +702,7 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker):
 
         self._model = self._model_cls(base_entry=self.data, client=self.client)
         self.setModel(self._model)
-        self._model.dataChanged.connect(self.data_modified)
+        self._model.dataChanged.connect(self.data_modified.emit)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index: QtCore.QModelIndex = self.indexAt(pos)
@@ -815,6 +815,7 @@ class BaseTableEntryModel(
     _editable_cols: Dict[int, bool] = {}
     _button_cols: List[HeaderGeneric]
     _header_to_field: Dict[HeaderGeneric, str]
+    _dirty: bool
 
     def __init__(
         self,
@@ -823,6 +824,7 @@ class BaseTableEntryModel(
         **kwargs
     ) -> None:
         self.entries = entries or []
+        self._dirty = False
         super().__init__(*args, **kwargs)
 
     def rowCount(self, parent: Optional[QtCore.QModelIndex] = None):
@@ -871,14 +873,20 @@ class BaseTableEntryModel(
             # button columns do not actually set data, no-op
             return True
 
-        header_field = self._header_to_field[header_col]
+        try:
+            header_field = self._header_to_field[header_col]
+        except KeyError:
+            # Not set up to allow editing of this field
+            return True
         if not hasattr(entry, header_field):
             # only set values on entries with the field
             return True
 
         self.layoutAboutToBeChanged.emit()
         try:
+            logger.debug(f"setting field {header_field} -> {value} for {entry.uuid}")
             setattr(entry, header_field, value)
+            self._dirty = True
             success = True
         except Exception as exc:
             logger.error(f"Failed to set data ({value}) ->"
@@ -942,6 +950,15 @@ class BaseTableEntryModel(
         if icon_id is None:
             return
         return qta.icon(icon_id)
+
+    @property
+    def dirty(self) -> bool:
+        """Returns whether entries have been modified via setData."""
+        return self._dirty
+
+    def reset_dirty(self) -> None:
+        """Reset the dirty flag after saving or resetting data."""
+        self._dirty = False
 
 
 class DisplayType(Enum):
@@ -1128,12 +1145,17 @@ class LivePVTableModel(BaseTableEntryModel[LivePVHeader, PVEntry]):
 
         for entry in self.entries:
             self._poll_thread.add_pv(entry.pv_name)
-
+        logger.debug(f"set_entries completed: ({len(entries)}) -> "
+                     f"{len(new_entries)} new entries, "
+                     f"{len(self._linked_readbacks)} linked readbacks")
         self.dataChanged.emit(
             self.createIndex(0, 0),
             self.createIndex(self.rowCount(), self.columnCount()),
         )
         self.layoutChanged.emit()
+
+        # Reset dirty flag after loading new entries
+        self.reset_dirty()
 
     def remove_entry(self, entry: PVEntry) -> None:
         """Remove ``entry`` from the table model"""
@@ -1548,7 +1570,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker):
     def __init__(
         self,
         *args,
-        data: Optional[Nestable] = None,
+        data: Optional[NestableEntry] = None,
         **kwargs,
     ) -> None:
         """need to set open_column, close_column in subclass"""
@@ -1611,6 +1633,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker):
                 f"Attempted to set an incompatable data type ({type(data)})"
             )
         self.maybe_setup_model()
+        self._dirty = False
 
     def maybe_setup_model(self):
         """
@@ -1633,7 +1656,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker):
                 **self.model_kwargs
             )
             self.setModel(self._model)
-            self._model.dataChanged.connect(self.data_modified)
+            self._model.dataChanged.connect(self.data_modified.emit)
         else:
             self._model.set_entries(self.sub_entries)
 
@@ -1758,9 +1781,6 @@ class LivePVTableView(BaseDataTableView):
                 if not isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
-        # elif isinstance(self.data, (Parameter, Setpoint, Readback)):
-        #     self.sub_entries = [self.data]
-
     @BaseDataTableView.client.setter
     def client(self, client: Client):
         super()._set_client(client)
@@ -1785,6 +1805,12 @@ class LivePVTableView(BaseDataTableView):
         deselected: QtCore.QModelIndex,
     ) -> None:
         self._model.update_selected(selected)
+
+    @property
+    def dirty(self) -> bool:
+        if self._model is None:
+            return False
+        return self._dirty or self._model.dirty
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         logger.debug("Stopping pv_model polling")
