@@ -208,28 +208,28 @@ def test_coll_builder_add(test_client, collection_builder_page: CollectionBuilde
     page.pv_line_edit.setText("THIS:PV")
     page.add_pvs_button.clicked.emit()
 
-    assert len(page.data.children) == 1
-    assert "THIS:PV" in page.data.children[0].pv_name
-    assert isinstance(page.data.children[0], Parameter)
-    assert page.sub_pv_table_view._model.rowCount() == 1
+    assert len(page.data.children) == 3
+    assert "THIS:PV" in page.data.children[2].pv_name
+    assert isinstance(page.data.children[2], Parameter)
+    assert page.sub_pv_table_view._model.rowCount() == 2
     assert page.pv_line_edit.text() == ""
 
     page.coll_combo_box.setCurrentIndex(0)
     added_collection = page._coll_options[0]
     page.add_collection_button.clicked.emit()
-    assert added_collection is page.data.children[1]
-    assert page.sub_coll_table_view._model.rowCount() == 1
+    assert added_collection is page.data.children[3]
+    assert page.sub_coll_table_view._model.rowCount() == 2
 
     # add another PV, make sure collection is not readded
     page.pv_line_edit.setText("ANOTHER:PV")
     page.add_pvs_button.clicked.emit()
-    assert len(page.data.children) == 3
-    assert "ANOTHER:PV" == page.data.children[2].pv_name
-    assert isinstance(page.data.children[2], Parameter)
-    assert page.sub_pv_table_view._model.rowCount() == 2
+    assert len(page.data.children) == 5
+    assert "ANOTHER:PV" == page.data.children[4].pv_name
+    assert isinstance(page.data.children[4], Parameter)
+    assert page.sub_pv_table_view._model.rowCount() == 3
     assert page.pv_line_edit.text() == ""
-    assert added_collection is page.data.children[1]
-    assert page.sub_coll_table_view._model.rowCount() == 1
+    assert added_collection is page.data.children[3]
+    assert page.sub_coll_table_view._model.rowCount() == 2
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
@@ -244,21 +244,22 @@ def test_coll_builder_edit(
     page.add_pvs_button.clicked.emit()
 
     pv_model = page.sub_pv_table_view.model()
-    qtbot.waitUntil(lambda: pv_model.rowCount() == 1)
-    assert "THIS:PV" in page.data.children[0].pv_name
+    qtbot.waitUntil(lambda: pv_model.rowCount() == 2)
+    assert "THIS:PV" in page.data.children[2].pv_name
 
-    first_index = pv_model.createIndex(0, 0)
-    pv_model.setData(first_index, "NEW:VP", role=QtCore.Qt.EditRole)
+    # modify second row, newly added
+    new_index = pv_model.createIndex(1, 0)
+    pv_model.setData(new_index, "NEW:VP", role=QtCore.Qt.EditRole)
 
-    assert "NEW:VP" in page.data.children[0].pv_name
+    assert "NEW:VP" in page.data.children[2].pv_name
 
     page.add_collection_button.clicked.emit()
 
     coll_model = page.sub_coll_table_view.model()
-    qtbot.waitUntil(lambda: coll_model.rowCount() == 1)
+    qtbot.waitUntil(lambda: coll_model.rowCount() == 2)
 
-    coll_model.setData(first_index, 'anothername', role=QtCore.Qt.EditRole)
-    qtbot.waitUntil(lambda: "anothername" in page.data.children[1].title)
+    coll_model.setData(new_index, 'anothername', role=QtCore.Qt.EditRole)
+    qtbot.waitUntil(lambda: "anothername" in page.data.children[3].title)
 
 
 @pytest.mark.parametrize("page_fixture,", ["parameter_page", "setpoint_page"])

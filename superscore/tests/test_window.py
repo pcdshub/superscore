@@ -91,17 +91,21 @@ def test_add_collection_refresh(qtbot: QtBot, test_client: Client):
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
     def no_question_boxes_allowed(*args, **kwargs):
-        # We now open message boxes if entries are updated in the client
-        # We are only creating new entries, so we should never get the QMessageBox
-        # asking if we want to sync
-        raise RuntimeError
+        # we do end up editing an existing entry here, which may raise a
+        # question box to ask if we want to refresh
+        return True
 
     monkeypatch.setattr(QtWidgets.QMessageBox, "question", no_question_boxes_allowed)
+    monkeypatch.setattr(Client, "is_editable", lambda *args, **kw: True)
 
     window = Window(client=test_client)
     qtbot.addWidget(window)
-    collection = tuple(test_client.search(("uuid", "eq", UUID("a9f289d4-3421-4107-8e7f-2fe0daab77a5"))))[0]
-    snapshot = tuple(test_client.search(("uuid", "eq", UUID("ffd668d3-57d9-404e-8366-0778af7aee61"))))[0]
+    collection = tuple(test_client.search(
+        ("uuid", "eq", UUID("a9f289d4-3421-4107-8e7f-2fe0daab77a5"))
+    ))[0]
+    snapshot = tuple(test_client.search(
+        ("uuid", "eq", UUID("ffd668d3-57d9-404e-8366-0778af7aee61"))
+    ))[0]
 
     collection_page = window.open_page(collection)
     new_snapshot = collection_page.take_snapshot()
@@ -109,6 +113,7 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
     search_result = tuple(test_client.search(("uuid", 'eq', new_snapshot.uuid)))
     assert new_snapshot == search_result[0]
 
+    # cannot take snapshot without a relevant origin collection
     snapshot_page = window.open_page(snapshot)
     assert isinstance(snapshot_page, SnapshotPage)
     result = snapshot_page.take_snapshot()
@@ -117,8 +122,10 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
     qtbot.waitUntil(snapshot_page.sub_pv_table_view._model._poll_thread.isFinished)
 
     snapshot.origin_collection = collection.uuid
+    window.client.save(snapshot)
     snapshot_page = window.open_page(snapshot)
     assert isinstance(snapshot_page, SnapshotPage)
+    assert snapshot_page.data.origin_collection is not None
     new_snapshot = snapshot_page.take_snapshot()
     snapshot_page.children()[-1].done(1)
     search_result = tuple(test_client.search(("uuid", 'eq', new_snapshot.uuid)))
