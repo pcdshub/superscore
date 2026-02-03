@@ -123,7 +123,7 @@ class CollectionBuilderPage(Display, DataWidget):
         self.meta_widget.set_data(self.data, is_independent=False)
         self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
         self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
-        self._dirty = False
+        self.update_dirty_status()
 
     def save(self):
         """Save current collection to database via Client"""
@@ -145,10 +145,13 @@ class CollectionBuilderPage(Display, DataWidget):
         self.refresh_window()
         logger.info(f"Collection saved ({self.data.uuid})")
 
-    def update_dirty_status(self):
-        self._dirty = any((
+    @property
+    def dirty(self) -> bool:
+        return any((
             self._dirty, self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
         ))
+
+    def update_dirty_status(self):
         if self.dirty:
             self.save_button.setText("Save Collection *")
             self.save_button.setEnabled(True)
