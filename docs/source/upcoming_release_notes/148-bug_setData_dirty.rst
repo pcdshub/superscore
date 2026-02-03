@@ -17,6 +17,7 @@ Bugfixes
 Maintenance
 -----------
 - Refactor tests to be much more thorough about dirty status checking
+
 Contributors
 ------------
 - tangkong
