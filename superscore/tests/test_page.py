@@ -436,23 +436,26 @@ def test_base_page_dirty_save(
     assert isinstance(client, Client)
     assert not page_widget.dirty
 
-    try:
-        bridge_signal = attrgetter(f"{bridge_field}.updated")(page_widget)
-    except AttributeError:
-        print("SKIP", page, bridge_field)
-        return
+    if hasattr(page_widget.data, bridge_field):
+        bridge_signal = attrgetter(f"bridge.{bridge_field}.updated")(page_widget)
 
-    with qtbot.waitSignal(bridge_signal):
-        mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
-        mod_method(value)
+        with qtbot.waitSignal(bridge_signal):
+            mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+            mod_method(value)
 
-    assert page_widget.dirty
+        assert page_widget.dirty
 
-    monkeypatch.setattr(QtWidgets.QMessageBox, "question",
-                        lambda *args, **kws: QtWidgets.QMessageBox.Yes)
-    page_widget.save()
+        monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                            lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+        page_widget.save()
 
-    assert not page_widget.dirty
+        assert not page_widget.dirty
+    else:
+        print("attr not found")
+        widget = getattr(page_widget, edit_widget)
+        assert isinstance(widget, QtWidgets.QWidget)
+        # .isHidden can still be False if a parent widget is hidden.
+        assert not widget.isVisible()
 
 
 @pytest.mark.parametrize(
@@ -464,8 +467,8 @@ def test_base_page_dirty_save(
     ]
 )
 @pytest.mark.parametrize("bridge_field, edit_widget, widget_method, value", [
-    ("title", "meta_widget.name_edit", "setText", "new_title"),
-    ("description", "meta_widget.desc_edit", "setText", "new_desc"),
+    ("title", "meta_widget.name_edit", "insert", "new_title"),
+    ("description", "meta_widget.desc_edit", "setPlainText", "new_desc"),
     ("__PV_TABLE__", "", LivePVHeader.PV_NAME, "NEW:PV")
 ])
 @setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
@@ -487,27 +490,31 @@ def test_nest_page_dirty_save(
     assert isinstance(client, Client)
     assert not page_widget.dirty
 
-    # handle setData methods that don't trigger bridges
-    if bridge_field in ("__PV_TABLE__", "__COLL_TABLE__"):
-        model = page_widget.sub_pv_table_view.model()
-        index = model.index(0, widget_method)
-        model.setData(index, value, QtCore.Qt.EditRole)
+    if (hasattr(page_widget.data, bridge_field)
+            or bridge_field in ("__PV_TABLE__", "__COLL_TABLE__")):
+        # handle setData methods that don't trigger bridges
+        if bridge_field in ("__PV_TABLE__", "__COLL_TABLE__"):
+            model = page_widget.sub_pv_table_view.model()
+            index = model.index(0, widget_method)
+            model.setData(index, value, QtCore.Qt.EditRole)
 
-    else:  # standard widget access
-        try:
-            bridge_signal = attrgetter(f"{bridge_field}.updated")(page_widget)
-        except AttributeError:
-            print("SKIP", page, bridge_field)
-            return
+        else:  # standard widget access
+            bridge_signal = attrgetter(f"bridge.{bridge_field}.updated")(page_widget)
 
-        with qtbot.waitSignal(bridge_signal):
-            mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
-            mod_method(value)
+            with qtbot.waitSignal(bridge_signal):
+                mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+                mod_method(value)
 
-    assert page_widget.dirty
+        assert page_widget.dirty
 
-    monkeypatch.setattr(QtWidgets.QMessageBox, "question",
-                        lambda *args, **kws: QtWidgets.QMessageBox.Yes)
-    page_widget.save()
+        monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                            lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+        page_widget.save()
 
-    assert not page_widget.dirty
+        assert not page_widget.dirty
+    else:
+        print("attr not found")
+        widget = getattr(page_widget, edit_widget)
+        assert isinstance(widget, QtWidgets.QWidget)
+        # .isHidden can still be False if a parent widget is hidden.
+        assert not widget.isVisible()
