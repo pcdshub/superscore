@@ -3,7 +3,7 @@ Widgets for visualizing and editing core model dataclasses
 """
 import logging
 from functools import partial
-from typing import Optional, Union
+from typing import Generic, Optional, TypeVar
 
 import qtawesome as qta
 from qtpy import QtWidgets
@@ -11,21 +11,25 @@ from qtpy.QtGui import QCloseEvent
 
 from superscore.control_layers._base_shim import EpicsData
 from superscore.errors import EntryNotFoundError
-from superscore.model import (Collection, Nestable, Parameter, Readback,
-                              Setpoint, Severity, Snapshot, Status)
+from superscore.model import (Collection, Nestable, NestableEntry, Parameter,
+                              PVEntry, Readback, Setpoint, Severity, Snapshot,
+                              Status)
 from superscore.type_hints import AnyEpicsType
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
-from superscore.widgets.views import (LivePVTableView, NestableEntry,
-                                      NestableTableView, RootTreeView,
+from superscore.widgets.views import (LivePVTableView, NestableTableView,
+                                      RootTreeView,
                                       edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
 
+NestableEntryType = TypeVar('NestableEntryType', bound=NestableEntry)
+PVEntryType = TypeVar('PVEntryType', bound=PVEntry)
 
-class NestablePage(Display, DataWidget):
+
+class NestablePage(Display, DataWidget[NestableEntryType], Generic[NestableEntryType]):
     filename = 'nestable_page.ui'
 
     meta_placeholder: QtWidgets.QWidget
@@ -36,13 +40,12 @@ class NestablePage(Display, DataWidget):
 
     save_button: QtWidgets.QPushButton
     snapshot_button: QtWidgets.QPushButton
-
-    data: NestableEntry
+    restore_button: QtWidgets.QPushButton
 
     def __init__(
         self,
         *args,
-        data: Nestable,
+        data: NestableEntry,
         editable: bool = False,
         **kwargs
     ):
@@ -73,7 +76,6 @@ class NestablePage(Display, DataWidget):
 
         self.save_button.clicked.connect(self.save)
         self.snapshot_button.clicked.connect(self.take_snapshot)
-        self.snapshot_button.setText("Take new Snapshot")
 
         self.data_modified.connect(self.update_dirty_status)
         self.set_editable(self.editable)
@@ -176,15 +178,25 @@ class NestablePage(Display, DataWidget):
         return metadata_dialog
 
 
-class CollectionPage(NestablePage):
-    data: Collection
+class CollectionPage(NestablePage[Collection]):
+
+    def setup_ui(self):
+        super().setup_ui()
+        self.restore_button.hide()
 
 
-class SnapshotPage(NestablePage):
-    data: Snapshot
+class SnapshotPage(NestablePage[Snapshot]):
+
+    def setup_ui(self):
+        super().setup_ui()
+        window = self.get_window()
+        if window is not None:
+            self.restore_button.clicked.connect(
+                partial(window.open_restore_page, snapshot=self.data)
+            )
 
 
-class BaseParameterPage(Display, DataWidget):
+class BaseParameterPage(Display, DataWidget[PVEntryType], Generic[PVEntryType]):
     filename = 'parameter_page.ui'
 
     # Container widgets
@@ -220,7 +232,6 @@ class BaseParameterPage(Display, DataWidget):
     save_button: QtWidgets.QPushButton
 
     _edata_thread: Optional[BusyCursorThread]
-    data: Union[Parameter, Setpoint, Readback]
 
     def __init__(
         self,
@@ -463,13 +474,13 @@ class BaseParameterPage(Display, DataWidget):
             self.save_button.setEnabled(False)
 
 
-class ParameterPage(BaseParameterPage):
-    data: Parameter
+class ParameterPage(BaseParameterPage[Parameter]):
+    pass
 
 
-class SetpointPage(BaseParameterPage):
-    data: Setpoint
+class SetpointPage(BaseParameterPage[Setpoint]):
+    pass
 
 
-class ReadbackPage(BaseParameterPage):
-    data: Readback
+class ReadbackPage(BaseParameterPage[Readback]):
+    pass

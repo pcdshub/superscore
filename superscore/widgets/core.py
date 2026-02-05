@@ -8,7 +8,8 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import fields
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
+from typing import (TYPE_CHECKING, ClassVar, Generic, List, Optional, TypeVar,
+                    cast)
 from uuid import UUID
 from weakref import WeakValueDictionary
 
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+EntryType = TypeVar('EntryType', bound=Entry)
 
 
 class QtSingleton(type(QtCore.QObject), type):
@@ -145,7 +148,7 @@ class WindowLinker:
         tree_model.refresh_tree()
 
 
-class DataTracker(WindowLinker):
+class DataTracker(WindowLinker, Generic[EntryType]):
     """
     Base class for widgets that manipulate dataclasses.
     NOTE: this must eventually inherit from a QObject in order to support the
@@ -179,7 +182,7 @@ class DataTracker(WindowLinker):
     """
     # QDataclassBridge for this widget
     bridge: QDataclassBridge
-    data: Entry
+    data: EntryType
 
     _dirty: bool = False
 
@@ -190,7 +193,7 @@ class DataTracker(WindowLinker):
     def __init__(
         self,
         *args,
-        data: Optional[Entry] = None,
+        data: Optional[EntryType] = None,
         is_independent: bool = True,
         **kwargs
     ):
@@ -227,14 +230,14 @@ class DataTracker(WindowLinker):
         new_data = self.client.get_entry(self.data.uuid, force_reload=force_reload)
         self.set_data(new_data)
 
-    def set_data(self, data: Entry, is_independent: bool = True) -> None:
+    def set_data(self, data: EntryType, is_independent: bool = True) -> None:
         """
         Set the data for this object and clear the dirty status.
         Extend this as needed in subclasses
 
         Parameters
         ----------
-        data : Entry
+        data : EntryType
             Entry to set to this widget
         is_independent : bool, optional
             Whether or not this is a standalone object.  If this is being used
@@ -249,11 +252,12 @@ class DataTracker(WindowLinker):
         else:
             self.data = data
         self.bridge = BridgeRegistry().get_bridge(self.data)
+        logger.debug(f"Setting data and acquiring bridge@{self.bridge}")
         self.setup_tracking()
         self._dirty = False
 
 
-class DataWidget(QtWidgets.QWidget, DataTracker):
+class DataWidget(QtWidgets.QWidget, DataTracker[EntryType]):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -337,7 +341,7 @@ class NameMixin:
         match_line_edit_text_width(self.name_edit, text=text)
 
 
-class NameDescTagsWidget(Display, NameMixin, DataWidget):
+class NameDescTagsWidget(Display, NameMixin, DataWidget[Entry]):
     """
     Widget for displaying and editing the name, description, and tags fields.
 
