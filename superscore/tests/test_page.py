@@ -1,17 +1,19 @@
 """Largely smoke tests for various pages"""
 
 from copy import deepcopy
+from operator import attrgetter
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtCore, QtWidgets
 
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
-                              Snapshot)
+                              Severity, Snapshot, Status)
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
@@ -21,6 +23,7 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            SnapshotPage)
 from superscore.widgets.page.restore import RestoreDialog, RestorePage
 from superscore.widgets.page.search import SearchPage
+from superscore.widgets.views import HeaderEnum, LivePVHeader
 from superscore.widgets.window import Window
 
 
@@ -39,7 +42,7 @@ def mock_window(qtbot: QtBot, test_client: Client):
 
 @pytest.fixture(scope='function')
 def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Collection()
+    data = Collection(children=[Parameter(pv_name="ORIG:NAME"), Collection()])
     page = CollectionPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -51,7 +54,7 @@ def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def snapshot_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Snapshot()
+    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()])
     page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -94,7 +97,8 @@ def search_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def collection_builder_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    page = CollectionBuilderPage(client=test_client)
+    data = Collection(children=[Parameter(pv_name="ORIG:NAME"), Collection()])
+    page = CollectionBuilderPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
     page.close()
@@ -204,28 +208,28 @@ def test_coll_builder_add(test_client, collection_builder_page: CollectionBuilde
     page.pv_line_edit.setText("THIS:PV")
     page.add_pvs_button.clicked.emit()
 
-    assert len(page.data.children) == 1
-    assert "THIS:PV" in page.data.children[0].pv_name
-    assert isinstance(page.data.children[0], Parameter)
-    assert page.sub_pv_table_view._model.rowCount() == 1
+    assert len(page.data.children) == 3
+    assert "THIS:PV" in page.data.children[2].pv_name
+    assert isinstance(page.data.children[2], Parameter)
+    assert page.sub_pv_table_view._model.rowCount() == 2
     assert page.pv_line_edit.text() == ""
 
     page.coll_combo_box.setCurrentIndex(0)
     added_collection = page._coll_options[0]
     page.add_collection_button.clicked.emit()
-    assert added_collection is page.data.children[1]
-    assert page.sub_coll_table_view._model.rowCount() == 1
+    assert added_collection is page.data.children[3]
+    assert page.sub_coll_table_view._model.rowCount() == 2
 
     # add another PV, make sure collection is not readded
     page.pv_line_edit.setText("ANOTHER:PV")
     page.add_pvs_button.clicked.emit()
-    assert len(page.data.children) == 3
-    assert "ANOTHER:PV" == page.data.children[2].pv_name
-    assert isinstance(page.data.children[2], Parameter)
-    assert page.sub_pv_table_view._model.rowCount() == 2
+    assert len(page.data.children) == 5
+    assert "ANOTHER:PV" == page.data.children[4].pv_name
+    assert isinstance(page.data.children[4], Parameter)
+    assert page.sub_pv_table_view._model.rowCount() == 3
     assert page.pv_line_edit.text() == ""
-    assert added_collection is page.data.children[1]
-    assert page.sub_coll_table_view._model.rowCount() == 1
+    assert added_collection is page.data.children[3]
+    assert page.sub_coll_table_view._model.rowCount() == 2
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
@@ -240,21 +244,22 @@ def test_coll_builder_edit(
     page.add_pvs_button.clicked.emit()
 
     pv_model = page.sub_pv_table_view.model()
-    qtbot.waitUntil(lambda: pv_model.rowCount() == 1)
-    assert "THIS:PV" in page.data.children[0].pv_name
+    qtbot.waitUntil(lambda: pv_model.rowCount() == 2)
+    assert "THIS:PV" in page.data.children[2].pv_name
 
-    first_index = pv_model.createIndex(0, 0)
-    pv_model.setData(first_index, "NEW:VP", role=QtCore.Qt.EditRole)
+    # modify second row, newly added
+    new_index = pv_model.createIndex(1, 0)
+    pv_model.setData(new_index, "NEW:VP", role=QtCore.Qt.EditRole)
 
-    assert "NEW:VP" in page.data.children[0].pv_name
+    assert "NEW:VP" in page.data.children[2].pv_name
 
     page.add_collection_button.clicked.emit()
 
     coll_model = page.sub_coll_table_view.model()
-    qtbot.waitUntil(lambda: coll_model.rowCount() == 1)
+    qtbot.waitUntil(lambda: coll_model.rowCount() == 2)
 
-    coll_model.setData(first_index, 'anothername', role=QtCore.Qt.EditRole)
-    qtbot.waitUntil(lambda: "anothername" in page.data.children[1].title)
+    coll_model.setData(new_index, 'anothername', role=QtCore.Qt.EditRole)
+    qtbot.waitUntil(lambda: "anothername" in page.data.children[3].title)
 
 
 @pytest.mark.parametrize("page_fixture,", ["parameter_page", "setpoint_page"])
@@ -404,42 +409,112 @@ def test_base_page_client_desync(
     assert responded_yes
 
 
-@pytest.mark.parametrize(
-    'page',
-    [
-        "parameter_page",
-        "setpoint_page",
-        "readback_page",
-        "collection_page",
-        "snapshot_page",
-    ]
-)
-@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+@pytest.mark.parametrize('page', ["parameter_page", "setpoint_page", "readback_page"])
+@pytest.mark.parametrize("bridge_field, edit_widget, widget_method, value", [
+    ("pv_name", "pv_edit", "setText", "NEW:PV:TEXT"),
+    ("abs_tolerance", "abs_tol_spinbox", "setValue", 999),
+    ("rel_tolerance", "rel_tol_spinbox", "setValue", 999),
+    ("status", "status_combobox", "setCurrentIndex", Status.HIHI),
+    ("severity", "severity_combobox", "setCurrentIndex", Severity.MAJOR),
+])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
 def test_base_page_dirty_save(
     test_client: Client,
     page: str,
+    bridge_field: str,
+    edit_widget: str,
+    widget_method: str,
+    value: str,
     request: pytest.FixtureRequest,
     qtbot: QtBot,
     monkeypatch,
 ):
     page_widget = request.getfixturevalue(page)
-    assert isinstance(page_widget, (BaseParameterPage, NestablePage))
+    assert isinstance(page_widget, BaseParameterPage)
     client = page_widget.client
     assert test_client is client
     assert isinstance(client, Client)
     assert not page_widget.dirty
 
-    if isinstance(page_widget, BaseParameterPage):
-        with qtbot.waitSignal(page_widget.bridge.pv_name.updated):
-            page_widget.pv_edit.setText("NEW:PV:TEXT")
-    elif isinstance(page_widget, NestablePage):
-        with qtbot.waitSignal(page_widget.bridge.description.updated):
-            page_widget.meta_widget.desc_edit.setPlainText("New Description")
+    if hasattr(page_widget.data, bridge_field):
+        bridge_signal = attrgetter(f"bridge.{bridge_field}.updated")(page_widget)
 
-    assert page_widget.dirty
+        with qtbot.waitSignal(bridge_signal):
+            mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+            mod_method(value)
 
-    monkeypatch.setattr(QtWidgets.QMessageBox, "question",
-                        lambda *args, **kws: QtWidgets.QMessageBox.Yes)
-    page_widget.save()
+        assert page_widget.dirty
 
+        monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                            lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+        page_widget.save()
+
+        assert not page_widget.dirty
+    else:
+        print("attr not found")
+        widget = getattr(page_widget, edit_widget)
+        assert isinstance(widget, QtWidgets.QWidget)
+        # .isHidden can still be False if a parent widget is hidden.
+        assert not widget.isVisible()
+
+
+@pytest.mark.parametrize(
+    'page',
+    [
+        "collection_page",
+        "snapshot_page",
+        "collection_builder_page"
+    ]
+)
+@pytest.mark.parametrize("bridge_field, edit_widget, widget_method, value", [
+    ("title", "meta_widget.name_edit", "insert", "new_title"),
+    ("description", "meta_widget.desc_edit", "setPlainText", "new_desc"),
+    ("__PV_TABLE__", "", LivePVHeader.PV_NAME, "NEW:PV")
+])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
+def test_nest_page_dirty_save(
+    test_client: Client,
+    page: str,
+    bridge_field: str,
+    edit_widget: str,
+    widget_method: str | HeaderEnum,
+    value: str,
+    request: pytest.FixtureRequest,
+    qtbot: QtBot,
+    monkeypatch,
+):
+    page_widget = request.getfixturevalue(page)
+    assert isinstance(page_widget, (NestablePage, CollectionBuilderPage))
+    client = page_widget.client
+    assert test_client is client
+    assert isinstance(client, Client)
     assert not page_widget.dirty
+
+    if (hasattr(page_widget.data, bridge_field)
+            or bridge_field in ("__PV_TABLE__", "__COLL_TABLE__")):
+        # handle setData methods that don't trigger bridges
+        if bridge_field in ("__PV_TABLE__", "__COLL_TABLE__"):
+            model = page_widget.sub_pv_table_view.model()
+            index = model.index(0, widget_method)
+            model.setData(index, value, QtCore.Qt.EditRole)
+
+        else:  # standard widget access
+            bridge_signal = attrgetter(f"bridge.{bridge_field}.updated")(page_widget)
+
+            with qtbot.waitSignal(bridge_signal):
+                mod_method = attrgetter(f"{edit_widget}.{widget_method}")(page_widget)
+                mod_method(value)
+
+        assert page_widget.dirty
+
+        monkeypatch.setattr(QtWidgets.QMessageBox, "question",
+                            lambda *args, **kws: QtWidgets.QMessageBox.Yes)
+        page_widget.save()
+
+        assert not page_widget.dirty
+    else:
+        print("attr not found")
+        widget = getattr(page_widget, edit_widget)
+        assert isinstance(widget, QtWidgets.QWidget)
+        # .isHidden can still be False if a parent widget is hidden.
+        assert not widget.isVisible()

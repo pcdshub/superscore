@@ -18,8 +18,8 @@ from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import (insert_widget,
                                               match_line_edit_text_width)
 from superscore.widgets.thread_helpers import BusyCursorThread
-from superscore.widgets.views import (LivePVTableView, NestableTableView,
-                                      RootTreeView,
+from superscore.widgets.views import (LivePVTableView, NestableEntry,
+                                      NestableTableView, RootTreeView,
                                       edit_widget_from_epics_data)
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class NestablePage(Display, DataWidget):
     save_button: QtWidgets.QPushButton
     snapshot_button: QtWidgets.QPushButton
 
-    data: Nestable
+    data: NestableEntry
 
     def __init__(
         self,
@@ -47,6 +47,7 @@ class NestablePage(Display, DataWidget):
         **kwargs
     ):
         super().__init__(*args, data=data, **kwargs)
+        logger.debug(f"Opening page for {data.uuid}, ({editable})")
         self.editable = editable
         self.setup_ui()
 
@@ -57,6 +58,10 @@ class NestablePage(Display, DataWidget):
         # show tree view
         self.tree_view.client = self.client
         self.tree_view.set_data(self.data, is_independent=False)
+        window = self.get_window()
+        if window:
+            window.entry_updated.connect(self.tree_view.update_uuid)
+            window.entry_saved.connect(self.tree_view.update_uuid)
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.data, is_independent=False)
@@ -71,8 +76,20 @@ class NestablePage(Display, DataWidget):
         self.snapshot_button.setText("Take new Snapshot")
 
         self.data_modified.connect(self.update_dirty_status)
-        self.update_dirty_status()
         self.set_editable(self.editable)
+        # reset dirty status after setup
+        self._dirty = False
+        self.update_dirty_status()
+        logger.debug(f"NestablePage setup_ui complete {self.data.uuid}")
+
+    def update_model_data(self) -> None:
+        self.tree_view.set_data(self.data, is_independent=False)
+        self.sub_pv_table_view.set_data(self.data, is_independent=False)
+        self.sub_coll_table_view.set_data(self.data, is_independent=False)
+        self.meta_widget.set_data(self.data, is_independent=False)
+        self.sub_pv_table_view.data_modified.connect(self.update_dirty_status)
+        self.sub_coll_table_view.data_modified.connect(self.update_dirty_status)
+        self._dirty = False
 
     def set_editable(self, editable: bool) -> None:
         self.meta_widget.setEnabled(editable)
@@ -90,12 +107,24 @@ class NestablePage(Display, DataWidget):
         self.editable = editable
 
     def save(self):
+        if not self.client:
+            return
         with self.ignore_check_changes(), self.meta_widget.ignore_check_changes():
+            for child in self.data.children:
+                self.client.save(child)
+            # currently save might sometimes swap to uuids. Need to think about
+            # a better convention for this
             self.client.save(self.data)
             self.set_data(self.client.get_entry(self.data.uuid))
+
+        self.update_model_data()
         self.update_dirty_status()
 
     def update_dirty_status(self):
+        self._dirty = any((
+            self._dirty, self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
+        ))
+        logger.debug(f"Entry {self.data.uuid} Dirty?: {self.dirty}")
         if self.dirty:
             self.save_button.setText("Save *")
             self.save_button.setEnabled(True)

@@ -144,7 +144,9 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         except KeyError:
             raise TypeError(f'No page widget for {type(entry)}, cannot open in tab')
 
-        page_widget = page(data=entry, client=self.client,
+        fresh_entry = self.client.get_entry(entry.uuid)
+
+        page_widget = page(data=fresh_entry, client=self.client,
                            editable=self.client.is_editable(entry))
         icon = qta.icon(ICON_MAP[type(entry)])
         tab_name = getattr(
