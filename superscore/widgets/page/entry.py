@@ -3,7 +3,7 @@ Widgets for visualizing and editing core model dataclasses
 """
 import logging
 from functools import partial
-from typing import Generic, Optional, TypeVar
+from typing import Optional
 
 import qtawesome as qta
 from qtpy import QtWidgets
@@ -25,11 +25,8 @@ from superscore.widgets.views import (LivePVTableView, NestableTableView,
 
 logger = logging.getLogger(__name__)
 
-NestableEntryType = TypeVar('NestableEntryType', bound=NestableEntry)
-PVEntryType = TypeVar('PVEntryType', bound=PVEntry)
 
-
-class NestablePage(Display, DataWidget[NestableEntryType], Generic[NestableEntryType]):
+class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
     filename = 'nestable_page.ui'
 
     meta_placeholder: QtWidgets.QWidget
@@ -196,7 +193,7 @@ class SnapshotPage(NestablePage[Snapshot]):
             )
 
 
-class BaseParameterPage(Display, DataWidget[PVEntryType], Generic[PVEntryType]):
+class BaseParameterPage[PVT: PVEntry](Display, DataWidget[PVT]):
     filename = 'parameter_page.ui'
 
     # Container widgets
