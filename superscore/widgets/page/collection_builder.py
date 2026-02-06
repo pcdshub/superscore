@@ -15,7 +15,7 @@ from superscore.widgets.views import (BaseTableEntryModel, LivePVHeader,
 logger = logging.getLogger(__name__)
 
 
-class CollectionBuilderPage(Display, DataWidget):
+class CollectionBuilderPage(Display, DataWidget[Collection]):
     filename = 'collection_builder_page.ui'
     data: Collection
 

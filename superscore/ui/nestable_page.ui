@@ -34,11 +34,18 @@
        <property name="frameShadow">
         <enum>QFrame::Raised</enum>
        </property>
-       <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
          <widget class="QPushButton" name="snapshot_button">
           <property name="text">
-           <string>PushButton</string>
+           <string>Take new Snapshot</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="restore_button">
+          <property name="text">
+           <string>Restore Snapshot</string>
           </property>
          </widget>
         </item>

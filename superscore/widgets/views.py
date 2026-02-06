@@ -19,8 +19,9 @@ from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
 from superscore.errors import EntryNotFoundError
-from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
-                              Root, Setpoint, Severity, Snapshot, Status)
+from superscore.model import (Collection, Entry, Nestable, NestableEntry,
+                              PVEntry, Readback, Root, Setpoint, Severity,
+                              Snapshot, Status)
 from superscore.qt_helpers import QDataclassBridge, QDataclassList
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import (BridgeRegistry, DataTracker, QtSingleton,
@@ -28,10 +29,6 @@ from superscore.widgets.core import (BridgeRegistry, DataTracker, QtSingleton,
 from superscore.widgets.thread_helpers import get_qthread_cache
 
 logger = logging.getLogger(__name__)
-
-
-PVEntry = Union[Parameter, Setpoint, Readback]
-NestableEntry = Union[Collection, Snapshot]
 
 
 def add_open_page_to_menu(
@@ -633,7 +630,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self.endInsertRows()
 
 
-class RootTreeView(QtWidgets.QTreeView, DataTracker):
+class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
     """
     Tree view for displaying an Entry.
     Contains a standard context menu and action set
@@ -770,6 +767,8 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker):
         curr_item = self.get_item_by_uuid(uuid)
         if curr_item is None:
             return
+        # TODO: this only replaces the item, but the old parent still holds
+        # the old item, probably need to adjust this on the parent as well (on the datacs)
         curr_item._data = self.client.get_entry(uuid)
         curr_item.refresh_children()
 
@@ -1551,7 +1550,7 @@ class _PVPollThread(QtCore.QThread):
         self.req_pv_remove.emit(pv_name)
 
 
-class BaseDataTableView(QtWidgets.QTableView, DataTracker):
+class BaseDataTableView(QtWidgets.QTableView, DataTracker[NestableEntry]):
     """
     Base TableView for holding and manipulating an entry.
     The view should always hold the Nestable Entry itself
