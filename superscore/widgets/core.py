@@ -1,6 +1,7 @@
 """
 Core widget classes for qt-based GUIs.
 """
+
 from __future__ import annotations
 
 import logging
@@ -49,6 +50,7 @@ class QtSingleton(type(QtCore.QObject), type):
             shared_signal: ClassVar[QtCore.Signal] = QtCore.Signal()
 
     """
+
     def __init__(cls, name, bases, dict):
         super().__init__(name, bases, dict)
         cls._instance = None
@@ -62,7 +64,7 @@ class QtSingleton(type(QtCore.QObject), type):
 class Display(DesignerDisplay):
     """Helper class for loading designer .ui files and adding logic"""
 
-    ui_dir: Path = SUPERSCORE_SOURCE_PATH / 'ui'
+    ui_dir: Path = SUPERSCORE_SOURCE_PATH / "ui"
 
 
 class BridgeRegistry(QtCore.QObject, metaclass=QtSingleton):
@@ -71,9 +73,9 @@ class BridgeRegistry(QtCore.QObject, metaclass=QtSingleton):
     """
 
     # TODO: If this doesn't have signals, doesn't need to be QtSingleton
-    _bridge_cache: ClassVar[
-        WeakValueDictionary[int, QDataclassBridge]
-    ] = WeakValueDictionary()
+    _bridge_cache: ClassVar[WeakValueDictionary[int, QDataclassBridge]] = (
+        WeakValueDictionary()
+    )
 
     def get_bridge(self, data: AnyDataclass) -> QDataclassBridge:
         try:
@@ -145,7 +147,7 @@ class WindowLinker:
         tree_model.refresh_tree()
 
 
-class DataTracker(WindowLinker):
+class DataTracker[EntryType: Entry](WindowLinker):
     """
     Base class for widgets that manipulate dataclasses.
     NOTE: this must eventually inherit from a QObject in order to support the
@@ -177,9 +179,10 @@ class DataTracker(WindowLinker):
         Even parent is unlikely to see use because parent is set automatically
         when a widget is inserted into a layout.
     """
+
     # QDataclassBridge for this widget
     bridge: QDataclassBridge
-    data: Entry
+    data: EntryType
 
     _dirty: bool = False
 
@@ -190,9 +193,9 @@ class DataTracker(WindowLinker):
     def __init__(
         self,
         *args,
-        data: Optional[Entry] = None,
+        data: Optional[EntryType] = None,
         is_independent: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         if data is not None:
@@ -227,14 +230,14 @@ class DataTracker(WindowLinker):
         new_data = self.client.get_entry(self.data.uuid, force_reload=force_reload)
         self.set_data(new_data)
 
-    def set_data(self, data: Entry, is_independent: bool = True) -> None:
+    def set_data(self, data: EntryType, is_independent: bool = True) -> None:
         """
         Set the data for this object and clear the dirty status.
         Extend this as needed in subclasses
 
         Parameters
         ----------
-        data : Entry
+        data : EntryType
             Entry to set to this widget
         is_independent : bool, optional
             Whether or not this is a standalone object.  If this is being used
@@ -249,11 +252,13 @@ class DataTracker(WindowLinker):
         else:
             self.data = data
         self.bridge = BridgeRegistry().get_bridge(self.data)
+        logger.debug(f"Setting data and acquiring bridge@{self.bridge}")
         self.setup_tracking()
         self._dirty = False
 
 
-class DataWidget(QtWidgets.QWidget, DataTracker):
+class DataWidget[EntryType: Entry](QtWidgets.QWidget, DataTracker):
+    data: EntryType
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -280,7 +285,7 @@ class DataWidget(QtWidgets.QWidget, DataTracker):
             self,
             "Change detected",
             f"Data modified in the backend for uuid: ({uuid}), refresh page?",
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
         )
         if result == QtWidgets.QMessageBox.Yes:
             self.set_data(self.client.get_entry(uuid))
@@ -303,12 +308,13 @@ class NameMixin:
     """
     Mixin class for distributing init_name
     """
+
     def init_name(self) -> None:
         """
         Set up the name_edit widget appropriately.
         """
         # Load starting text
-        load_name = self.bridge.title.get() or ''
+        load_name = self.bridge.title.get() or ""
         self.last_name = load_name
         self.name_edit.setText(load_name)
         self.on_text_changed(load_name)
@@ -337,7 +343,7 @@ class NameMixin:
         match_line_edit_text_width(self.name_edit, text=text)
 
 
-class NameDescTagsWidget(Display, NameMixin, DataWidget):
+class NameDescTagsWidget(Display, NameMixin, DataWidget[Entry]):
     """
     Widget for displaying and editing the name, description, and tags fields.
 
@@ -346,7 +352,8 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
 
     As a convenience, this also holds an "extra_text_label" QLabel for general use.
     """
-    filename = 'name_desc_tags_widget.ui'
+
+    filename = "name_desc_tags_widget.ui"
 
     name_edit: QtWidgets.QLineEdit
     name_frame: QtWidgets.QFrame
@@ -383,7 +390,7 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
         Set up the desc_edit widget appropriately.
         """
         # Load starting text
-        load_desc = self.bridge.description.get() or ''
+        load_desc = self.bridge.description.get() or ""
         self.last_desc = load_desc
         self.desc_edit.setPlainText(load_desc)
         # Setup the saving/loading
@@ -447,7 +454,7 @@ class NameDescTagsWidget(Display, NameMixin, DataWidget):
                 # Don't add another tag if we haven't filled out the last one
                 return
 
-            elem = tags_list.add_item('')
+            elem = tags_list.add_item("")
             elem.line_edit.setFocus()
 
         self.add_tag_button.clicked.connect(add_tag)
@@ -470,6 +477,7 @@ class TagsWidget(QtWidgets.QWidget):
         flexibility in whether we arrange things horizontally,
         vertically, etc.
     """
+
     widgets: List[TagsElem]
 
     def __init__(
@@ -576,7 +584,8 @@ class TagsElem(Display, QtWidgets.QWidget):
     tags_widget : TagsWidget
         A reference to the TagsWidget that contains this widget.
     """
-    filename = 'tags_elem.ui'
+
+    filename = "tags_elem.ui"
 
     line_edit: QtWidgets.QLineEdit
     del_button: QtWidgets.QToolButton

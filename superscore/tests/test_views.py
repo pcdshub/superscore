@@ -12,12 +12,13 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import (Collection, Nestable, Parameter, Readback, Root,
-                              Setpoint, Severity, Snapshot, Status)
+from superscore.model import (Collection, Nestable, Parameter, PVEntry,
+                              Readback, Root, Setpoint, Severity, Snapshot,
+                              Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
-                                      NestableTableView, PVEntry, RootTree,
+                                      NestableTableView, RootTree,
                                       RootTreeView)
 
 

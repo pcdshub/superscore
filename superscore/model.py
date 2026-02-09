@@ -288,3 +288,7 @@ class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
     uuid: UUID = _root_uuid
     entries: List[Entry] = field(default_factory=list)
+
+
+PVEntry = Union[Parameter, Setpoint, Readback]
+NestableEntry = Union[Collection, Snapshot]
