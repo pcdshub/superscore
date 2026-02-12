@@ -284,6 +284,28 @@ class Snapshot(Nestable, Entry):
 
 
 @dataclass
+class Template(Entry):
+    """
+    A template for creating a Collections and Parameters with placeholders.
+    A placeholder is demarked by double braces ({{}})
+
+    Actual template is created by modifying `.template_collection`
+    - replacing substrings (keys of `Template.placeholders`)
+    - with placeholders ("{{value of `Template.placeholders`}}")
+    """
+    title: str = ""
+    template_collection: Collection = field(default_factory=Collection)
+    placeholders: dict[str, str] = field(default_factory=dict)
+
+    def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
+        ref_list = []
+        if isinstance(self.template_collection, Entry):
+            ref_list.append(self.template_collection)
+            self.template_collection = self.template_collection.uuid
+        return ref_list
+
+
+@dataclass
 class Root:
     """Top level structure holding ``Entry``'s.  Denotes the top of the tree"""
     uuid: UUID = _root_uuid
