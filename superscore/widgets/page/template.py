@@ -9,8 +9,8 @@ from superscore.model import Collection, Template
 from superscore.templates import TemplateMode, fill_template_collection
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
-from superscore.widgets.views import (LivePVTableView, NestableTableView,
-                                      RootTreeView)
+from superscore.widgets.views import (LivePVHeader, LivePVTableView,
+                                      NestableTableView, RootTreeView)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class SubstitutionWidget(Display, QtWidgets.QWidget):
         - pre -> left text edit
         - post -> right text edit
 
-        If FILL_PLACEHOLDERS:
+        If FILL_PLACEHOLDERS, there is only the fill-text edit to interact with:
         - pre -> center text label (not editable)
         - post -> right text edit
         """
@@ -59,8 +59,6 @@ class SubstitutionWidget(Display, QtWidgets.QWidget):
 
         self.pre_edit.textChanged.connect(self.changed.emit)
         self.post_edit.textChanged.connect(self.changed.emit)
-        self.pre_edit.textChanged.connect(lambda *a, **k: print("update from pre"))
-        self.pre_edit.textChanged.connect(lambda *a, **k: print("update from pre"))
 
     @property
     def mode(self):
@@ -106,12 +104,12 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
             if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
                 if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
                     # Light green, placeholder found
-                    return QtGui.QColor(200, 255, 200)
+                    return QtGui.QColor(255, 200, 100)
 
             elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
                 # Check for unfilled placeholders
                 # TODO: Consider referencing previous rather than preview data?
-                if any(f"{{{{{p}}}}}" in val for p in self.placeholders.keys()):
+                if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
                     # Light red/pink for unfilled
                     return QtGui.QColor(255, 200, 200)
 
@@ -260,6 +258,12 @@ class TemplatePage(Display, DataWidget[Template]):
 
         self.sub_pv_table_view.client = self.client
         self.sub_pv_table_view.set_data(self.preview_collection, is_independent=False)
+        stored_headers = (LivePVHeader.STORED_VALUE,
+                          LivePVHeader.STORED_STATUS,
+                          LivePVHeader.STORED_SEVERITY,
+                          LivePVHeader.REMOVE)
+        for header in stored_headers:
+            self.sub_pv_table_view.setColumnHidden(header, True)
 
         self.sub_coll_table_view.client = self.client
         self.sub_coll_table_view.set_data(self.preview_collection, is_independent=False)
@@ -309,6 +313,7 @@ class TemplatePage(Display, DataWidget[Template]):
             self.placeholder_container.layout().removeWidget(ph_widget)
             ph_widget.hide()
             ph_widget.deleteLater()
+            self.update_preview()
 
         ph_widget.remove_button.clicked.connect(_remove_slot)
         ph_widget.changed.connect(self.update_preview)
@@ -340,12 +345,10 @@ class TemplatePage(Display, DataWidget[Template]):
         )
 
         if self.mode == TemplateMode.FILL_PLACEHOLDERS:
-            print("filling substitutions...")
             new_preview = fill_template_collection(
                 self.preview_collection, subs, new_uuids=False,
                 mode=TemplateMode.FILL_PLACEHOLDERS
             )
-
         self.tree_view.set_data(new_preview)
         self.sub_pv_table_view.set_data(new_preview)
         self.sub_coll_table_view.set_data(new_preview)
