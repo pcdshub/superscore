@@ -89,6 +89,16 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="template_checkbox">
+         <property name="text">
+          <string>Template</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="desc_label">
          <property name="text">
           <string>Description / Comment</string>

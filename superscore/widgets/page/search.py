@@ -9,7 +9,8 @@ from dateutil import tz
 from qtpy import QtCore, QtWidgets
 
 from superscore.backends.core import SearchTerm
-from superscore.model import Collection, Entry, Readback, Setpoint, Snapshot
+from superscore.model import (Collection, Entry, Readback, Setpoint, Snapshot,
+                              Template)
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import Display, WindowLinker
 from superscore.widgets.views import (BaseTableEntryModel, ButtonDelegate,
@@ -35,6 +36,7 @@ class SearchPage(Display, QtWidgets.QWidget, WindowLinker):
     collection_checkbox: QtWidgets.QCheckBox
     setpoint_checkbox: QtWidgets.QCheckBox
     readback_checkbox: QtWidgets.QCheckBox
+    template_checkbox: QtWidgets.QCheckBox
     pv_line_edit: QtWidgets.QLineEdit
     desc_line_edit: QtWidgets.QLineEdit
     start_dt_edit: QtWidgets.QDateTimeEdit
@@ -62,6 +64,7 @@ class SearchPage(Display, QtWidgets.QWidget, WindowLinker):
         self.type_checkboxes: List[QtWidgets.QCheckBox] = [
             self.snapshot_checkbox, self.collection_checkbox,
             self.setpoint_checkbox, self.readback_checkbox,
+            self.template_checkbox,
         ]
         self.setup_ui()
 
@@ -77,6 +80,7 @@ class SearchPage(Display, QtWidgets.QWidget, WindowLinker):
         self.snapshot_checkbox.setIcon(qta.icon(ICON_MAP[Snapshot]))
         self.setpoint_checkbox.setIcon(qta.icon(ICON_MAP[Setpoint]))
         self.readback_checkbox.setIcon(qta.icon(ICON_MAP[Readback]))
+        self.template_checkbox.setIcon(qta.icon(ICON_MAP[Template]))
 
         # set up filter table view
         self.model = ResultModel(entries=[])
@@ -98,10 +102,11 @@ class SearchPage(Display, QtWidgets.QWidget, WindowLinker):
         search_terms = []
 
         # type
-        entry_type_list = [Snapshot, Collection, Setpoint, Readback]
+        entry_types = (Snapshot, Collection, Setpoint, Readback, Template)
+        entry_type_list = list(entry_types)
         for checkbox, entry_type in zip(
             self.type_checkboxes,
-            (Snapshot, Collection, Setpoint, Readback)
+            entry_types
         ):
             if not checkbox.isChecked():
                 entry_type_list.remove(entry_type)

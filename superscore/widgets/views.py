@@ -21,7 +21,7 @@ from superscore.control_layers import EpicsData
 from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, NestableEntry,
                               PVEntry, Readback, Root, Setpoint, Severity,
-                              Snapshot, Status)
+                              Snapshot, Status, Template)
 from superscore.qt_helpers import QDataclassBridge, QDataclassList
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import (BridgeRegistry, DataTracker, QtSingleton,
@@ -75,6 +75,21 @@ class DiffDispatcher(QtCore.QObject, metaclass=QtSingleton):
         self.r_entry = None
 
 
+def add_convert_to_template_action(menu: QtWidgets.QMenu, entry: Entry) -> None:
+    if not isinstance(entry, Collection):
+        return
+    window = get_window()
+    if window is None:
+        return
+    action = menu.addAction("Convert to Template")
+
+    def convert():
+        template = window.client.convert_to_template(entry)
+        window.open_page(template)
+
+    action.triggered.connect(convert)
+
+
 def add_comparison_actions_to_menu(menu: QtWidgets.QMenu, entry: Entry) -> None:
     """
     Add relevant comparison actions to the Menu.
@@ -110,6 +125,7 @@ class MenuOption(Enum):
     """Supported options for context menus"""
     OPEN_PAGE = auto()
     DIFF = auto()
+    CONVERT_TO_TEMPLATE = auto()
 
 
 # TODO: change type hints to accurately reflect callables
@@ -117,6 +133,7 @@ MENU_OPT_ADDER_MAP: Dict[MenuOption,
                          Callable[[QtWidgets.QMenu, Entry], None]] = {
     MenuOption.OPEN_PAGE: add_open_page_to_menu,
     MenuOption.DIFF: add_comparison_actions_to_menu,
+    MenuOption.CONVERT_TO_TEMPLATE: add_convert_to_template_action,
 }
 
 
@@ -206,7 +223,7 @@ class EntryItem:
             return '<root>'
 
         if column == 0:
-            if isinstance(self._data, Nestable):
+            if isinstance(self._data, (Nestable, Template)):
                 return getattr(self._data, 'title', 'root')
             else:
                 return getattr(self._data, 'pv_name', '<no pv>')
@@ -642,6 +659,7 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
     context_menu_options: Dict[MenuOption, bool] = {
         MenuOption.OPEN_PAGE: True,
         MenuOption.DIFF: True,
+        MenuOption.CONVERT_TO_TEMPLATE: True,
     }
 
     def __init__(
@@ -724,6 +742,9 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
 
         if self.context_menu_options[MenuOption.DIFF]:
             MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
+
+        if self.context_menu_options[MenuOption.CONVERT_TO_TEMPLATE]:
+            MENU_OPT_ADDER_MAP[MenuOption.CONVERT_TO_TEMPLATE](menu, entry)
 
         return menu
 
@@ -1564,6 +1585,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker[NestableEntry]):
     context_menu_options: Dict[MenuOption, bool] = {
         MenuOption.OPEN_PAGE: True,
         MenuOption.DIFF: True,
+        MenuOption.CONVERT_TO_TEMPLATE: True,
     }
 
     def __init__(
@@ -1721,6 +1743,9 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker[NestableEntry]):
 
         if self.context_menu_options[MenuOption.DIFF]:
             MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
+
+        if self.context_menu_options[MenuOption.CONVERT_TO_TEMPLATE]:
+            MENU_OPT_ADDER_MAP[MenuOption.CONVERT_TO_TEMPLATE](menu, entry)
 
         return menu
 

@@ -1,7 +1,7 @@
 def _get_icon_map():
     # do not pollute namespace
     from superscore.model import (Collection, Parameter, Readback, Setpoint,
-                                  Snapshot)
+                                  Snapshot, Template)
 
     # a list of qtawesome icon names
     icon_map = {
@@ -10,6 +10,7 @@ def _get_icon_map():
         Snapshot: 'mdi.camera',
         Setpoint: 'mdi.target',
         Readback: 'mdi.book-open-variant',
+        Template: 'mdi.file-document-edit',
     }
 
     return icon_map
