@@ -423,8 +423,7 @@ class RootTree(QtCore.QAbstractItemModel):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.base_entry = base_entry
-        self.root_item = build_tree(base_entry)
+        self.set_entries(base_entry=base_entry)
         # Cross reference to give item some knowledge of model
         # This seems highly coupled but it'll work...
         self.root_item.model = self
@@ -432,6 +431,10 @@ class RootTree(QtCore.QAbstractItemModel):
         # ensure at least the first set of children are filled
         self.root_item.fill_uuids(self.client)
         self.headers = ['name', 'description']
+
+    def set_entries(self, base_entry) -> None:
+        self.base_entry = base_entry
+        self.root_item = build_tree(base_entry)
 
     def refresh_tree(self) -> None:
         self.layoutAboutToBeChanged.emit()
@@ -715,9 +718,13 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
             logger.debug("data not set, cannot initialize model")
             return
 
-        self._model = self._model_cls(base_entry=self.data, client=self.client)
-        self.setModel(self._model)
-        self._model.dataChanged.connect(self.data_modified.emit)
+        if self._model is None:
+            self._model = self._model_cls(base_entry=self.data, client=self.client)
+            self.setModel(self._model)
+            self._model.dataChanged.connect(self.data_modified.emit)
+        else:
+            # set data in place
+            self._model.set_entries(self.data)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index: QtCore.QModelIndex = self.indexAt(pos)
