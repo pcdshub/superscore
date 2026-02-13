@@ -1,0 +1,386 @@
+import logging
+from functools import partial
+from typing import ClassVar, Dict, Optional, Set
+
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtGui import QCloseEvent
+
+from superscore.model import Collection, Template
+from superscore.templates import TemplateMode, fill_template_collection
+from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
+from superscore.widgets.manip_helpers import insert_widget
+from superscore.widgets.views import (LivePVTableView, NestableTableView,
+                                      RootTreeView)
+
+logger = logging.getLogger(__name__)
+
+
+class SubstitutionWidget(Display, QtWidgets.QWidget):
+    filename = "substitution_widget.ui"
+
+    pre_edit: QtWidgets.QLineEdit  # left
+    post_edit: QtWidgets.QLineEdit  # right
+    placeholder_label: QtWidgets.QLabel  # center
+    arrow_label: QtWidgets.QLabel
+    right_bracket: QtWidgets.QLabel
+    left_bracket: QtWidgets.QLabel
+
+    remove_button: QtWidgets.QToolButton
+
+    changed: ClassVar[QtCore.Signal] = QtCore.Signal()
+
+    def __init__(
+        self,
+        pre: str = "",
+        post: str = "",
+        mode: TemplateMode = TemplateMode.CREATE_PLACEHOLDERS,
+        parent=None,
+    ):
+        """
+        Sets up the widget depending on the mode
+
+        If CREATE_PLACEHOLDERS:
+        - pre -> left text edit
+        - post -> right text edit
+
+        If FILL_PLACEHOLDERS:
+        - pre -> center text label (not editable)
+        - post -> right text edit
+        """
+        super().__init__(parent)
+        self._mode = mode
+        self._configure_mode()
+
+        icon = self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarCloseButton)
+        self.remove_button.setIcon(icon)
+        self.placeholder_label.setText(pre + ":")
+        self.pre_edit.setText(pre)
+        self.post_edit.setText(post)
+
+        self.pre_edit.textChanged.connect(self.changed.emit)
+        self.post_edit.textChanged.connect(self.changed.emit)
+        self.pre_edit.textChanged.connect(lambda *a, **k: print("update from pre"))
+        self.pre_edit.textChanged.connect(lambda *a, **k: print("update from pre"))
+
+    @property
+    def mode(self):
+        return self._mode
+
+    def _configure_mode(self) -> None:
+        if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
+            self.left_bracket.show()
+            self.right_bracket.show()
+            self.pre_edit.show()
+            self.arrow_label.show()
+            self.placeholder_label.hide()
+            self.remove_button.show()
+        elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
+            self.left_bracket.hide()
+            self.right_bracket.hide()
+            self.pre_edit.hide()
+            self.arrow_label.hide()
+            self.placeholder_label.show()
+            self.remove_button.hide()
+
+
+class HighlightProxyModel(QtCore.QIdentityProxyModel):
+    def __init__(
+        self,
+        placeholders: Dict[str, str],
+        substitutions: Dict[str, str],
+        mode: TemplateMode = TemplateMode.FILL_PLACEHOLDERS,
+        parent=None
+    ):
+        super().__init__(parent)
+        self.placeholders = placeholders
+        self.substitutions = substitutions
+        self.mode = mode
+
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if role == QtCore.Qt.BackgroundRole:
+            # Get display data from source model
+            val = self.sourceModel().data(index, QtCore.Qt.DisplayRole)
+            if not isinstance(val, str):
+                return val
+
+            if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
+                if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
+                    # Light green, placeholder found
+                    return QtGui.QColor(200, 255, 200)
+
+            elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
+                # Check for unfilled placeholders
+                # TODO: Consider referencing previous rather than preview data?
+                if any(f"{{{{{p}}}}}" in val for p in self.placeholders.keys()):
+                    # Light red/pink for unfilled
+                    return QtGui.QColor(255, 200, 200)
+
+                # TODO: this will highlight anything with a substring = v
+                for k, v in self.substitutions.items():
+                    if v and v in val:
+                        # Light green for filled
+                        return QtGui.QColor(200, 255, 200)
+
+        return super().data(index, role)
+
+
+class TemplatePage(Display, DataWidget[Template]):
+    """
+    A dual purpose page, for creating templates from collections and also filling
+    existing placeholders with desired information.
+
+    Left panel ("Placeholder Insertions") is for replacing existing substrings with
+    placeholder templates (e.g. {{placeholder_text}})
+    - These widgets are "placeholder_*"
+
+    Right panel ("Template Substitutions") is for replacing templates with
+    new desired text
+    - These widgets are "substitute_*"
+    """
+    filename = 'template_page.ui'
+
+    meta_placeholder: QtWidgets.QWidget
+    meta_widget: NameDescTagsWidget
+
+    templated_meta_placeholder: QtWidgets.QWidget
+    templated_meta_widget: NameDescTagsWidget
+
+    substitute_panel: QtWidgets.QFrame
+    substitute_container: QtWidgets.QWidget
+
+    create_placeholders_panel: QtWidgets.QFrame
+    placeholder_container: QtWidgets.QWidget
+
+    tree_view: RootTreeView
+    sub_pv_table_view: LivePVTableView
+    sub_coll_table_view: NestableTableView
+
+    create_coll_button: QtWidgets.QPushButton
+    swap_mode_button: QtWidgets.QPushButton
+    add_placeholder_button: QtWidgets.QPushButton
+    save_button: QtWidgets.QPushButton
+
+    placeholder_widgets: Set[SubstitutionWidget]
+    substitution_widgets: Dict[str, SubstitutionWidget]
+    preview_collection: Optional[Collection]
+
+    def __init__(
+        self,
+        *args,
+        data: Template,
+        editable: bool = False,
+        mode: TemplateMode = TemplateMode.CREATE_PLACEHOLDERS,
+        **kwargs
+    ):
+        super().__init__(*args, data=data, **kwargs)
+        # For creating new placeholders
+        self.placeholder_widgets: Set[SubstitutionWidget] = set()
+        # For filling placeholders with values
+        self.substitution_widgets: Dict[str, SubstitutionWidget] = {}
+        self.preview_collection: Optional[Collection] = None
+        self._mode = mode
+        # Ensure template collection is filled
+        if self.client:
+            self.client.fill(self.data)
+
+        self._configure_mode()
+        self.setup_ui()
+        self.update_preview()
+
+    @property
+    def mode(self) -> TemplateMode:
+        return self._mode
+
+    def swap_mode(self) -> None:
+        self._mode = ~self._mode
+        self._configure_mode()
+        self.update_preview()
+
+    def _configure_mode(self) -> None:
+        """
+        On mode switch:
+        - show/hide right/left panel
+        - if showing right panel
+            - apply proposed placeholders to collection
+            - collect placeholders
+            - create substitution widgets
+        """
+        # refresh internal data and clear widgets, toggle proxy models
+        if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
+            self.create_placeholders_panel.show()
+            self.substitute_panel.hide()
+        else:
+            self.create_placeholders_panel.hide()
+            self.substitute_panel.show()
+            # TODO: re-initialize placeholder replacement in temp coll
+            # Fill preview and make new placeholders
+            new_placeholders = self.get_placeholders()
+            self.preview_collection = fill_template_collection(
+                self.data.template_collection, new_placeholders,
+                new_uuids=False, mode=TemplateMode.CREATE_PLACEHOLDERS,
+            )
+
+            # clear existing substitution widgets:
+            for old_ph_widget in self.substitution_widgets.values():
+                self.substitute_container.layout().removeWidget(old_ph_widget)
+                old_ph_widget.hide()
+                old_ph_widget.deleteLater()
+            self.substitution_widgets.clear()
+
+            for ph in sorted(new_placeholders.values(), reverse=True):
+                sub_widget = SubstitutionWidget(
+                    pre=ph, mode=TemplateMode.FILL_PLACEHOLDERS
+                )
+                sub_widget.changed.connect(self.update_preview)
+                layout: QtWidgets.QVBoxLayout = self.substitute_container.layout()
+                layout.insertWidget(0, sub_widget)
+                self.substitution_widgets[ph] = sub_widget
+
+    def setup_ui(self):
+        self.meta_widget = NameDescTagsWidget(data=self.data, is_independent=False)
+        insert_widget(self.meta_widget, self.meta_placeholder)
+
+        # Use new UUIDs to avoid clashing with the original template objects
+        self.preview_collection = fill_template_collection(
+            self.data.template_collection, {}, new_uuids=True
+        )
+
+        # TODO: highlight NameDescTags for displaying template as well
+        self.templated_meta_widget = NameDescTagsWidget(
+            data=self.preview_collection, is_independent=False
+        )
+        insert_widget(self.templated_meta_widget, self.templated_meta_placeholder)
+
+        for orig_str, ph_str in self.data.placeholders.items():
+            self.add_placeholder(orig_str, ph_str)
+
+        # all views share preview Collection
+        self.tree_view.client = self.client
+        self.tree_view.set_data(self.preview_collection, is_independent=False)
+
+        self.sub_pv_table_view.client = self.client
+        self.sub_pv_table_view.set_data(self.preview_collection, is_independent=False)
+
+        self.sub_coll_table_view.client = self.client
+        self.sub_coll_table_view.set_data(self.preview_collection, is_independent=False)
+
+        self._setup_proxies()
+
+        self.add_placeholder_button.clicked.connect(partial(self.add_placeholder, "", ""))
+        self.create_coll_button.clicked.connect(self.create_collection)
+        self.swap_mode_button.clicked.connect(self.swap_mode)
+        self.save_button.clicked.connect(self.save_template)
+
+    def _setup_proxies(self):
+        self.pv_proxy = HighlightProxyModel(
+            self.get_placeholders(), self.get_substitutions(), parent=self, mode=self.mode
+        )
+        self.pv_proxy.setSourceModel(self.sub_pv_table_view.model())
+        self.sub_pv_table_view.setModel(self.pv_proxy)
+
+        # TODO: decide if we want to recurse through Collection templates
+        self.coll_proxy = HighlightProxyModel(
+            self.get_placeholders(), self.get_substitutions(), parent=self
+        )
+        self.coll_proxy.setSourceModel(self.sub_coll_table_view.model())
+        self.sub_coll_table_view.setModel(self.coll_proxy)
+
+        self.tree_proxy = HighlightProxyModel(
+            self.get_placeholders(), self.get_substitutions(), parent=self
+        )
+        self.tree_proxy.setSourceModel(self.tree_view.model())
+        self.tree_view.setModel(self.tree_proxy)
+
+    def add_placeholder(
+        self,
+        orig_str: str = "",
+        placeholder_str: str = ""
+    ) -> None:
+        ph_widget = SubstitutionWidget(
+            pre=orig_str,
+            post=placeholder_str,
+            mode=TemplateMode.CREATE_PLACEHOLDERS,
+        )
+        self.placeholder_widgets.add(ph_widget)
+        self.placeholder_container.layout().insertWidget(0, ph_widget)
+
+        def _remove_slot():
+            self.placeholder_widgets.remove(ph_widget)
+            self.placeholder_container.layout().removeWidget(ph_widget)
+            ph_widget.hide()
+            ph_widget.deleteLater()
+
+        ph_widget.remove_button.clicked.connect(_remove_slot)
+        ph_widget.changed.connect(self.update_preview)
+
+    def get_substitutions(self) -> dict[str, str]:
+        return {placeholder: widget.post_edit.text()
+                for placeholder, widget in self.substitution_widgets.items()
+                if widget.post_edit.text()}
+
+    @property
+    def placeholder_strs(self) -> set[str]:
+        return set(self.get_placeholders().keys())
+
+    def get_placeholders(self) -> dict[str, str]:
+        """Gather substring -> placeholder mapping"""
+        return {widget.pre_edit.text(): widget.post_edit.text()
+                for widget in self.placeholder_widgets}
+
+    def update_preview(self):
+        """Update the preview collection"""
+        if self.preview_collection is None:
+            return
+        subs = self.get_substitutions()
+
+        new_placeholders = self.get_placeholders()
+        new_preview = fill_template_collection(
+            self.preview_collection, new_placeholders,
+            new_uuids=False, mode=TemplateMode.CREATE_PLACEHOLDERS,
+        )
+
+        if self.mode == TemplateMode.FILL_PLACEHOLDERS:
+            print("filling substitutions...")
+            new_preview = fill_template_collection(
+                self.preview_collection, subs, new_uuids=False,
+                mode=TemplateMode.FILL_PLACEHOLDERS
+            )
+
+        self.tree_view.set_data(new_preview)
+        self.sub_pv_table_view.set_data(new_preview)
+        self.sub_coll_table_view.set_data(new_preview)
+
+        for proxy in [self.pv_proxy, self.coll_proxy, self.tree_proxy]:
+            proxy.substitutions = subs
+            proxy.placeholders = new_placeholders
+            proxy.mode = self.mode
+
+        # Trigger model refresh
+        for view in [self.sub_pv_table_view, self.sub_coll_table_view, self.tree_view]:
+            if view.model():
+                view.model().layoutChanged.emit()
+
+    def save_template(self):
+        """Create and save template"""
+        if self.client is None:
+            return
+
+        self.data.placeholders = self.get_placeholders()
+        self.client.save(self.data)
+
+    def create_collection(self):
+        """Finalize and save the filled collection"""
+        subs = self.get_substitutions()
+        filled = fill_template_collection(self.data.template_collection, subs, new_uuids=True)
+
+        # Open in a new collection builder page for review before saving
+        if self.open_page_slot:
+            window = self.get_window()
+            if window is not None:
+                window.open_page(filled)
+                logger.info("Created collection from template, opened for review.")
+
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        logger.debug(f"Stopping polling threads for {type(self.data)}")
+        self.sub_pv_table_view._model.stop_polling(wait_time=5000)
+        return super().closeEvent(a0)
