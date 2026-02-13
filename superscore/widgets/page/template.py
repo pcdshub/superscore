@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, Set
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
-from superscore.model import Collection, Template
+from superscore.model import Collection, Entry, Template
 from superscore.templates import TemplateMode, fill_template_collection
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
@@ -122,6 +122,63 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
         return super().data(index, role)
 
 
+class HighlightNameDescTagsWidget(NameDescTagsWidget):
+    def __init__(
+        self,
+        *args,
+        placeholders: Dict[str, str],
+        substitutions: Dict[str, str],
+        mode: TemplateMode = TemplateMode.FILL_PLACEHOLDERS,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.placeholders = placeholders
+        self.substitutions = substitutions
+        self.mode = mode
+
+        self.name_edit.setEnabled(False)
+        self.desc_edit.setEnabled(False)
+        self.tags_frame.setEnabled(False)
+
+        self.configure_mode()
+
+    def configure_mode(self):
+        self.setup_highlighting(self.name_edit)
+        self.setup_highlighting(self.desc_edit)
+
+    def update_data(self, data: Entry) -> None:
+        """
+        Helper to update data after init.
+        Overloading set_data attempts to access widgets before setupUi is called
+        """
+        self.set_data(data)
+        self.init_name()
+        self.init_desc()
+
+    def setup_highlighting(self, text_edit: QtWidgets.QLineEdit | QtWidgets.QPlainTextEdit):
+        if isinstance(text_edit, QtWidgets.QLineEdit):
+            val = text_edit.text()
+        elif isinstance(text_edit, QtWidgets.QPlainTextEdit):
+            val = text_edit.toPlainText()
+
+        if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
+            if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
+                # Light green, placeholder found
+                text_edit.setStyleSheet("background-color: rgb(255, 200, 100)")
+
+        elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
+            # Check for unfilled placeholders
+            if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
+                # Light red/pink for unfilled
+                text_edit.setStyleSheet("background-color: rgb(255, 200, 200)")
+
+            # TODO: this will highlight anything with a substring = v
+            for k, v in self.substitutions.items():
+                if v and v in val:
+                    # Light green for filled
+                    text_edit.setStyleSheet("background-color: rgb(200, 255, 200)")
+
+
 class TemplatePage(Display, DataWidget[Template]):
     """
     A dual purpose page, for creating templates from collections and also filling
@@ -141,7 +198,7 @@ class TemplatePage(Display, DataWidget[Template]):
     meta_widget: NameDescTagsWidget
 
     templated_meta_placeholder: QtWidgets.QWidget
-    templated_meta_widget: NameDescTagsWidget
+    templated_meta_widget: HighlightNameDescTagsWidget
 
     substitute_panel: QtWidgets.QFrame
     substitute_container: QtWidgets.QWidget
@@ -243,12 +300,6 @@ class TemplatePage(Display, DataWidget[Template]):
             self.data.template_collection, {}, new_uuids=True
         )
 
-        # TODO: highlight NameDescTags for displaying template as well
-        self.templated_meta_widget = NameDescTagsWidget(
-            data=self.preview_collection, is_independent=False
-        )
-        insert_widget(self.templated_meta_widget, self.templated_meta_placeholder)
-
         for orig_str, ph_str in self.data.placeholders.items():
             self.add_placeholder(orig_str, ph_str)
 
@@ -276,6 +327,7 @@ class TemplatePage(Display, DataWidget[Template]):
         self.save_button.clicked.connect(self.save_template)
 
     def _setup_proxies(self):
+        """Set up proxy models and highlighted metadata widget"""
         self.pv_proxy = HighlightProxyModel(
             self.get_placeholders(), self.get_substitutions(), parent=self, mode=self.mode
         )
@@ -294,6 +346,14 @@ class TemplatePage(Display, DataWidget[Template]):
         )
         self.tree_proxy.setSourceModel(self.tree_view.model())
         self.tree_view.setModel(self.tree_proxy)
+
+        self.templated_meta_widget = HighlightNameDescTagsWidget(
+            data=self.preview_collection,
+            is_independent=False,
+            placeholders=self.get_placeholders(),
+            substitutions=self.get_substitutions()
+        )
+        insert_widget(self.templated_meta_widget, self.templated_meta_placeholder)
 
     def add_placeholder(
         self,
@@ -352,8 +412,10 @@ class TemplatePage(Display, DataWidget[Template]):
         self.tree_view.set_data(new_preview)
         self.sub_pv_table_view.set_data(new_preview)
         self.sub_coll_table_view.set_data(new_preview)
+        self.templated_meta_widget.update_data(new_preview)
 
-        for proxy in [self.pv_proxy, self.coll_proxy, self.tree_proxy]:
+        for proxy in [self.pv_proxy, self.coll_proxy,
+                      self.tree_proxy, self.templated_meta_widget]:
             proxy.substitutions = subs
             proxy.placeholders = new_placeholders
             proxy.mode = self.mode
@@ -362,6 +424,8 @@ class TemplatePage(Display, DataWidget[Template]):
         for view in [self.sub_pv_table_view, self.sub_coll_table_view, self.tree_view]:
             if view.model():
                 view.model().layoutChanged.emit()
+
+        self.templated_meta_widget.configure_mode()
 
     def save_template(self):
         """Create and save template"""
