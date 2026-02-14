@@ -38,6 +38,7 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
     save_button: QtWidgets.QPushButton
     snapshot_button: QtWidgets.QPushButton
     restore_button: QtWidgets.QPushButton
+    convert_template_button: QtWidgets.QPushButton
 
     def __init__(
         self,
@@ -73,6 +74,7 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
 
         self.save_button.clicked.connect(self.save)
         self.snapshot_button.clicked.connect(self.take_snapshot)
+        self.convert_template_button.clicked.connect(self.convert_to_template)
 
         self.data_modified.connect(self.update_dirty_status)
         self.set_editable(self.editable)
@@ -160,6 +162,16 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
             dialog.open()
             return dest_snapshot
 
+    def convert_to_template(self):
+        """Convert the current entry to a template"""
+        if (not isinstance(self.data, Collection)
+                or self.client is None):
+            return
+        template = self.client.convert_to_template(self.data)
+        window = self.get_window()
+        if window:
+            window.open_page(template)
+
     def metadata_dialog(self, dest: Nestable) -> QtWidgets.QDialog:
         """Construct dialog prompting the user to enter metadata for the given entry"""
         metadata_dialog = QtWidgets.QDialog(parent=self)
@@ -180,12 +192,14 @@ class CollectionPage(NestablePage[Collection]):
     def setup_ui(self):
         super().setup_ui()
         self.restore_button.hide()
+        self.convert_template_button.show()
 
 
 class SnapshotPage(NestablePage[Snapshot]):
 
     def setup_ui(self):
         super().setup_ui()
+        self.convert_template_button.hide()
         window = self.get_window()
         if window is not None:
             self.restore_button.clicked.connect(
