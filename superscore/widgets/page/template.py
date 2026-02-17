@@ -1,4 +1,16 @@
+"""
+Templating helpers.  Widgets for creating and filling templates.
+
+TODO:
+- consider {{}} in CA requests, seems to bait out caproto errors?
+- color scheme legend
+- UI/UX: consider creating template alone, without base collection?
+- (to confirm) re-create timestamps when filling a template
+- improve filled placeholder detection
+"""
+
 import logging
+from enum import Enum
 from functools import partial
 from typing import ClassVar, Dict, Optional, Set
 
@@ -6,13 +18,30 @@ from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.model import Collection, Entry, Template
-from superscore.templates import TemplateMode, fill_template_collection
+from superscore.templates import (TemplateMode, fill_template_collection,
+                                  find_placeholders)
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (LivePVHeader, LivePVTableView,
-                                      NestableTableView, RootTreeView)
+                                      NestableTableModel, NestableTableView,
+                                      RootTreeView)
 
 logger = logging.getLogger(__name__)
+
+
+class FillColors(Enum):
+    FILLED = (200, 255, 200)  # green
+    PARTIAL = (255, 200, 100)  # orange
+    MISSING = (255, 200, 200)  # red
+
+    def to_qcolor(self, diag: bool = False):
+        if diag:
+            return QtGui.QBrush(QtGui.QColor(*self.value), QtCore.Qt.FDiagPattern)
+
+        return QtGui.QBrush(QtGui.QColor(*self.value))
+
+    def to_stylesheet(self):
+        return f"background-color: rgb{self.value}"
 
 
 class SubstitutionWidget(Display, QtWidgets.QWidget):
@@ -97,27 +126,33 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
     def data(self, index: QtCore.QModelIndex, role: int):
         if role == QtCore.Qt.BackgroundRole:
             # Get display data from source model
-            val = self.sourceModel().data(index, QtCore.Qt.DisplayRole)
+            source_model = self.sourceModel()
+            val = source_model.data(index, QtCore.Qt.DisplayRole)
             if not isinstance(val, str):
                 return val
 
             if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
                 if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
-                    # Light green, placeholder found
-                    return QtGui.QColor(255, 200, 100)
+                    return FillColors.PARTIAL.to_qcolor()
 
             elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
                 # Check for unfilled placeholders
-                # TODO: Consider referencing previous rather than preview data?
                 if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
-                    # Light red/pink for unfilled
-                    return QtGui.QColor(255, 200, 200)
+                    return FillColors.MISSING.to_qcolor()
 
-                # TODO: this will highlight anything with a substring = v
                 for k, v in self.substitutions.items():
                     if v and v in val:
-                        # Light green for filled
-                        return QtGui.QColor(200, 255, 200)
+                        return FillColors.FILLED.to_qcolor()
+
+            # Nestable coloring for non-string cells, for indicating
+            # placeholders in nested collection
+            if isinstance(source_model, NestableTableModel):
+                entry = source_model.entries[index.row()]
+                if find_placeholders(entry):
+                    if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
+                        return FillColors.PARTIAL.to_qcolor(diag=True)
+                    elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
+                        return FillColors.MISSING.to_qcolor(diag=True)
 
         return super().data(index, role)
 
@@ -161,22 +196,21 @@ class HighlightNameDescTagsWidget(NameDescTagsWidget):
         elif isinstance(text_edit, QtWidgets.QPlainTextEdit):
             val = text_edit.toPlainText()
 
+        text_edit.setStyleSheet("")
         if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
             if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
-                # Light green, placeholder found
-                text_edit.setStyleSheet("background-color: rgb(255, 200, 100)")
+                text_edit.setStyleSheet(FillColors.PARTIAL.to_stylesheet())
 
         elif self.mode == TemplateMode.FILL_PLACEHOLDERS:
             # Check for unfilled placeholders
             if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
-                # Light red/pink for unfilled
-                text_edit.setStyleSheet("background-color: rgb(255, 200, 200)")
+                text_edit.setStyleSheet(FillColors.MISSING.to_stylesheet())
+                return
 
             # TODO: this will highlight anything with a substring = v
             for k, v in self.substitutions.items():
                 if v and v in val:
-                    # Light green for filled
-                    text_edit.setStyleSheet("background-color: rgb(200, 255, 200)")
+                    text_edit.setStyleSheet(FillColors.FILLED.to_stylesheet())
 
 
 class TemplatePage(Display, DataWidget[Template]):
@@ -264,10 +298,11 @@ class TemplatePage(Display, DataWidget[Template]):
         if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
             self.create_placeholders_panel.show()
             self.substitute_panel.hide()
+            self.swap_mode_button.setText("Fill Placeholders >")
         else:
             self.create_placeholders_panel.hide()
             self.substitute_panel.show()
-            # TODO: re-initialize placeholder replacement in temp coll
+            self.swap_mode_button.setText("< Create Placeholders")
             # Fill preview and make new placeholders
             new_placeholders = self.get_placeholders()
             self.preview_collection = fill_template_collection(
@@ -390,7 +425,8 @@ class TemplatePage(Display, DataWidget[Template]):
     def get_placeholders(self) -> dict[str, str]:
         """Gather substring -> placeholder mapping"""
         return {widget.pre_edit.text(): widget.post_edit.text()
-                for widget in self.placeholder_widgets}
+                for widget in self.placeholder_widgets
+                if widget.pre_edit.text()}
 
     def update_preview(self):
         """Update the preview collection"""
