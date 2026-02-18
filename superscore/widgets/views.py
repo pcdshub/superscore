@@ -18,7 +18,6 @@ from qtpy import QtCore, QtGui, QtWidgets
 from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, NestableEntry,
                               PVEntry, Readback, Root, Setpoint, Severity,
                               Snapshot, Status, Template)
@@ -1797,18 +1796,8 @@ class LivePVTableView(BaseDataTableView):
         if isinstance(self.data, Nestable):
             # gather sub_nestables
             self.sub_entries = []
-            for i, child in enumerate(self.data.children):
-                if isinstance(child, UUID):
-                    child = self._client.backend.get_entry(child)
-                    # add via bridge
-                    self.bridge.children.put_to_index(i, child)
-                else:
-                    child = child
-
-                if child is None:
-                    raise EntryNotFoundError(f"{child} not found in backend, "
-                                             "cannot fill with real data")
-
+            self._client.fill(self.data)
+            for child in self.data.children:
                 if not isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
@@ -1930,17 +1919,8 @@ class NestableTableView(BaseDataTableView):
 
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            for i, child in enumerate(self.data.children):
-                if isinstance(child, UUID):
-                    child = self._client.backend.get_entry(child)
-                    self.bridge.children.put_to_index(i, child)
-                else:
-                    child = child
-
-                if child is None:
-                    raise EntryNotFoundError(f"{child} not found in backend, "
-                                             "cannot fill with real data")
-
+            self.client.fill(self.data)
+            for child in self.data.children:
                 if isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
