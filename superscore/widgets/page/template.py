@@ -35,7 +35,7 @@ class FillColors(Enum):
     PARTIAL = (255, 200, 100)  # orange
     MISSING = (255, 200, 200)  # red
 
-    def to_qcolor(self, diag: bool = False):
+    def to_qcolor(self, diag: bool = False) -> QtGui.QBrush:
         if diag:
             return QtGui.QBrush(QtGui.QColor(*self.value), QtCore.Qt.FDiagPattern)
 
@@ -296,6 +296,70 @@ class HighlightNameDescTagsWidget(NameDescTagsWidget):
         text_edit.setStyleSheet(style_sheet)
 
 
+class LegendBadge(QtWidgets.QLabel):
+    def __init__(self, color, pattern, text):
+        super().__init__(text)
+        self.color = color
+        self.pattern = pattern
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setMargin(5)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        brush = QtGui.QBrush(QtGui.QColor(*self.color), self.pattern)
+
+        # Draw background pattern
+        painter.fillRect(self.rect(), brush)
+
+        # Call super to draw the actual label text on top
+        super().paintEvent(event)
+
+
+class LegendLabel(QtWidgets.QLabel):
+    def __init__(self, brush, text):
+        super().__init__(text)
+        self.brush = brush
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setMargin(5)
+
+    def paintEvent(self, a0):
+        painter = QtGui.QPainter(self)
+        painter.fillRect(self.rect(), self.brush)
+        super().paintEvent(a0)
+
+
+class TemplateLegendWidget(QtWidgets.QWidget):
+    """simple template widget"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(LegendLabel(
+            FillColors.FILLED.to_qcolor(), "Placeholder Fully Filled"),
+            0, 0,
+        )
+        layout.addWidget(LegendLabel(
+            FillColors.FILLED.to_qcolor(diag=True), "(in nested Collection)"),
+            0, 1,
+        )
+        layout.addWidget(LegendLabel(
+            FillColors.PARTIAL.to_qcolor(), "Placeholders Found"),
+            1, 0,
+        )
+        layout.addWidget(LegendLabel(
+            FillColors.PARTIAL.to_qcolor(diag=True), "(in nested Collection)"),
+            1, 1,
+        )
+        layout.addWidget(LegendLabel(
+            FillColors.MISSING.to_qcolor(), "Substitutions Missing"),
+            2, 0,
+        )
+        layout.addWidget(LegendLabel(
+            FillColors.MISSING.to_qcolor(diag=True), "(in nested Collection)"),
+            2, 1,
+        )
+        self.setLayout(layout)
+
+
 class TemplatePage(Display, DataWidget[Template]):
     """
     A dual purpose page, for creating templates from collections and also filling
@@ -313,6 +377,9 @@ class TemplatePage(Display, DataWidget[Template]):
 
     meta_placeholder: QtWidgets.QWidget
     meta_widget: NameDescTagsWidget
+
+    legend_placeholder: QtWidgets.QWidget
+    legend: TemplateLegendWidget
 
     templated_meta_placeholder: QtWidgets.QWidget
     templated_meta_widget: HighlightNameDescTagsWidget
@@ -422,6 +489,9 @@ class TemplatePage(Display, DataWidget[Template]):
     def setup_ui(self):
         self.meta_widget = NameDescTagsWidget(data=self.data, is_independent=False)
         insert_widget(self.meta_widget, self.meta_placeholder)
+
+        self.legend_widget = TemplateLegendWidget()
+        insert_widget(self.legend_widget, self.legend_placeholder)
 
         for orig_str, ph_str in self.data.placeholders.items():
             self.add_placeholder(orig_str, ph_str)

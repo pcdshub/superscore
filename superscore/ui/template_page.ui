@@ -15,7 +15,24 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <widget class="QWidget" name="meta_placeholder" native="true"/>
+    <layout class="QHBoxLayout" name="meta_layout">
+     <item>
+      <widget class="QWidget" name="meta_placeholder" native="true"/>
+     </item>
+     <item>
+      <widget class="QWidget" name="legend_placeholder" native="true"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="Line" name="line_2">
+     <property name="lineWidth">
+      <number>3</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QSplitter" name="splitter_3">
@@ -63,7 +80,7 @@
             <x>0</x>
             <y>0</y>
             <width>228</width>
-            <height>413</height>
+            <height>414</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="_3">
@@ -203,7 +220,7 @@
             <x>0</x>
             <y>0</y>
             <width>228</width>
-            <height>413</height>
+            <height>414</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="_2">
