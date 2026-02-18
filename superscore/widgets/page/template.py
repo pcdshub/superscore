@@ -132,7 +132,8 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
         self.mode = mode
 
     def data(self, index: QtCore.QModelIndex, role: int):
-        if role not in (QtCore.Qt.BackgroundRole, QtCore.Qt.DisplayRole):
+        if role not in (QtCore.Qt.BackgroundRole, QtCore.Qt.DisplayRole,
+                        QtCore.Qt.ToolTipRole):
             return
 
         # Get display data from source model
@@ -184,7 +185,8 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
 
         # Nestable coloring for non-string cells, for indicating
         # placeholders in nested collection
-        if isinstance(source_model, NestableTableModel) and role == QtCore.Qt.BackgroundRole:
+        if (isinstance(source_model, NestableTableModel)
+                and role in (QtCore.Qt.BackgroundRole, QtCore.Qt.ToolTipRole)):
             entry = source_model.entries[index.row()]
             if self.mode == TemplateMode.CREATE_PLACEHOLDERS:
                 filled_entry = fill_template_collection(
@@ -192,7 +194,10 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
                 )
                 filled_entry_phs = find_placeholders(filled_entry)
                 if filled_entry_phs:
-                    return FillColors.PARTIAL.to_qcolor(diag=True)
+                    if role == QtCore.Qt.BackgroundRole:
+                        return FillColors.PARTIAL.to_qcolor(diag=True)
+                    elif role == QtCore.Qt.ToolTipRole:
+                        return f"Nested Placeholders: {filled_entry_phs}"
 
             if self.mode == TemplateMode.FILL_PLACEHOLDERS:
                 orig_entry_phs = find_placeholders(entry)
@@ -201,7 +206,10 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
                 )
                 filled_entry_phs = find_placeholders(filled_entry)
                 if filled_entry_phs:
-                    return FillColors.MISSING.to_qcolor(diag=True)
+                    if role == QtCore.Qt.BackgroundRole:
+                        return FillColors.MISSING.to_qcolor(diag=True)
+                    elif role == QtCore.Qt.ToolTipRole:
+                        return f"Remaining Placeholders: {filled_entry_phs}"
                 elif orig_entry_phs and (not filled_entry_phs):
                     return FillColors.FILLED.to_qcolor(diag=True)
 
