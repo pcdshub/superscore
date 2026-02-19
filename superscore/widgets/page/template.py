@@ -3,11 +3,9 @@ Templating helpers.  Widgets for creating and filling templates.
 
 TODO:
 - consider {{}} in CA requests, seems to bait out caproto errors?
-- color scheme legend
 - UI/UX: consider creating template alone, without base collection?
 - (to confirm) re-create timestamps when filling a template
-- improve filled placeholder detection
-- ignore substrings already inside {{}}
+- Open new collection in builder page?
 """
 
 import logging
@@ -20,7 +18,7 @@ from qtpy.QtGui import QCloseEvent
 
 from superscore.model import Collection, Entry, Template
 from superscore.templates import (TemplateMode, fill_template_collection,
-                                  find_placeholders)
+                                  find_placeholders, safe_replace)
 from superscore.widgets.core import DataWidget, Display, NameDescTagsWidget
 from superscore.widgets.manip_helpers import insert_widget
 from superscore.widgets.views import (LivePVHeader, LivePVTableView,
@@ -152,7 +150,7 @@ class HighlightProxyModel(QtCore.QIdentityProxyModel):
                     break
                 if replaced not in val:
                     continue
-                val = val.replace(replaced, f"{{{{{placeholder}}}}}")
+                val = safe_replace(val, replaced, f"{{{{{placeholder}}}}}")
 
             if role == QtCore.Qt.DisplayRole:
                 return val
@@ -268,7 +266,7 @@ class HighlightNameDescTagsWidget(NameDescTagsWidget):
             for replaced, placeholder in self.placeholders.items():
                 if replaced not in val:
                     continue
-                val = val.replace(replaced, f"{{{{{placeholder}}}}}")
+                val = safe_replace(val, replaced, f"{{{{{placeholder}}}}}")
 
             if any(f"{{{{{p}}}}}" in val for p in self.placeholders.values()):
                 style_sheet = FillColors.PARTIAL.to_stylesheet()

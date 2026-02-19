@@ -7,13 +7,38 @@ from uuid import UUID, uuid4
 
 from superscore.model import Collection, Entry, Nestable
 
-PLACEHOLDER_PATTERN = re.compile(r"\{\{(.*?)\}\}")
+# For simplicity we assume there are no nested double {{*}}, else we need lexical
+# parsing
+PLACEHOLDER_STRING = r"\{\{(.*?)\}\}"
+PLACEHOLDER_PATTERN = re.compile(PLACEHOLDER_STRING)
 
 
 class TemplateMode(Flag):
     """Simple right/left side enum, where inversion `~` gives the other side"""
     CREATE_PLACEHOLDERS = auto()
     FILL_PLACEHOLDERS = auto()
+
+
+def safe_replace(text: str, target: str, replacement: str) -> str:
+    """
+    Replace `target` in `text` with `replacement`, ignoring anything in the
+    PLACEHOLDER_PATTERN.
+    """
+    # Pattern explanation:
+    # {{.*?}}  -> Matches anything inside double braces (non-greedy)
+    # |        -> OR
+    # target   -> Matches the substring you actually want to change
+    pattern = PLACEHOLDER_STRING + "|" + re.escape(target)
+
+    def substitute(match: re.Match):
+        group = match.group(0)
+        # If the match starts with {{, it's a protected area; return it as-is
+        if group.startswith('{{'):
+            return group
+        # Otherwise, it's our target; replace it
+        return replacement
+
+    return re.sub(pattern, substitute, text)
 
 
 def find_placeholders(obj: Any) -> Set[str]:
@@ -72,7 +97,7 @@ def substitute_placeholders(
             if mode == TemplateMode.FILL_PLACEHOLDERS:
                 result = result.replace(f"{{{{{key}}}}}", value)
             else:
-                result = result.replace(key, f"{{{{{value}}}}}")
+                result = safe_replace(result, key, f"{{{{{value}}}}}")
         return result
     elif isinstance(obj, list):
         for i in range(len(obj)):
