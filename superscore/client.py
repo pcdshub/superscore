@@ -18,7 +18,8 @@ from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Setpoint, Snapshot, Template)
-from superscore.templates import fill_template_collection, find_placeholders
+from superscore.templates import (TemplateMode, fill_template_collection,
+                                  find_placeholders)
 from superscore.utils import build_abs_path
 
 logger = logging.getLogger(__name__)
@@ -696,7 +697,11 @@ class Client:
         Produce a filled Collection from a Template and substitutions.
         """
         self.fill(template)
-        return fill_template_collection(template.template_collection, substitutions)
+        ph_filled = fill_template_collection(
+            template.template_collection, template.placeholders,
+            mode=TemplateMode.CREATE_PLACEHOLDERS
+        )
+        return fill_template_collection(ph_filled, substitutions)
 
     def verify(self, entry: Entry) -> bool:
         """
