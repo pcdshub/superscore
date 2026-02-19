@@ -19,7 +19,12 @@ class TemplateMode(Flag):
     FILL_PLACEHOLDERS = auto()
 
 
-def safe_replace(text: str, target: str, replacement: str) -> str:
+def safe_replace(
+    text: str,
+    target: str,
+    replacement: str,
+    safe_pattern: str = PLACEHOLDER_STRING
+) -> str:
     """
     Replace `target` in `text` with `replacement`, ignoring anything in the
     PLACEHOLDER_PATTERN.
@@ -28,7 +33,7 @@ def safe_replace(text: str, target: str, replacement: str) -> str:
     # {{.*?}}  -> Matches anything inside double braces (non-greedy)
     # |        -> OR
     # target   -> Matches the substring you actually want to change
-    pattern = PLACEHOLDER_STRING + "|" + re.escape(target)
+    pattern = safe_pattern + "|" + re.escape(target)
 
     def substitute(match: re.Match):
         group = match.group(0)
@@ -62,18 +67,18 @@ def find_placeholders(obj: Any) -> Set[str]:
         if isinstance(item, str):
             placeholders.update(PLACEHOLDER_PATTERN.findall(item))
         elif isinstance(item, list):
-            for i in item:
-                _search(i)
+            for it in item:
+                _search(it)
         elif isinstance(item, set):
-            for i in item:
-                _search(i)
+            for it in item:
+                _search(it)
         elif isinstance(item, dict):
-            for v in item.values():
-                _search(v)
+            for val in item.values():
+                _search(val)
         elif hasattr(item, "__dict__"):
             # dataclasses and other objects
-            for v in vars(item).values():
-                _search(v)
+            for val in vars(item).values():
+                _search(val)
 
     _search(obj)
     return placeholders
@@ -100,11 +105,11 @@ def substitute_placeholders(
                 result = safe_replace(result, key, f"{{{{{value}}}}}")
         return result
     elif isinstance(obj, list):
-        for i in range(len(obj)):
-            obj[i] = substitute_placeholders(obj[i], substitutions, mode)
+        for idx in range(len(obj)):
+            obj[idx] = substitute_placeholders(obj[idx], substitutions, mode)
     elif isinstance(obj, dict):
-        for k in obj:
-            obj[k] = substitute_placeholders(obj[k], substitutions, mode)
+        for key in obj:
+            obj[key] = substitute_placeholders(obj[key], substitutions, mode)
     elif is_dataclass(obj):
         # Skip UUID fields
         for field in fields(obj):
