@@ -617,8 +617,14 @@ class TemplatePage(Display, DataWidget[Template]):
 
     def create_collection(self):
         """Finalize and save the filled collection"""
-        subs = self.get_substitutions()
-        filled = fill_template_collection(self.data.template_collection, subs, new_uuids=True)
+        ph_filled = fill_template_collection(
+            self.data.template_collection, self.get_placeholders(),
+            new_uuids=True, mode=TemplateMode.CREATE_PLACEHOLDERS,
+        )
+        filled = fill_template_collection(
+            ph_filled, self.get_substitutions(),
+            new_uuids=False, mode=TemplateMode.FILL_PLACEHOLDERS,
+        )
 
         # Open in a new collection builder page for review before saving
         if self.open_page_slot:
