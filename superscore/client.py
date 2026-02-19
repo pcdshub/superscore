@@ -20,7 +20,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
                               Setpoint, Snapshot, Template)
 from superscore.templates import (TemplateMode, fill_template_collection,
                                   find_placeholders)
-from superscore.utils import build_abs_path
+from superscore.utils import build_abs_path, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -701,7 +701,9 @@ class Client:
             template.template_collection, template.placeholders,
             mode=TemplateMode.CREATE_PLACEHOLDERS
         )
-        return fill_template_collection(ph_filled, substitutions)
+        sub_filled = fill_template_collection(ph_filled, substitutions)
+        sub_filled.creation_time = utcnow()
+        return sub_filled
 
     def verify(self, entry: Entry) -> bool:
         """

@@ -126,6 +126,7 @@ def test_client_template(test_client: Client):
     assert filled.title == "42 1"
     assert isinstance(filled.children[0], Parameter)
     assert filled.children[0].pv_name == "X:PV"
+    assert filled.creation_time != coll.creation_time
 
     assert test_client.verify(filled) is True
 
