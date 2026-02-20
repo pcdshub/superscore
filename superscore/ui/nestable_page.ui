@@ -43,6 +43,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="convert_template_button">
+          <property name="text">
+           <string>Convert to Template</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="restore_button">
           <property name="text">
            <string>Restore Snapshot</string>

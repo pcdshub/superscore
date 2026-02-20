@@ -13,6 +13,7 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import CallbackType, Client
+from superscore.errors import EntryNotFoundError
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display, QtSingleton
@@ -144,7 +145,10 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         except KeyError:
             raise TypeError(f'No page widget for {type(entry)}, cannot open in tab')
 
-        fresh_entry = self.client.get_entry(entry.uuid)
+        try:
+            fresh_entry = self.client.get_entry(entry.uuid)
+        except EntryNotFoundError:
+            fresh_entry = entry
 
         page_widget = page(data=fresh_entry, client=self.client,
                            editable=self.client.is_editable(entry))

@@ -18,10 +18,9 @@ from qtpy import QtCore, QtGui, QtWidgets
 from superscore.backends.core import SearchTerm
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.errors import EntryNotFoundError
 from superscore.model import (Collection, Entry, Nestable, NestableEntry,
                               PVEntry, Readback, Root, Setpoint, Severity,
-                              Snapshot, Status)
+                              Snapshot, Status, Template)
 from superscore.qt_helpers import QDataclassBridge, QDataclassList
 from superscore.widgets import ICON_MAP, get_window
 from superscore.widgets.core import (BridgeRegistry, DataTracker, QtSingleton,
@@ -75,6 +74,21 @@ class DiffDispatcher(QtCore.QObject, metaclass=QtSingleton):
         self.r_entry = None
 
 
+def add_convert_to_template_action(menu: QtWidgets.QMenu, entry: Entry) -> None:
+    if not isinstance(entry, Collection):
+        return
+    window = get_window()
+    if window is None:
+        return
+    action = menu.addAction("Convert to Template")
+
+    def convert():
+        template = window.client.convert_to_template(entry)
+        window.open_page(template)
+
+    action.triggered.connect(convert)
+
+
 def add_comparison_actions_to_menu(menu: QtWidgets.QMenu, entry: Entry) -> None:
     """
     Add relevant comparison actions to the Menu.
@@ -110,6 +124,7 @@ class MenuOption(Enum):
     """Supported options for context menus"""
     OPEN_PAGE = auto()
     DIFF = auto()
+    CONVERT_TO_TEMPLATE = auto()
 
 
 # TODO: change type hints to accurately reflect callables
@@ -117,6 +132,7 @@ MENU_OPT_ADDER_MAP: Dict[MenuOption,
                          Callable[[QtWidgets.QMenu, Entry], None]] = {
     MenuOption.OPEN_PAGE: add_open_page_to_menu,
     MenuOption.DIFF: add_comparison_actions_to_menu,
+    MenuOption.CONVERT_TO_TEMPLATE: add_convert_to_template_action,
 }
 
 
@@ -206,7 +222,7 @@ class EntryItem:
             return '<root>'
 
         if column == 0:
-            if isinstance(self._data, Nestable):
+            if isinstance(self._data, (Nestable, Template)):
                 return getattr(self._data, 'title', 'root')
             else:
                 return getattr(self._data, 'pv_name', '<no pv>')
@@ -406,8 +422,7 @@ class RootTree(QtCore.QAbstractItemModel):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.base_entry = base_entry
-        self.root_item = build_tree(base_entry)
+        self.set_entries(base_entry=base_entry)
         # Cross reference to give item some knowledge of model
         # This seems highly coupled but it'll work...
         self.root_item.model = self
@@ -415,6 +430,10 @@ class RootTree(QtCore.QAbstractItemModel):
         # ensure at least the first set of children are filled
         self.root_item.fill_uuids(self.client)
         self.headers = ['name', 'description']
+
+    def set_entries(self, base_entry) -> None:
+        self.base_entry = base_entry
+        self.root_item = build_tree(base_entry)
 
     def refresh_tree(self) -> None:
         self.layoutAboutToBeChanged.emit()
@@ -642,6 +661,7 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
     context_menu_options: Dict[MenuOption, bool] = {
         MenuOption.OPEN_PAGE: True,
         MenuOption.DIFF: True,
+        MenuOption.CONVERT_TO_TEMPLATE: True,
     }
 
     def __init__(
@@ -697,9 +717,13 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
             logger.debug("data not set, cannot initialize model")
             return
 
-        self._model = self._model_cls(base_entry=self.data, client=self.client)
-        self.setModel(self._model)
-        self._model.dataChanged.connect(self.data_modified.emit)
+        if self._model is None:
+            self._model = self._model_cls(base_entry=self.data, client=self.client)
+            self.setModel(self._model)
+            self._model.dataChanged.connect(self.data_modified.emit)
+        else:
+            # set data in place
+            self._model.set_entries(self.data)
 
     def _tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index: QtCore.QModelIndex = self.indexAt(pos)
@@ -724,6 +748,9 @@ class RootTreeView(QtWidgets.QTreeView, DataTracker[Entry]):
 
         if self.context_menu_options[MenuOption.DIFF]:
             MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
+
+        if self.context_menu_options[MenuOption.CONVERT_TO_TEMPLATE]:
+            MENU_OPT_ADDER_MAP[MenuOption.CONVERT_TO_TEMPLATE](menu, entry)
 
         return menu
 
@@ -1564,6 +1591,7 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker[NestableEntry]):
     context_menu_options: Dict[MenuOption, bool] = {
         MenuOption.OPEN_PAGE: True,
         MenuOption.DIFF: True,
+        MenuOption.CONVERT_TO_TEMPLATE: True,
     }
 
     def __init__(
@@ -1722,6 +1750,9 @@ class BaseDataTableView(QtWidgets.QTableView, DataTracker[NestableEntry]):
         if self.context_menu_options[MenuOption.DIFF]:
             MENU_OPT_ADDER_MAP[MenuOption.DIFF](menu, entry)
 
+        if self.context_menu_options[MenuOption.CONVERT_TO_TEMPLATE]:
+            MENU_OPT_ADDER_MAP[MenuOption.CONVERT_TO_TEMPLATE](menu, entry)
+
         return menu
 
 
@@ -1765,18 +1796,8 @@ class LivePVTableView(BaseDataTableView):
         if isinstance(self.data, Nestable):
             # gather sub_nestables
             self.sub_entries = []
-            for i, child in enumerate(self.data.children):
-                if isinstance(child, UUID):
-                    child = self._client.backend.get_entry(child)
-                    # add via bridge
-                    self.bridge.children.put_to_index(i, child)
-                else:
-                    child = child
-
-                if child is None:
-                    raise EntryNotFoundError(f"{child} not found in backend, "
-                                             "cannot fill with real data")
-
+            self._client.fill(self.data)
+            for child in self.data.children:
                 if not isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
@@ -1898,17 +1919,8 @@ class NestableTableView(BaseDataTableView):
 
         if isinstance(self.data, Nestable):
             # gather sub_nestables
-            for i, child in enumerate(self.data.children):
-                if isinstance(child, UUID):
-                    child = self._client.backend.get_entry(child)
-                    self.bridge.children.put_to_index(i, child)
-                else:
-                    child = child
-
-                if child is None:
-                    raise EntryNotFoundError(f"{child} not found in backend, "
-                                             "cannot fill with real data")
-
+            self.client.fill(self.data)
+            for child in self.data.children:
                 if isinstance(child, Nestable) and isinstance(child, Entry):
                     self.sub_entries.append(child)
 
