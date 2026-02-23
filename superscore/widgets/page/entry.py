@@ -111,8 +111,6 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
         if not self.client:
             return
         with self.ignore_check_changes(), self.meta_widget.ignore_check_changes():
-            for child in self.data.children:
-                self.client.save(child)
             # currently save might sometimes swap to uuids. Need to think about
             # a better convention for this
             self.client.save(self.data)

@@ -266,7 +266,7 @@ class FilestoreBackend(_Backend):
 
         return result
 
-    def save_entry(self, entry: Entry) -> None:
+    def save_entry(self, entry: Entry, top_level: bool = True) -> None:
         """
         Save ``entry`` into database. Entry is expected to not already exist
         Assumes connections are made properly.
@@ -276,7 +276,8 @@ class FilestoreBackend(_Backend):
                 raise EntryExistsError("Entry already exists, try updating the "
                                        "entry instead of saving it")
             self.flatten_and_cache(entry)
-            self._root.entries.append(entry)
+            if top_level:
+                self._root.entries.append(entry)
 
     def update_entry(self, entry: Entry) -> None:
         """Updates ``entry``.  Looks for references"""
