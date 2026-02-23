@@ -517,6 +517,7 @@ class RootTree(QtCore.QAbstractItemModel):
 
     def parent(self, index: QtCore.QModelIndex) -> QtCore.QModelIndex:
         """
+        Returns the parent of the given model item
 
         Parameters
         ----------
@@ -531,7 +532,7 @@ class RootTree(QtCore.QAbstractItemModel):
         if not index.isValid():
             return QtCore.QModelIndex()
         child = index.internalPointer()
-        if child is self.root_item:
+        if child in (self.root_item, None):
             return QtCore.QModelIndex()
         parent = child.parent()
         if parent in (self.root_item, None):
