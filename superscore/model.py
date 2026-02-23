@@ -294,7 +294,7 @@ class Template(Entry):
     - with placeholders ("{{value of `Template.placeholders`}}")
     """
     title: str = ""
-    template_collection: Collection = field(default_factory=Collection)
+    template_collection: Union[Collection, UUID] = field(default_factory=Collection)
     placeholders: dict[str, str] = field(default_factory=dict)
 
     def swap_to_uuids(self) -> List[Union[Entry, UUID]]:
