@@ -32,9 +32,10 @@ class _Backend:
         """
         raise NotImplementedError
 
-    def save_entry(self, entry: Entry):
+    def save_entry(self, entry: Entry, top_level: bool = True):
         """
-        Save ``entry`` into the database
+        Save ``entry`` into the database.
+        Adds ``entry`` to root's children if ``top_level`` is True
         Throws EntryExistsError
         """
         raise NotImplementedError

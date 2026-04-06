@@ -17,8 +17,10 @@ from superscore.control_layers import ControlLayer, EpicsData
 from superscore.control_layers.status import TaskStatus
 from superscore.errors import CommunicationError
 from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
-                              Setpoint, Snapshot)
-from superscore.utils import build_abs_path
+                              Setpoint, Snapshot, Template)
+from superscore.templates import (TemplateMode, fill_template_collection,
+                                  find_placeholders)
+from superscore.utils import build_abs_path, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -404,6 +406,13 @@ class Client:
 
             entry.children = new_children
 
+        if isinstance(entry, Template):
+            if isinstance(entry.template_collection, UUID):
+                search_condition = SearchTerm('uuid', 'eq', entry.template_collection)
+                entry.template_collection = list(self.search(search_condition))[0]
+
+            self.fill(entry.template_collection, fill_depth)
+
     def snap(self, entry: Collection, dest: Optional[Snapshot] = None) -> Snapshot:
         """
         Asyncronously read data for all PVs under ``entry``, and store in a
@@ -672,3 +681,38 @@ class Client:
         - references are not cyclical, and type-correct
         """
         raise NotImplementedError
+
+    def convert_to_template(self, collection: Collection) -> Template:
+        """
+        Create a new Template from an existing Collection.
+        """
+        self.fill(collection)
+        return Template(
+            title=f"Template for {collection.title}",
+            template_collection=deepcopy(collection)
+        )
+
+    def fill_template(self, template: Template, substitutions: Dict[str, str]) -> Collection:
+        """
+        Produce a filled Collection from a Template and substitutions.
+        """
+        self.fill(template)
+        ph_filled = fill_template_collection(
+            template.template_collection, template.placeholders,
+            mode=TemplateMode.CREATE_PLACEHOLDERS
+        )
+        sub_filled = fill_template_collection(ph_filled, substitutions)
+        sub_filled.creation_time = utcnow()
+        return sub_filled
+
+    def verify(self, entry: Entry) -> bool:
+        """
+        Confirm the resulting collection is valid.
+        Currently performs model validation and checks if any placeholders remain.
+        """
+        # Check for remaining placeholders
+        if find_placeholders(entry):
+            return False
+
+        # Use model validation
+        return entry.validate()

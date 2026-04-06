@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from functools import partial
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, cast
 from uuid import UUID
 
 import qtawesome as qta
@@ -13,6 +13,7 @@ from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
 from superscore.client import CallbackType, Client
+from superscore.errors import EntryNotFoundError
 from superscore.model import Entry, Snapshot
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display, QtSingleton
@@ -22,7 +23,7 @@ from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.restore import RestorePage
 from superscore.widgets.page.search import SearchPage
 from superscore.widgets.thread_helpers import get_qthread_cache
-from superscore.widgets.views import DiffDispatcher, RootTreeView
+from superscore.widgets.views import DiffDispatcher, RootTree, RootTreeView
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.tree_view.set_data(self.client.backend.root)
         self.entry_updated.connect(self.tree_view.update_uuid)
         self.entry_saved.connect(self.tree_view.update_uuid)
+        self.entry_saved.connect(self.refresh_tree)
         # override context menu
         self.tree_view.create_context_menu = self._window_context_menu
 
@@ -86,6 +88,13 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         self.entry_saved.connect(self._update_tab_title)
         self.entry_updated.connect(self._update_tab_title)
+
+    def refresh_tree(self):
+        """Refresh tree view, ensuring new or deleted entires are represented"""
+        self.tree_view.set_data(self.client.backend.root)
+        tree_model = self.tree_view.model()
+        tree_model = cast("RootTree", tree_model)
+        tree_model.refresh_tree()
 
     def remove_tab(self, tab_index: int) -> None:
         """Remove the requested tab and delete the widget"""
@@ -144,7 +153,10 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         except KeyError:
             raise TypeError(f'No page widget for {type(entry)}, cannot open in tab')
 
-        fresh_entry = self.client.get_entry(entry.uuid)
+        try:
+            fresh_entry = self.client.get_entry(entry.uuid)
+        except EntryNotFoundError:
+            fresh_entry = entry
 
         page_widget = page(data=fresh_entry, client=self.client,
                            editable=self.client.is_editable(entry))
