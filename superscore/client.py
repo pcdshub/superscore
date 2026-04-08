@@ -71,10 +71,12 @@ class Client:
         }
 
     def run_callbacks(self, cb_type: CallbackType, *args, **kwargs):
+        logger.debug(f"Running callbacks for {cb_type} type")
         for cb in self._callbacks[cb_type]:
             cb(*args, **kwargs)
 
     def register_callback(self, cb_type: CallbackType, cb: Callable[[UUID], None]):
+        logger.debug(f"Registered callback {cb} for {cb_type} type")
         self._callbacks[cb_type].append(cb)
 
     @classmethod
@@ -219,11 +221,13 @@ class Client:
         """
         if (uuid not in self._entries) or force_reload:
             # TODO: remove all references to backend.get_entry in gui app
+            logger.debug(f"(Re)loading entry for {uuid}")
             entry = self.backend.get_entry(uuid)
             if fill:
                 self.fill(entry)
             self._entries[uuid] = entry
             self.run_callbacks(CallbackType.ENTRY_UPDATED, uuid)
+        logger.debug(f"Returning cached entry for {uuid}")
         return deepcopy(self._entries[uuid])
 
     def search(self, *post: SearchTermType) -> Generator[Entry, None, None]:
@@ -245,6 +249,7 @@ class Client:
                 new_search_terms.append(SearchTerm(search_term.attr, 'lt', upper))
             else:
                 new_search_terms.append(search_term)
+        logger.debug(f"Running search with terms: {new_search_terms}")
         results = self.backend.search(*new_search_terms)
 
         # run callbacks for any new entries
@@ -252,6 +257,7 @@ class Client:
         for entry in results:
             if (entry.uuid in self._entries) and (entry != self._entries[entry.uuid]):
                 self.run_callbacks(CallbackType.ENTRY_UPDATED, entry.uuid)
+            logger.debug(f"New entry {entry.uuid} found in search, caching.")
             self._entries[entry.uuid] = entry
             yield deepcopy(entry)
 
@@ -307,7 +313,12 @@ class Client:
         return True
 
     def save(self, entry: Entry):
-        """Save information in ``entry`` to database"""
+        """
+        Save information in ``entry`` to database.
+        Should only save the parent information.  Children are to be references,
+        and should not be modified by when their parent is saved.
+        Perhaps this is to be left to the backend.
+        """
         # validate entry is valid
         # if exists, try to update
         # check permissions?
@@ -342,7 +353,7 @@ class Client:
         # check permissions?
         if not self.is_editable(entry):
             return
-
+        logger.debug(f"Deleting entry {entry.uuid}")
         self.backend.delete_entry(entry)
         self.run_callbacks(CallbackType.ENTRY_DELETED, entry.uuid)
 

@@ -24,7 +24,7 @@ class DiffType(Enum):
 @dataclass
 class DiffItem:
     """
-    A single difference, represented by a path to the changed fielid and the
+    A single difference, represented by a path to the changed field and the
     new/old values of said field
     """
     original_value: Any
