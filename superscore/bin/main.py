@@ -94,7 +94,7 @@ def main():
     args = top_parser.parse_args()
     kwargs = vars(args)
     log_level = kwargs.pop('log_level')
-
+    logging.basicConfig()
     logger.setLevel(log_level)
     if hasattr(args, 'func'):
         func = kwargs.pop('func')
