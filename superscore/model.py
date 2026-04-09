@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -12,7 +13,7 @@ from uuid import UUID, uuid4
 import apischema
 
 from superscore.serialization import as_tagged_union
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, AnyPath
 from superscore.utils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -314,3 +315,27 @@ class Root:
 
 PVEntry = Union[Parameter, Setpoint, Readback]
 NestableEntry = Union[Collection, Snapshot]
+
+
+def get_entry_from_path(path: AnyPath) -> Entry:
+    """
+    Loads an Entry from a serialized json file.
+    Note: Entry will need to nested in a Root to properly invoke tagged union machinery
+
+    Extract the entry from the root's children.
+    TODO: Consider allowing importing multiple entries at once?
+    """
+    with open(path, "r") as fd:
+        deser = json.load(fd)
+
+    return apischema.deserialize(Root, deser).entries[0]
+
+
+def save_entry_to_path(entry: Entry, path: AnyPath):
+    """Save ``entry`` to ``path``, wrapping in a ``Root`` container"""
+    root_wrapped_entry = Root(entries=[entry])
+    ser = apischema.serialize(root_wrapped_entry)
+
+    with open(path, "w") as fd:
+        json.dump(ser, fd, indent=2)
+        fd.write("\n")
