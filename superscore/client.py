@@ -293,23 +293,28 @@ class Client:
         authorized = self.is_user_authorized(user)
 
         if not authorized:
+            logger.debug(f"User not authorized to edit entry: {entry.uuid}")
             return False
 
         # If backend does not allow writing, all else is moot
         if not self.backend.entry_writable(entry):
+            logger.debug(f"Backend does not allow entry editing: {entry.uuid}")
             return False
 
         # preventing editing of past entries adds additional constraints
         if not self.enable_editing_past:
             # Recent entries are allowed...
             if entry.uuid in self.recent_entry_cache:
+                logger.debug(f"Entry in recents cache, editing allowed: {entry.uuid}")
                 return True
 
             # while past entries are restricted
             if list(self.search(SearchTerm("uuid", "eq", entry.uuid))):
+                logger.debug(f"Entry exists in database already, not editable: {entry.uuid}")
                 return False
 
         # Default is to allow writing, previous conditions veto this
+        logger.debug(f"Entry editable: {entry.uuid}")
         return True
 
     def save(self, entry: Entry):
