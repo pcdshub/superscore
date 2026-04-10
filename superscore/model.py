@@ -186,7 +186,7 @@ class Nestable:
 
     children: List[Union[UUID, Entry]]
 
-    def validate(self, toplevel: bool = True):
+    def validate(self, toplevel: bool = True) -> bool:
         """
         Validates self and all children. If toplevel, also validates structure
         of the Entry tree. This avoids redundant work by only performing tree-
@@ -282,6 +282,10 @@ class Snapshot(Nestable, Entry):
         self.children = new_children
 
         return ref_list
+
+    def validate(self, toplevel: bool = True) -> bool:
+        # TODO: Verify structure matches origin Collection?
+        return super().validate(toplevel)
 
 
 @dataclass

@@ -323,6 +323,8 @@ class Client:
         Should only save the parent information.  Children are to be references,
         and should not be modified by when their parent is saved.
         Perhaps this is to be left to the backend.
+        TODO:
+        - consider throwing error if this fails instead of being silent
         """
         # validate entry is valid
         # if exists, try to update
@@ -332,6 +334,10 @@ class Client:
             entry_ids = [e.uuid for e in entry.walk_children()]
         else:
             entry_ids = [entry.uuid]
+
+        # Validate before saving
+        if not self.validate(entry):
+            return
 
         # allow edits to entries that have been added in this session
         for entry_id in entry_ids:
@@ -688,16 +694,6 @@ class Client:
             return EpicsData(data=None)
         return value
 
-    def validate(self, entry: Entry):
-        """
-        Validate ``entry`` is properly formed and able to be inserted into
-        the backend.  Includes checks the following:
-        - dataclass is valid
-        - reachable from root
-        - references are not cyclical, and type-correct
-        """
-        raise NotImplementedError
-
     def convert_to_template(self, collection: Collection) -> Template:
         """
         Create a new Template from an existing Collection.
@@ -721,14 +717,33 @@ class Client:
         sub_filled.creation_time = utcnow()
         return sub_filled
 
-    def verify(self, entry: Entry) -> bool:
+    def validate(self, entry: Entry) -> bool:
         """
-        Confirm the resulting collection is valid.
-        Currently performs model validation and checks if any placeholders remain.
+        Validate ``entry`` is properly formed and able to be inserted into
+        the backend.  Verifies the following in addition to the base model
+        validation steps:
+        - checks if any placeholders remain.
+        - Verifies that Snapshots reference existing collections
         """
         # Check for remaining placeholders
         if find_placeholders(entry):
             return False
+
+        # Verify that snapshots have valid collections in database
+        if isinstance(entry, Snapshot):
+            if not entry.origin_collection:
+                logger.debug("Snapshot does not have an origin collection")
+                return False
+            if isinstance(entry.origin_collection, UUID):
+                linked_coll_uuid = entry.origin_collection
+            else:
+                linked_coll_uuid = entry.origin_collection.uuid
+
+            # while past entries are restricted
+            if not list(self.search(SearchTerm("uuid", "eq", linked_coll_uuid))):
+                logger.debug("Linked collection does not exist "
+                             f"in database: {linked_coll_uuid}")
+                return False
 
         # Use model validation
         return entry.validate()

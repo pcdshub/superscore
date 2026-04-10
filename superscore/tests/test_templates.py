@@ -128,8 +128,8 @@ def test_client_template(test_client: Client):
     assert filled.children[0].pv_name == "X:PV"
     assert filled.creation_time != coll.creation_time
 
-    assert test_client.verify(filled) is True
+    assert test_client.validate(filled) is True
 
     # Test verify failure with missing substitutions
     partially_filled = test_client.fill_template(template, {"id": "42"})
-    assert test_client.verify(partially_filled) is False
+    assert test_client.validate(partially_filled) is False

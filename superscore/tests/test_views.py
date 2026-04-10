@@ -12,9 +12,8 @@ from superscore.backends.filestore import FilestoreBackend
 from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers import EpicsData
-from superscore.model import (Collection, Nestable, Parameter, PVEntry,
-                              Readback, Root, Setpoint, Severity, Snapshot,
-                              Status)
+from superscore.model import (Nestable, Parameter, PVEntry, Readback, Root,
+                              Setpoint, Severity, Snapshot, Status)
 from superscore.tests.conftest import nest_depth, setup_test_stack
 from superscore.widgets.views import (CustRoles, EntryItem, LivePVHeader,
                                       LivePVTableModel, LivePVTableView,
@@ -52,7 +51,7 @@ def pv_poll_model(
 @pytest.fixture(scope="function")
 def pv_table_view(
     test_client: Client,
-    simple_snapshot_fixture: Collection,
+    simple_snapshot_fixture: Snapshot,
     qtbot: QtBot,
 ):
     """
@@ -271,10 +270,11 @@ def test_rbv_pairs(pv_poll_model: LivePVTableModel, setpoint_with_readback_fixtu
 @setup_test_stack(sources=['db/filestore.json'], backend_type=FilestoreBackend)
 def test_fill_uuids_pvs(
     test_client: Client,
-    simple_snapshot_fixture: Collection,
+    simple_snapshot_fixture: Snapshot,
     qtbot: QtBot,
 ):
     """Verify UUID data gets filled, and dataclass gets modified"""
+    test_client.save(simple_snapshot_fixture.origin_collection)
     test_client.save(simple_snapshot_fixture)
     simple_snapshot_fixture.swap_to_uuids()
     assert all(isinstance(c, UUID) for c in simple_snapshot_fixture.children)

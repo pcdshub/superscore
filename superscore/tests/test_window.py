@@ -6,6 +6,7 @@ from qtpy import QtWidgets
 
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
+from superscore.model import Snapshot
 from superscore.tests.conftest import setup_test_stack
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import (CollectionPage, ParameterPage,
@@ -107,6 +108,8 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
         ("uuid", "eq", UUID("ffd668d3-57d9-404e-8366-0778af7aee61"))
     ))[0]
 
+    assert isinstance(snapshot, Snapshot)
+
     collection_page = window.open_page(collection)
     new_snapshot = collection_page.take_snapshot()
     collection_page.children()[-1].done(1)
@@ -115,6 +118,8 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
 
     # cannot take snapshot without a relevant origin collection
     snapshot_page = window.open_page(snapshot)
+    # Database has proper data linkage/validation, break this for testing purposes
+    snapshot_page.data.origin_collection = None
     assert isinstance(snapshot_page, SnapshotPage)
     result = snapshot_page.take_snapshot()
     assert result is None

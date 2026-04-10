@@ -54,7 +54,12 @@ def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def snapshot_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()])
+    origin_coll = Collection()
+    # Snapshots require origin collections to exist
+    test_client.save(origin_coll)
+
+    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()],
+                    origin_collection=origin_coll)
     page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
