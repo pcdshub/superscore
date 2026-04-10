@@ -1,0 +1,55 @@
+{
+  "uuid": "a28cd77d-cc92-46cc-90cb-758f0f36f041",
+  "entries": [
+    {
+      "Collection": {
+        "uuid": "242b57a5-0e3a-4086-9725-575137ac9c9f",
+        "description": "mtr1 collection",
+        "creation_time": "2026-02-06T23:16:27.833320+00:00",
+        "children": [
+          {
+            "uuid": "392bedb1-22c1-4370-9b4c-c5bba71d5c32",
+            "description": "",
+            "creation_time": "2026-02-06T23:16:48.854638+00:00",
+            "pv_name": "MY:PREFIX:mtr1",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": {
+              "uuid": "ea66165b-6cbd-4925-be12-2f5c85849a52",
+              "description": "",
+              "creation_time": "2026-02-06T23:16:48.854627+00:00",
+              "pv_name": "MY:PREFIX:mtr1.RBV",
+              "abs_tolerance": null,
+              "rel_tolerance": null,
+              "readback": null,
+              "read_only": true
+            },
+            "read_only": false
+          },
+          {
+            "uuid": "3fe2ad46-5b44-41de-a0a9-cac1a9f9c905",
+            "description": "",
+            "creation_time": "2026-02-06T23:17:35.113734+00:00",
+            "pv_name": "MY:PREFIX:mtr1.ACCL",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": null,
+            "read_only": false
+          },
+          {
+            "uuid": "980022e2-55cd-499a-b45c-12eff4d68b6d",
+            "description": "",
+            "creation_time": "2026-02-06T23:17:35.115181+00:00",
+            "pv_name": "MY:PREFIX:mtr1.VELO",
+            "abs_tolerance": null,
+            "rel_tolerance": null,
+            "readback": null,
+            "read_only": false
+          }
+        ],
+        "title": "motor1 coll",
+        "tags": []
+      }
+    }
+  ]
+}

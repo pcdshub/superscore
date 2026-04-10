@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from functools import partial
 from typing import ClassVar, Optional, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
@@ -14,7 +14,9 @@ from qtpy.QtGui import QCloseEvent
 
 from superscore.client import CallbackType, Client
 from superscore.errors import EntryNotFoundError
-from superscore.model import Entry, Snapshot
+from superscore.model import (Entry, Snapshot, get_entry_from_path,
+                              save_entry_to_path)
+from superscore.type_hints import AnyPath
 from superscore.widgets import ICON_MAP
 from superscore.widgets.core import DataWidget, Display, QtSingleton
 from superscore.widgets.page import PAGE_MAP
@@ -37,6 +39,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
     tab_widget: QtWidgets.QTabWidget
 
     action_new_coll: QtWidgets.QAction
+    action_import: QtWidgets.QAction
+    action_export: QtWidgets.QAction
 
     entry_saved: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
     entry_deleted: ClassVar[QtCore.Signal] = QtCore.Signal(UUID)
@@ -76,6 +80,8 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         # setup actions
         self.action_new_coll.triggered.connect(self.open_collection_builder)
+        self.action_import.triggered.connect(self.import_action_slot)
+        self.action_export.triggered.connect(self.export_action_slot)
 
         # open diff page
         self.diff_dispatcher.comparison_ready.connect(self.open_diff_page)
@@ -204,6 +210,64 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
             restore_page_action.triggered.connect(partial(self.open_restore_page, entry))
 
         return menu
+
+    def import_action_slot(self, checked: bool = False):
+        self.import_from_file()
+
+    def import_from_file(self, filename: Optional[AnyPath] = None):
+        """Prompt for, import a dataclass from serialized json, open the appropriate page"""
+        if filename is None:
+            filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+                parent=self,
+                caption='Select Entry Data',
+                filter='Json Files (*.json)',
+            )
+        if not filename:
+            return
+
+        try:
+            data = get_entry_from_path(filename)
+        except ValueError:
+            logger.error("Failed to open file")
+            msg = QtWidgets.QMessageBox(parent=self)
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("Failed to read Entry data from file"
+                        "The file may be corrupted or malformed.")
+            msg.setWindowTitle('Could not open file')
+            msg.exec_()
+            return
+
+        # get new uuid to prevent collision with existing data
+        data.uuid = uuid4()
+
+        # if has reference to collection uuid, check that it exists in db
+        # if missing, request the collection be imported as well.
+        self.open_page(entry=data)
+
+    def export_action_slot(self, checked: bool = False):
+        self.export_current_tab_data()
+
+    def export_current_tab_data(self):
+        """Export the data on a currently active tab.  Prompt for serialization location"""
+        widget = self.tab_widget.currentWidget()
+
+        if not isinstance(widget, DataWidget) or (type(widget) not in PAGE_MAP.values()):
+            raise ValueError("Current page does not hold an exportable Entry.")
+
+        data = widget.data
+
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self,
+            caption='Select path to save Entry data',
+            filter='Json Files (*.json)',
+        )
+
+        filepath = str(filepath)
+
+        if not filepath.endswith(".json"):
+            filepath += ".json"
+
+        save_entry_to_path(data, filepath)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         # hide to mimic closing, and prevent confusion
