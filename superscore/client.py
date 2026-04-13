@@ -21,6 +21,7 @@ from superscore.model import (Collection, Entry, Nestable, Parameter, Readback,
 from superscore.templates import (TemplateMode, fill_template_collection,
                                   find_placeholders)
 from superscore.utils import build_abs_path, utcnow
+from superscore.validation import ValidationCode, ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -717,7 +718,7 @@ class Client:
         sub_filled.creation_time = utcnow()
         return sub_filled
 
-    def validate(self, entry: Entry) -> bool:
+    def validate(self, entry: Entry) -> ValidationResult:
         """
         Validate ``entry`` is properly formed and able to be inserted into
         the backend.  Verifies the following in addition to the base model
@@ -727,13 +728,18 @@ class Client:
         """
         # Check for remaining placeholders
         if find_placeholders(entry):
-            return False
+            return ValidationResult(code=ValidationCode.UNFILLED_PLACEHOLDERS,
+                                    uuid=entry.uuid)
 
         # Verify that snapshots have valid collections in database
         if isinstance(entry, Snapshot):
             if not entry.origin_collection:
                 logger.debug("Snapshot does not have an origin collection")
-                return False
+                return ValidationResult(
+                    code=ValidationCode.ORIGIN_INVALID,
+                    uuid=entry.uuid,
+                    reason="Snapshot does not have an origin collection"
+                )
             if isinstance(entry.origin_collection, UUID):
                 linked_coll_uuid = entry.origin_collection
             else:
@@ -743,7 +749,11 @@ class Client:
             if not list(self.search(SearchTerm("uuid", "eq", linked_coll_uuid))):
                 logger.debug("Linked collection does not exist "
                              f"in database: {linked_coll_uuid}")
-                return False
+                return ValidationResult(
+                    code=ValidationCode.ORIGIN_INVALID,
+                    uuid=entry.uuid,
+                    reason="Snapshot's origin collection does not exist in database",
+                )
 
         # Use model validation
         return entry.validate()
