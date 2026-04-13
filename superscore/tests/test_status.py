@@ -2,11 +2,12 @@ import asyncio
 from typing import Any, Callable
 
 import pytest
+import pytest_asyncio
 
 from superscore.control_layers.status import TaskStatus
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def normal_coroutine() -> Callable[[], Any]:
     async def inner_coroutine():
         await asyncio.sleep(0.01)
@@ -14,7 +15,7 @@ async def normal_coroutine() -> Callable[[], Any]:
     return inner_coroutine
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def failing_coroutine() -> Callable[[], Any]:
     async def inner_coroutine():
         await asyncio.sleep(0.01)
@@ -23,7 +24,7 @@ async def failing_coroutine() -> Callable[[], Any]:
     return inner_coroutine
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def long_coroutine_status() -> TaskStatus:
     @TaskStatus.wrap
     async def inner_coroutine():
