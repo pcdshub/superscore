@@ -35,6 +35,7 @@ async def long_coroutine_status() -> TaskStatus:
     return inner_coroutine()
 
 
+@pytest.mark.asyncio
 async def test_status_success(normal_coroutine):
     st = TaskStatus(normal_coroutine())
     assert isinstance(st, TaskStatus)
@@ -45,6 +46,7 @@ async def test_status_success(normal_coroutine):
     assert st.success
 
 
+@pytest.mark.asyncio
 async def test_status_fail(failing_coroutine):
     status = TaskStatus(failing_coroutine())
     assert status.exception() is None
@@ -82,6 +84,7 @@ def test_status_wait(long_coroutine_status):
     assert isinstance(long_coroutine_status.exception(), asyncio.CancelledError)
 
 
+@pytest.mark.asyncio
 async def test_status_wrap():
     @TaskStatus.wrap
     async def coro_status():
