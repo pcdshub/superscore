@@ -132,7 +132,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
         self.tab_widget.addTab(page, 'new collection')
         self.tab_widget.setCurrentWidget(page)
 
-    def open_page(self, entry: Entry) -> DataWidget:
+    def open_page(self, entry: Entry | UUID) -> DataWidget:
         """
         Open a page for ``entry`` in a new tab.
 
@@ -147,9 +147,9 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
             Created widget, for cross references
         """
         logger.debug(f'attempting to open {entry}')
-        if not isinstance(entry, Entry):
-            logger.debug('Could not open page for non-Entry dataclass')
-            return
+        if isinstance(entry, UUID):
+            # try to get matching entry from database
+            entry = self.client.get_entry(entry)
 
         if type(entry) not in PAGE_MAP:
             logger.debug(f'No page corresponding to {type(entry).__name__}')
