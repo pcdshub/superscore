@@ -178,6 +178,7 @@ def test_open_page_editability(qtbot, test_client: Client, editable: bool,):
     ("exported_setpoint.json", Setpoint),
     ("exported_template.json", Template),
     ("exported_collection.json", Collection),
+    ("exported_snapshot.json", Snapshot),
 ])
 @setup_test_stack(
     sources=["db/filestore.json",],
