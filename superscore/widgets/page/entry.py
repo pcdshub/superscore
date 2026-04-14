@@ -455,7 +455,7 @@ class BaseParameterPage[PVT: PVEntry](Display, DataWidget[PVT]):
             widget.bridge.pv_name.changed_value.connect(self.rbv_pv_label.setText)
 
     def create_rbv(self):
-        new_rbv = Readback(pv_name='<MY:PV>')
+        new_rbv = self.RBVCls(pv_name='<MY:PV>')
         self.bridge.readback.put(new_rbv)
         self.open_rbv_page()
 
@@ -488,7 +488,7 @@ class ParameterPage(BaseParameterPage[Parameter]):
 
 
 class SetpointPage(BaseParameterPage[Setpoint]):
-    pass
+    RBVCls = Readback
 
 
 class ReadbackPage(BaseParameterPage[Readback]):
