@@ -22,7 +22,8 @@ from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
                                            NestablePage, ParameterPage,
                                            ReadbackPage, SetpointPage,
                                            SnapshotPage)
-from superscore.widgets.page.restore import RestoreDialog, RestorePage
+from superscore.widgets.page.restore import (RestoreDialog, RestoreDialogModel,
+                                             RestorePage)
 from superscore.widgets.page.search import SearchPage
 from superscore.widgets.views import HeaderEnum, LivePVHeader
 from superscore.widgets.window import Window
@@ -344,27 +345,52 @@ def test_restore_dialog_restore(
 ):
     put_mock = test_client.cl.put
     dialog = RestoreDialog(test_client, simple_snapshot_fixture)
-    dialog.restore()
+    dialog.restore_all()
     assert put_mock.call_args.args == test_client._gather_data(simple_snapshot_fixture)
 
 
 @setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
 def test_restore_dialog_remove_pv(
     test_client: Client,
-    simple_snapshot_fixture: Snapshot
+    simple_snapshot_fixture: Snapshot,
+    qtbot: QtBot
 ):
     dialog = RestoreDialog(test_client, simple_snapshot_fixture)
-    tableWidget = dialog.tableWidget
-    assert tableWidget.rowCount() == len(simple_snapshot_fixture.children)
+    qtbot.addWidget(dialog)
+    table_view = dialog.table_view
+    model = table_view.model()
+    assert isinstance(model, RestoreDialogModel)
+    assert len(model.entries) == len(simple_snapshot_fixture.children)
 
-    PV_COLUMN = 0
     REMOVE_BUTTON_COLUMN = 2
-    item_to_remove = tableWidget.item(1, PV_COLUMN)
-    tableWidget.setCurrentCell(1, REMOVE_BUTTON_COLUMN)
-    dialog.delete_row()
-    assert tableWidget.rowCount() == len(simple_snapshot_fixture.children) - 1
-    items_left = [tableWidget.item(row, PV_COLUMN) for row in range(tableWidget.rowCount())]
-    assert item_to_remove not in items_left
+    item_to_remove = model.entries[1]
+    index = model.index(1, REMOVE_BUTTON_COLUMN)
+    remove_delegate = table_view.itemDelegate(index)
+    remove_delegate.clicked.emit(index)
+    assert model.rowCount() == len(simple_snapshot_fixture.children) - 1
+    assert item_to_remove not in model.entries
+
+
+@setup_test_stack(sources=["db/filestore.json"], backend_type=FilestoreBackend)
+def test_restore_batch(
+    test_client: Client,
+    simple_snapshot_fixture: Snapshot,
+    qtbot: QtBot
+):
+    dialog = RestoreDialog(test_client, simple_snapshot_fixture)
+    qtbot.addWidget(dialog)
+    table_view = dialog.table_view
+    model = table_view.model()
+    assert isinstance(model, RestoreDialogModel)
+    assert len(model.entries) == len(simple_snapshot_fixture.children)
+
+    assert isinstance(model, RestoreDialogModel)
+    dialog.batch_size_spinbox.setValue(2)
+    dialog.restore_batch_button.clicked.emit()
+
+    assert model.rowCount() == len(simple_snapshot_fixture.children) - 2
+    assert len(model.entries) == len(simple_snapshot_fixture.children) - 2
+    assert model.entries[0] == simple_snapshot_fixture.children[2]
 
 
 @pytest.mark.parametrize(
