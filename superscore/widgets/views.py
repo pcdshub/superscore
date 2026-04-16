@@ -444,7 +444,7 @@ class RootTree(QtCore.QAbstractItemModel):
         self,
         section: int,
         orientation: QtCore.Qt.Orientation,
-        role: int
+        role: int = QtCore.Qt.DisplayRole
     ) -> Any:
         """
         Returns the header data for the model.

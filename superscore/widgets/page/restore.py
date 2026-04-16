@@ -69,7 +69,23 @@ class RestoreDialogModel(QtCore.QAbstractTableModel):
     def columnCount(self, parent: Optional[QtCore.QModelIndex] = None):
         return 3
 
-    def data(self, index: QtCore.QModelIndex, role: int) -> Any:
+    def headerData(
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: int = QtCore.Qt.DisplayRole
+    ) -> Any:
+        """
+        Returns the header data for the model.
+        Currently only displays horizontal header data
+        """
+        if role != QtCore.Qt.DisplayRole:
+            return
+
+        if orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
+
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> Any:
         entry = self.entries[index.row()]
 
         if role != QtCore.Qt.DisplayRole:
