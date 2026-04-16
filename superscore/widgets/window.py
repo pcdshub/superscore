@@ -9,6 +9,7 @@ from typing import ClassVar, Optional, cast
 from uuid import UUID, uuid4
 
 import qtawesome as qta
+from apischema import ValidationError
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QCloseEvent
 
@@ -227,7 +228,7 @@ class Window(Display, QtWidgets.QMainWindow, metaclass=QtSingleton):
 
         try:
             data = get_entry_from_path(filename)
-        except ValueError:
+        except ValidationError:
             logger.error("Failed to open file")
             msg = QtWidgets.QMessageBox(parent=self)
             msg.setIcon(QtWidgets.QMessageBox.Critical)

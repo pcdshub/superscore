@@ -363,6 +363,11 @@ def get_entry_from_path(path: AnyPath) -> Entry:
 
     Extract the entry from the root's children.
     TODO: Consider allowing importing multiple entries at once?
+
+    Raises
+    ------
+    apischema.ValidationError
+        if deserialization fails
     """
     with open(path, "r") as fd:
         deser = json.load(fd)
