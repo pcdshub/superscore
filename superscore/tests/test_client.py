@@ -308,7 +308,7 @@ def test_recents_cache(test_client):
     ])
     assert colls_in_cache
 
-    snap = Snapshot()
+    snap = Snapshot(origin_collection=coll)
     existing_entry = test_client.backend.get_entry(
         UUID("2f709b4b-79da-4a8b-8693-eed2c389cb3a")
     )

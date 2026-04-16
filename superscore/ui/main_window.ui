@@ -100,6 +100,8 @@
     </widget>
     <addaction name="separator"/>
     <addaction name="menu_new"/>
+    <addaction name="action_import"/>
+    <addaction name="action_export"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -174,6 +176,16 @@
   <action name="action_new_coll">
    <property name="text">
     <string>Collection</string>
+   </property>
+  </action>
+  <action name="action_import">
+   <property name="text">
+    <string>Import Data</string>
+   </property>
+  </action>
+  <action name="action_export">
+   <property name="text">
+    <string>Export Current Data</string>
    </property>
   </action>
  </widget>

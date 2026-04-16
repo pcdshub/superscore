@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -12,8 +13,9 @@ from uuid import UUID, uuid4
 import apischema
 
 from superscore.serialization import as_tagged_union
-from superscore.type_hints import AnyEpicsType
+from superscore.type_hints import AnyEpicsType, AnyPath
 from superscore.utils import utcnow
+from superscore.validation import ValidationCode, ValidationResult
 
 logger = logging.getLogger(__name__)
 _root_uuid = _root_uuid = UUID("a28cd77d-cc92-46cc-90cb-758f0f36f041")
@@ -76,7 +78,7 @@ class Entry:
         """
         return []
 
-    def validate(self, toplevel: bool = True) -> bool:
+    def validate(self, toplevel: bool = True) -> ValidationResult:
         """
         Ensures Entry is properly formed.
 
@@ -87,11 +89,16 @@ class Entry:
             try:
                 serial = apischema.serialize(self)
                 apischema.deserialize(type(self), serial)
-                return True
+                return ValidationResult(uuid=self.uuid)
             except apischema.ValidationError:
-                return False
+                return ValidationResult(
+                    uuid=self.uuid,
+                    code=ValidationCode.TYPE_ERROR,
+                    reason="Entry fields have data of improper type"
+                           "(failed serialization roundtrip)",
+                )
         else:
-            return True
+            return ValidationResult(uuid=self.uuid)
 
 
 @dataclass
@@ -103,9 +110,14 @@ class Parameter(Entry):
     readback: Optional[Parameter] = None
     read_only: bool = False
 
-    def validate(self, toplevel: bool = True) -> bool:
-        readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
-        return readback_is_valid and super().validate(toplevel=toplevel)
+    def validate(self, toplevel: bool = True) -> ValidationResult:
+        # check if readback is valid
+        if self.readback is not None:
+            readback_is_valid = self.readback.validate(toplevel=False)
+            if not readback_is_valid:
+                return readback_is_valid
+
+        return super().validate(toplevel=toplevel)
 
 
 @dataclass
@@ -134,9 +146,13 @@ class Setpoint(Entry):
             readback=origin.readback,
         )
 
-    def validate(self, toplevel: bool = True) -> bool:
-        readback_is_valid = self.readback is None or self.readback.validate(toplevel=False)
-        return readback_is_valid and super().validate(toplevel=toplevel)
+    def validate(self, toplevel: bool = True) -> ValidationResult:
+        if self.readback is not None:
+            readback_is_valid = self.readback.validate(toplevel=False)
+            if not readback_is_valid:
+                return readback_is_valid
+
+        return super().validate(toplevel=toplevel)
 
 
 @dataclass
@@ -182,10 +198,10 @@ class Readback(Entry):
 
 class Nestable:
     """Mix-in class that provides methods for nested container Entries"""
-
+    uuid: UUID
     children: List[Union[UUID, Entry]]
 
-    def validate(self, toplevel: bool = True):
+    def validate(self, toplevel: bool = True) -> ValidationResult:
         """
         Validates self and all children. If toplevel, also validates structure
         of the Entry tree. This avoids redundant work by only performing tree-
@@ -193,8 +209,28 @@ class Nestable:
 
         Overrides Entry.validate().
         """
-        tree_is_valid = not toplevel or (not self.has_cycle() and super().validate(toplevel=True))
-        return tree_is_valid and all(child.validate(toplevel=False) for child in self.children)
+        if self.has_cycle() and toplevel:
+            return ValidationResult(
+                code=ValidationCode.CYCLE_FOUND,
+                uuid=self.uuid,
+            )
+
+        # check self validation
+        is_self_valid = super().validate(toplevel)
+        if not is_self_valid:
+            return is_self_valid
+
+        # check child validation
+        for child in self.children:
+            if isinstance(child, UUID):
+                # cannot validate un-filled uuids
+                continue
+            child_valid = child.validate(toplevel=False)
+            if not child_valid:
+                return child_valid
+
+        # everythin seems to be ok
+        return ValidationResult(uuid=self.uuid)
 
     def has_cycle(self, parents=None) -> bool:
         if parents is None:
@@ -282,6 +318,10 @@ class Snapshot(Nestable, Entry):
 
         return ref_list
 
+    def validate(self, toplevel: bool = True) -> ValidationResult:
+        # TODO: Verify structure matches origin Collection?
+        return super().validate(toplevel)
+
 
 @dataclass
 class Template(Entry):
@@ -314,3 +354,32 @@ class Root:
 
 PVEntry = Union[Parameter, Setpoint, Readback]
 NestableEntry = Union[Collection, Snapshot]
+
+
+def get_entry_from_path(path: AnyPath) -> Entry:
+    """
+    Loads an Entry from a serialized json file.
+    Note: Entry will need to nested in a Root to properly invoke tagged union machinery
+
+    Extract the entry from the root's children.
+    TODO: Consider allowing importing multiple entries at once?
+
+    Raises
+    ------
+    apischema.ValidationError
+        if deserialization fails
+    """
+    with open(path, "r") as fd:
+        deser = json.load(fd)
+
+    return apischema.deserialize(Root, deser).entries[0]
+
+
+def save_entry_to_path(entry: Entry, path: AnyPath):
+    """Save ``entry`` to ``path``, wrapping in a ``Root`` container"""
+    root_wrapped_entry = Root(entries=[entry])
+    ser = apischema.serialize(root_wrapped_entry)
+
+    with open(path, "w") as fd:
+        json.dump(ser, fd, indent=2)
+        fd.write("\n")

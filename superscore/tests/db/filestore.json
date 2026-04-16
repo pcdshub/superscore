@@ -72,7 +72,7 @@
         "description": "Snapshot 1 created from collection 1",
         "creation_time": "2024-05-10T16:49:34.574911+00:00",
         "title": "snapshot 1",
-        "origin_collection": null,
+        "origin_collection": "a9f289d4-3421-4107-8e7f-2fe0daab77a5",
         "children": [
           {
             "uuid": "ecb42cdb-b703-4562-86e1-45bd67a2ab1a",

@@ -772,8 +772,15 @@ def parameter_with_readback() -> Parameter:
     return setpoint
 
 
-def simple_snapshot() -> Collection:
-    snap = Snapshot(description='various types', title='types collection')
+def simple_snapshot() -> Snapshot:
+    origin_coll = Collection(description="origin of various types",
+                             children=[
+                                 Parameter(pv_name="MY:FLOAT"),
+                                 Parameter(pv_name="MY:INT"),
+                                 Parameter(pv_name="MY:ENUM"),
+                             ])
+    snap = Snapshot(description='various types', title='types collection',
+                    origin_collection=origin_coll)
     snap.children.append(Setpoint(pv_name="MY:FLOAT"))
     snap.children.append(Setpoint(pv_name="MY:INT"))
     snap.children.append(Setpoint(pv_name="MY:ENUM"))

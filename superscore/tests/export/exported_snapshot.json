@@ -1,0 +1,48 @@
+{
+  "uuid": "a28cd77d-cc92-46cc-90cb-758f0f36f041",
+  "entries": [
+    {
+      "Snapshot": {
+        "uuid": "ce1d7818-9405-448e-8004-9b121a3a954b",
+        "description": "Snapshot 1 created from collection 1",
+        "creation_time": "2026-01-13T17:19:25.091070+00:00",
+        "children": [
+          {
+            "uuid": "d281b08e-7aa0-4e2d-bf5d-36bd989f461a",
+            "description": "",
+            "creation_time": "2026-01-13T17:19:25.091080+00:00",
+            "pv_name": "MY:PREFIX:mtr1.ACCL",
+            "data": 2,
+            "status": 17,
+            "severity": 3,
+            "readback": null
+          },
+          {
+            "uuid": "619ea3cf-9ab0-4ca2-a1ca-3be2539e8ca6",
+            "description": "",
+            "creation_time": "2026-01-13T17:19:25.091090+00:00",
+            "pv_name": "MY:PREFIX:mtr1.VELO",
+            "data": 2,
+            "status": 17,
+            "severity": 3,
+            "readback": null
+          },
+          {
+            "uuid": "4acf2759-4571-4f0c-8b19-a3c1cf587084",
+            "description": "",
+            "creation_time": "2026-01-13T17:19:25.091098+00:00",
+            "pv_name": "MY:PREFIX:mtr1.PREC",
+            "data": 6,
+            "status": 17,
+            "severity": 3,
+            "readback": null
+          }
+        ],
+        "title": "snapshot 1",
+        "origin_collection": "f91e5c52-5956-4e35-bfa5-716aeee80b51",
+        "tags": [],
+        "meta_pvs": []
+      }
+    }
+  ]
+}

@@ -2,11 +2,12 @@ import asyncio
 from typing import Any, Callable
 
 import pytest
+import pytest_asyncio
 
 from superscore.control_layers.status import TaskStatus
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def normal_coroutine() -> Callable[[], Any]:
     async def inner_coroutine():
         await asyncio.sleep(0.01)
@@ -14,7 +15,7 @@ async def normal_coroutine() -> Callable[[], Any]:
     return inner_coroutine
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def failing_coroutine() -> Callable[[], Any]:
     async def inner_coroutine():
         await asyncio.sleep(0.01)
@@ -23,7 +24,7 @@ async def failing_coroutine() -> Callable[[], Any]:
     return inner_coroutine
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def long_coroutine_status() -> TaskStatus:
     @TaskStatus.wrap
     async def inner_coroutine():
@@ -34,6 +35,7 @@ async def long_coroutine_status() -> TaskStatus:
     return inner_coroutine()
 
 
+@pytest.mark.asyncio
 async def test_status_success(normal_coroutine):
     st = TaskStatus(normal_coroutine())
     assert isinstance(st, TaskStatus)
@@ -44,6 +46,7 @@ async def test_status_success(normal_coroutine):
     assert st.success
 
 
+@pytest.mark.asyncio
 async def test_status_fail(failing_coroutine):
     status = TaskStatus(failing_coroutine())
     assert status.exception() is None
@@ -81,6 +84,7 @@ def test_status_wait(long_coroutine_status):
     assert isinstance(long_coroutine_status.exception(), asyncio.CancelledError)
 
 
+@pytest.mark.asyncio
 async def test_status_wrap():
     @TaskStatus.wrap
     async def coro_status():

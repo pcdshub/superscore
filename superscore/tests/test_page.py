@@ -15,6 +15,7 @@ from superscore.control_layers._base_shim import EpicsData
 from superscore.model import (Collection, Parameter, Readback, Setpoint,
                               Severity, Snapshot, Status)
 from superscore.tests.conftest import setup_test_stack
+from superscore.validation import ValidationCode, ValidationResult
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.diff import DiffPage
 from superscore.widgets.page.entry import (BaseParameterPage, CollectionPage,
@@ -54,7 +55,12 @@ def collection_page(qtbot: QtBot, test_client: Client, mock_window: Window):
 
 @pytest.fixture(scope="function")
 def snapshot_page(qtbot: QtBot, test_client: Client, mock_window: Window):
-    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()])
+    origin_coll = Collection()
+    # Snapshots require origin collections to exist
+    test_client.save(origin_coll)
+
+    data = Snapshot(children=[Setpoint(pv_name="ORIG:NAME"), Snapshot()],
+                    origin_collection=origin_coll)
     page = SnapshotPage(data=data, client=test_client)
     qtbot.addWidget(page)
     yield page
@@ -518,3 +524,30 @@ def test_nest_page_dirty_save(
         assert isinstance(widget, QtWidgets.QWidget)
         # .isHidden can still be False if a parent widget is hidden.
         assert not widget.isVisible()
+
+
+@pytest.mark.parametrize('page', [
+    "parameter_page",
+    "setpoint_page",
+    "readback_page",
+    "collection_page",
+    "snapshot_page"
+])
+@setup_test_stack(sources=["db/filestore.json"], backend_type=[FilestoreBackend, DirectoryBackend])
+def test_invalid_entry_save_disable(
+    test_client: Client,
+    page: str,
+    request: pytest.FixtureRequest,
+    monkeypatch,
+):
+    page_widget = request.getfixturevalue(page)
+    assert isinstance(page_widget, (BaseParameterPage, NestablePage))
+    monkeypatch.setattr(
+        Client, "validate",
+        lambda *args, **kwargs: ValidationResult(
+            uuid=page_widget.data.uuid,
+            code=ValidationCode.TYPE_ERROR
+        )
+    )
+    page_widget.update_dirty_status()
+    assert not page_widget.save_button.isEnabled()

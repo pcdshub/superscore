@@ -1,0 +1,17 @@
+{
+  "uuid": "a28cd77d-cc92-46cc-90cb-758f0f36f041",
+  "entries": [
+    {
+      "Setpoint": {
+        "uuid": "e98322df-b894-48d5-b284-86483194d1ee",
+        "description": "",
+        "creation_time": "2026-01-09T18:59:30.320598+00:00",
+        "pv_name": "IM1L0:XTES:MMS:STATE:GET_RBV",
+        "data": null,
+        "status": 17,
+        "severity": 3,
+        "readback": null
+      }
+    }
+  ]
+}

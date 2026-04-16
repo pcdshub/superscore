@@ -1,12 +1,17 @@
+from pathlib import Path
 from uuid import UUID
 
 import pytest
 from pytestqt.qtbot import QtBot
 from qtpy import QtWidgets
 
+from superscore.backends.directory import DirectoryBackend
 from superscore.backends.filestore import FilestoreBackend
 from superscore.client import Client
+from superscore.model import (Collection, Entry, Setpoint, Snapshot, Template,
+                              get_entry_from_path)
 from superscore.tests.conftest import setup_test_stack
+from superscore.widgets.core import DataWidget
 from superscore.widgets.page.collection_builder import CollectionBuilderPage
 from superscore.widgets.page.entry import (CollectionPage, ParameterPage,
                                            SetpointPage, SnapshotPage)
@@ -107,6 +112,8 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
         ("uuid", "eq", UUID("ffd668d3-57d9-404e-8366-0778af7aee61"))
     ))[0]
 
+    assert isinstance(snapshot, Snapshot)
+
     collection_page = window.open_page(collection)
     new_snapshot = collection_page.take_snapshot()
     collection_page.children()[-1].done(1)
@@ -115,6 +122,8 @@ def test_take_snapshot(qtbot: QtBot, test_client: Client, monkeypatch):
 
     # cannot take snapshot without a relevant origin collection
     snapshot_page = window.open_page(snapshot)
+    # Database has proper data linkage/validation, break this for testing purposes
+    snapshot_page.data.origin_collection = None
     assert isinstance(snapshot_page, SnapshotPage)
     result = snapshot_page.take_snapshot()
     assert result is None
@@ -163,3 +172,49 @@ def test_open_page_editability(qtbot, test_client: Client, editable: bool,):
         assert page.editable == editable
         # close the polling loops so we don't wait for them all at once
         page.close()
+
+
+@pytest.mark.parametrize("filename,expected_entry_type", [
+    ("exported_setpoint.json", Setpoint),
+    ("exported_template.json", Template),
+    ("exported_collection.json", Collection),
+    ("exported_snapshot.json", Snapshot),
+])
+@setup_test_stack(
+    sources=["db/filestore.json",],
+    backend_type=[FilestoreBackend, DirectoryBackend],
+)
+def test_import_export(
+    qtbot: QtBot,
+    test_client: Client,
+    filename: str,
+    expected_entry_type: type[Entry],
+    tmp_path: Path,
+    monkeypatch,
+):
+    window = Window(client=test_client)
+    qtbot.addWidget(window)
+
+    import_file_path = Path(__file__).parent / "export" / filename
+
+    window.import_from_file(import_file_path)
+
+    page_widget = window.tab_widget.currentWidget()
+    assert isinstance(page_widget, DataWidget)
+    assert isinstance(page_widget.data, expected_entry_type)
+
+    # check that round trip yields similar dataclasses
+    export_path = tmp_path / "export_data.json"
+
+    def return_export_path(*args, **kwargs):
+        return export_path, None
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", return_export_path)
+    window.export_current_tab_data()
+
+    data_1 = get_entry_from_path(import_file_path)
+    data_2 = get_entry_from_path(export_path)
+
+    data_1.uuid = data_2.uuid
+
+    assert data_1 == data_2

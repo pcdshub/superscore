@@ -50,6 +50,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="open_origin_button">
+          <property name="text">
+           <string>Open Parent Collection</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="restore_button">
           <property name="text">
            <string>Restore Snapshot</string>

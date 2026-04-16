@@ -37,6 +37,7 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
 
     save_button: QtWidgets.QPushButton
     snapshot_button: QtWidgets.QPushButton
+    open_origin_button: QtWidgets.QPushButton
     restore_button: QtWidgets.QPushButton
     convert_template_button: QtWidgets.QPushButton
 
@@ -124,12 +125,32 @@ class NestablePage[NT: NestableEntry](Display, DataWidget[NT]):
             self._dirty, self.sub_coll_table_view.dirty, self.sub_pv_table_view.dirty
         ))
         logger.debug(f"Entry {self.data.uuid} Dirty?: {self.dirty}")
-        if self.dirty:
-            self.save_button.setText("Save *")
-            self.save_button.setEnabled(True)
+
+        # Baseline is enbled button, give helpful tooltips depending on reason
+        enabled = True
+        reasons = []
+        if self.client is None:
+            reasons.append("No client assigned.")
+            enabled = False
+
+        if self.client is None:
+            validation_result = self.data.validate()
+            enabled = False
         else:
-            self.save_button.setText("Save")
-            self.save_button.setEnabled(False)
+            validation_result = self.client.validate(self.data)
+
+        if not validation_result:
+            reasons.append(validation_result.reason)
+            enabled = False
+
+        # Finally enable if data is dirty
+        if self.dirty and enabled:
+            self.save_button.setText("Save *")
+            self.save_button.setToolTip("")
+        else:
+            self.save_button.setToolTip("\n".join(reasons))
+
+        self.save_button.setEnabled(enabled)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         logger.debug(f"Stopping polling threads for {type(self.data)}")
@@ -190,6 +211,7 @@ class CollectionPage(NestablePage[Collection]):
     def setup_ui(self):
         super().setup_ui()
         self.restore_button.hide()
+        self.open_origin_button.hide()
         self.convert_template_button.show()
 
 
@@ -199,9 +221,17 @@ class SnapshotPage(NestablePage[Snapshot]):
         super().setup_ui()
         self.convert_template_button.hide()
         window = self.get_window()
-        if window is not None:
-            self.restore_button.clicked.connect(
-                partial(window.open_restore_page, snapshot=self.data)
+        if window is None:
+            return
+
+        self.restore_button.clicked.connect(
+            partial(window.open_restore_page, snapshot=self.data)
+        )
+        if self.data.origin_collection is None:
+            self.open_origin_button.setEnabled(False)
+        else:
+            self.open_origin_button.clicked.connect(
+                partial(window.open_page, self.data.origin_collection)
             )
 
 
@@ -239,6 +269,7 @@ class BaseParameterPage[PVT: PVEntry](Display, DataWidget[PVT]):
     rbv_pv_label: QtWidgets.QLabel
 
     save_button: QtWidgets.QPushButton
+    RBVCls = Parameter
 
     _edata_thread: Optional[BusyCursorThread]
 
@@ -455,7 +486,7 @@ class BaseParameterPage[PVT: PVEntry](Display, DataWidget[PVT]):
             widget.bridge.pv_name.changed_value.connect(self.rbv_pv_label.setText)
 
     def create_rbv(self):
-        new_rbv = Readback(pv_name='<MY:PV>')
+        new_rbv = self.RBVCls(pv_name='<MY:PV>')
         self.bridge.readback.put(new_rbv)
         self.open_rbv_page()
 
@@ -475,12 +506,31 @@ class BaseParameterPage[PVT: PVEntry](Display, DataWidget[PVT]):
         self.update_dirty_status()
 
     def update_dirty_status(self):
-        if self.dirty:
-            self.save_button.setText("Save *")
-            self.save_button.setEnabled(True)
+        # Baseline is enbled button, give helpful tooltips depending on reason
+        enabled = True
+        reasons = []
+        if self.client is None:
+            reasons.append("No client assigned.")
+            enabled = False
+
+        if self.client is None:
+            validation_result = self.data.validate()
+            enabled = False
         else:
-            self.save_button.setText("Save")
-            self.save_button.setEnabled(False)
+            validation_result = self.client.validate(self.data)
+
+        if not validation_result:
+            reasons.append(validation_result.reason)
+            enabled = False
+
+        # Finally enable if data is dirty
+        if self.dirty and enabled:
+            self.save_button.setText("Save *")
+            self.save_button.setToolTip("")
+        else:
+            self.save_button.setToolTip("\n".join(reasons))
+
+        self.save_button.setEnabled(enabled)
 
 
 class ParameterPage(BaseParameterPage[Parameter]):
@@ -488,7 +538,7 @@ class ParameterPage(BaseParameterPage[Parameter]):
 
 
 class SetpointPage(BaseParameterPage[Setpoint]):
-    pass
+    RBVCls = Readback
 
 
 class ReadbackPage(BaseParameterPage[Readback]):
