@@ -13,8 +13,8 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0" colspan="2">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
     <widget class="QLabel" name="topLabel">
      <property name="text">
       <string>PVs to Restore</string>
@@ -24,18 +24,42 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2">
-    <widget class="QTableWidget" name="tableWidget"/>
+   <item>
+    <widget class="QWidget" name="table_view_placeholder" native="true"/>
    </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="restoreButton">
+   <item>
+    <widget class="QPushButton" name="restore_all_button">
      <property name="text">
-      <string>Restore</string>
+      <string>Restore All</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="0">
-    <widget class="QPushButton" name="cancelButton">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="topMargin">
+      <number>10</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="restore_batch_button">
+       <property name="text">
+        <string>Restore Batch of </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="batch_size_spinbox"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="pvs_label">
+       <property name="text">
+        <string>PVs</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QPushButton" name="cancel_button">
      <property name="text">
       <string>Cancel</string>
      </property>
