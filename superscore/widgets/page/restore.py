@@ -108,10 +108,18 @@ class RestoreDialogModel(QtCore.QAbstractTableModel):
 
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable
 
-    def removeRow(self, row: int, parent: QtCore.QModelIndex = ...) -> bool:
-        self.beginRemoveRows(QtCore.QModelIndex(), row, row)
-        self.entries.pop(row)
-        self.endRemoveRows()
+    def removeRow(
+        self,
+        row: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex()
+    ) -> bool:
+        try:
+            self.beginRemoveRows(QtCore.QModelIndex(), row, row)
+            self.entries.pop(row)
+            self.endRemoveRows()
+            return True
+        except Exception:
+            return False
 
 
 class RestoreDialogView(QtWidgets.QTableView):
@@ -163,15 +171,22 @@ class RestoreDialog(Display, QtWidgets.QWidget):
         self.restore_batch_button.clicked.connect(self.restore_batch)
 
     def restore_all(self):
+        """
+        Restore all entries from the snapshot.
+        """
         ephemeral_snapshot = Snapshot(children=self.entries)
         self.client.apply(ephemeral_snapshot)
         self.close()
 
     def _set_batch_limits(self):
+        """
+        Set the batch size spinbox limits based on the loaded entries
+        """
         self.batch_size_spinbox.setMinimum(1)
         self.batch_size_spinbox.setMaximum(len(self.entries))
 
     def restore_batch(self):
+        """Restore the a batch of PVs of size specified by the spinbox"""
         batch_size = self.batch_size_spinbox.value()
         ephemeral_snapshot = Snapshot(children=self.entries[:batch_size])
         self.client.apply(ephemeral_snapshot)
