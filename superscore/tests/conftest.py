@@ -16,8 +16,8 @@ from superscore.backends.test import TestBackend
 from superscore.client import Client
 from superscore.control_layers._base_shim import _BaseShim
 from superscore.control_layers.core import ControlLayer
-from superscore.model import (Collection, Entry, Nestable, Parameter, Root,
-                              Setpoint)
+from superscore.model import (Entry, Nestable, Parameter, Root, Setpoint,
+                              Snapshot)
 from superscore.tests.ioc import IOCFactory
 from superscore.widgets.views import EntryItem
 from superscore.widgets.window import Window
@@ -50,7 +50,7 @@ def parameter_with_readback_fixture() -> Parameter:
 
 
 @pytest.fixture(scope='function')
-def simple_snapshot_fixture() -> Collection:
+def simple_snapshot_fixture() -> Snapshot:
     return simple_snapshot()
 
 
