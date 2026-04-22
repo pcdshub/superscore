@@ -46,6 +46,7 @@ release = ""
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.intersphinx",
@@ -56,6 +57,8 @@ extensions = [
     # jquery removed in sphinx 6.0 and used in docs_versions_menu.
     # See: https://www.sphinx-doc.org/en/master/changes.html
     "sphinxcontrib.jquery",
+    "sphinxcontrib.mermaid",
+    "sphinx_uml",
     "numpydoc",
     "recommonmark",
     "docs_versions_menu",
@@ -215,3 +218,8 @@ inheritance_graph_attrs = dict(
 
 inheritance_alias = {
 }
+
+set_typehints_defaults = "braces"
+always_document_param_types = True
+autodoc_typehints = "signature"
+autodoc_docstring_signature = False

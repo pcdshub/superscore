@@ -1,3 +1,5 @@
+"""Entry Templating routines and helpers.  A more robust find and replace"""
+
 import re
 from copy import deepcopy
 from dataclasses import fields, is_dataclass

@@ -203,6 +203,8 @@ class FilestoreBackend(_Backend):
         db : dict
             Dictionary to store in JSON.
         """
+        # TODO: Decide if we want to store everything as flat, let tree get
+        # reconstructed on the UI on demand
         temp_path = self._temp_path()
         self._root = self.reconstruct_root()
         serialized = serialize(Root, self._root)

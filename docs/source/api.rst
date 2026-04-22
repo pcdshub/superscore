@@ -9,9 +9,25 @@ Dataclasses
     :toctree: generated
     :recursive:
 
-    superscore.model.Parameter
-    superscore.model.Setpoint
-    superscore.model.Readback
-    superscore.model.Collection
-    superscore.model.Snapshot
-    superscore.model.Template
+    superscore.model
+
+
+Client
+^^^^^^
+
+.. autosummary::
+    :toctree: generated
+    :recursive:
+
+    superscore.client
+
+Data Manipulation Routines
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+    :toctree: generated
+    :recursive:
+
+    superscore.compare
+    superscore.templates
+    superscore.validation

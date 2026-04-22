@@ -1,4 +1,5 @@
-"""Client for superscore.  Used for programmatic interactions with superscore"""
+"""Client for superscore.  Used for programmatic interactions with superscore backends"""
+
 import configparser
 import getpass
 import logging

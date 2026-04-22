@@ -1364,7 +1364,7 @@ class LivePVTableModel(BaseTableEntryModel[LivePVHeader, PVEntry]):
         e_data = self.get_cache_data(entry.pv_name)
         if not isinstance(e_data, EpicsData):
             # data still fetching, don't compare
-            return
+            return False
 
         if hasattr(e_data, "enums") and e_data.enums and isinstance(data, int):
             # Unify enum representation
@@ -1375,7 +1375,7 @@ class LivePVTableModel(BaseTableEntryModel[LivePVHeader, PVEntry]):
             l_data = e_data.data
 
         try:
-            return np.isclose(l_data, r_data)
+            return np.isclose(l_data, r_data, entry.rel_tolerance, entry.abs_tolerance)
         except TypeError:
             return l_data == r_data
 

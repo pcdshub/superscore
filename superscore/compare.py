@@ -1,3 +1,5 @@
+"""Routines and helpers for comparing Entry data and generaing diffs"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, fields, is_dataclass

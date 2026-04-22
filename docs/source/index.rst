@@ -29,6 +29,8 @@ way.
    :caption: Contents:
 
    api.rst
+   model.rst
+   developer_docs.rst
    releases.rst
    upcoming_changes.rst
 
