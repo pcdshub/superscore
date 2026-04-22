@@ -4,6 +4,7 @@ docs-versions-menu
 numpydoc
 recommonmark
 sphinx
+sphinx-autodoc-typehints
 sphinx-copybutton
 sphinx_rtd_theme
 # Required for compatibility with Sphinx 6.0+:
