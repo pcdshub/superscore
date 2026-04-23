@@ -122,7 +122,7 @@ class FilestoreBackend(_Backend):
 
         Notes
         -----
-        This exists because the `.store` and `.load` methods assume that the
+        This exists because the `FilestoreBackend.store` and `FilestoreBackend.load` methods assume that the
         given path already points to a readable JSON file. In order to begin
         filling a new database, an empty but valid JSON file is created.
         """
@@ -198,10 +198,6 @@ class FilestoreBackend(_Backend):
         2. Move the temporary file over the previous database.
         Step 2 is an atomic operation, ensuring that the database
         does not get corrupted by an interrupted json.dump.
-        Parameters
-        ----------
-        db : dict
-            Dictionary to store in JSON.
         """
         # TODO: Decide if we want to store everything as flat, let tree get
         # reconstructed on the UI on demand

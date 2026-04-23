@@ -338,9 +338,9 @@ class Template(Entry):
     A template for creating a Collections and Parameters with placeholders.
     A placeholder is demarked by double braces ({{}})
 
-    Actual template is created by modifying `.template_collection`
-    - replacing substrings (keys of `Template.placeholders`)
-    - with placeholders ("{{value of `Template.placeholders`}}")
+    Actual template is created by modifying ``.template_collection``
+    - replacing substrings (keys of ``Template.placeholders``)
+    - with placeholders ("{{value of ``Template.placeholders``}}")
     """
     title: str = ""
     template_collection: Union[Collection, UUID] = field(default_factory=Collection)
