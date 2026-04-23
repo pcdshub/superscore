@@ -1375,7 +1375,7 @@ class LivePVTableModel(BaseTableEntryModel[LivePVHeader, PVEntry]):
             l_data = e_data.data
 
         try:
-            return np.isclose(l_data, r_data, entry.rel_tolerance, entry.abs_tolerance)
+            return np.isclose(l_data, r_data)
         except TypeError:
             return l_data == r_data
 
