@@ -29,18 +29,17 @@ Setpoints can have an associated Readback.
 Readback |READBACK|
 -------------------
 A `Readback` is a recorded value that **cannot** be written back to the system.
-`Readback`s are meant to only store information from the system and to be used
+`Readback` 's are meant to only store information from the system and to be used
 for comparison.  In cases where setting the value of a PV might affect the value
 of a different PV, which might not necessarily match the setpoint value.
 For example, if moving the position of a motor is expected to directly affect the value
 of a related diode reading, one might set the motor's position in a `Setpoint`
-and the diode's voltage in a `Readback`.
-
+and the diode's voltage in a `Readback`
 
 Collection |COLLECTION|
 -----------------------
-A `Collection` is a grouping of `Parameters` and `Collections`.  By also
-allowing `Collection`s to hold other `Collection`s, we enable building
+A `Collection` is a grouping of `Parameter` and `Collection` entries.  By also
+allowing `Collection` 's to hold other `Collection` 's, we enable building
 configurations in an organized and hierarchical manner.  When filled with data
 from the controls system, a `Collection` will become a `Snapshot` with matching
 internal structure.

@@ -6,7 +6,8 @@ Dataclasses
 ^^^^^^^^^^^
 
 .. autosummary::
-    :toctree: generated
+    :toctree: _autosummary
+    :template: custom-module-template.rst
     :recursive:
 
     superscore.model
@@ -16,18 +17,52 @@ Client
 ^^^^^^
 
 .. autosummary::
-    :toctree: generated
+    :toctree: _autosummary
+    :template: custom-module-template.rst
     :recursive:
 
-    superscore.client
+    superscore.client.Client
+
+Backend
+^^^^^^^
+
+.. autosummary::
+    :toctree: _autosummary
+    :template: custom-module-template.rst
+    :recursive:
+
+    superscore.backends
+
+
+Control Layers
+^^^^^^^^^^^^^^
+
+.. autosummary::
+    :toctree: _autosummary
+    :template: custom-module-template.rst
+    :recursive:
+
+    superscore.control_layers
 
 Data Manipulation Routines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-    :toctree: generated
+    :toctree: _autosummary
+    :template: custom-module-template.rst
     :recursive:
 
     superscore.compare
     superscore.templates
     superscore.validation
+
+Graphical User Interface
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+    :toctree: _autosummary
+    :template: custome-module-template.rst
+    :recursive:
+
+    superscore.widgets
+    superscore.qt_helpers
