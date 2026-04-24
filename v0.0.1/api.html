@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Superscore API &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="superscore.model" href="_autosummary/superscore.model.html" />
+    <link rel="prev" title="Welcome to superscore’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Superscore API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dataclasses">Dataclasses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.model.html">superscore.model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#client">Client</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.client.Client.html">superscore.client.Client</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#backend">Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.backends.html">superscore.backends</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#control-layers">Control Layers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.control_layers.html">superscore.control_layers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-manipulation-routines">Data Manipulation Routines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.compare.html">superscore.compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.templates.html">superscore.templates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.validation.html">superscore.validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#graphical-user-interface">Graphical User Interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.widgets.html">superscore.widgets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/superscore.qt_helpers.html">superscore.qt_helpers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Superscore API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="superscore-api">
+<h1>Superscore API<a class="headerlink" href="#superscore-api" title="Link to this heading"></a></h1>
+<section id="dataclasses">
+<h2>Dataclasses<a class="headerlink" href="#dataclasses" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.model</span></code></p></td>
+<td><p>Classes for representing data</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="client">
+<h2>Client<a class="headerlink" href="#client" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.client.Client</span></code></a>([backend, ...])</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="backend">
+<h2>Backend<a class="headerlink" href="#backend" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/superscore.backends.html#module-superscore.backends" title="superscore.backends"><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.backends</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="control-layers">
+<h2>Control Layers<a class="headerlink" href="#control-layers" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.control_layers</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data-manipulation-routines">
+<h2>Data Manipulation Routines<a class="headerlink" href="#data-manipulation-routines" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.compare</span></code></p></td>
+<td><p>Routines and helpers for comparing Entry data and generaing diffs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.templates</span></code></p></td>
+<td><p>Entry Templating routines and helpers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.validation</span></code></p></td>
+<td><p>Validation Result Information bundle</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="graphical-user-interface">
+<h2>Graphical User Interface<a class="headerlink" href="#graphical-user-interface" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/superscore.widgets.html#module-superscore.widgets" title="superscore.widgets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.widgets</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/superscore.qt_helpers.html#module-superscore.qt_helpers" title="superscore.qt_helpers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">superscore.qt_helpers</span></code></a></p></td>
+<td><p>Helper QObject classes for managing dataclass instances.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to superscore’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="_autosummary/superscore.model.html" class="btn btn-neutral float-right" title="superscore.model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

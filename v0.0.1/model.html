@@ -1,0 +1,322 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Model &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Developer Documentation" href="developer_docs.html" />
+    <link rel="prev" title="superscore.qt_helpers" href="_autosummary/superscore.qt_helpers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Superscore API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parameter-parameter">Parameter </a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setpoint-setpoint">Setpoint </a></li>
+<li class="toctree-l2"><a class="reference internal" href="#readback-readback">Readback </a></li>
+<li class="toctree-l2"><a class="reference internal" href="#collection-collection">Collection </a></li>
+<li class="toctree-l2"><a class="reference internal" href="#snapshot-snapshot">Snapshot </a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-dataclass-uml-diagram">Full Dataclass UML diagram</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Data Model</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/model.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-model">
+<h1>Data Model<a class="headerlink" href="#data-model" title="Link to this heading"></a></h1>
+<p>The data model is central to the operation of superscore.  Data is stored in one
+of six main dataclasses.  These dataclasses can be split into two main categories:</p>
+<ul class="simple">
+<li><p>Unfilled: Simply specifying the PVs to record</p></li>
+<li><p>Filled: Holding PV-Data pairs, with data values being pulled from the EPICS controls system</p></li>
+</ul>
+<p>The relationships between these dataclasses are summarized in Figure 1:</p>
+<figure class="align-default">
+<img alt="Diagram of the relationships between dataclasses in superscore" src="_images/dataclass_summary.png" />
+</figure>
+<section id="parameter-parameter">
+<h2>Parameter <a class="reference internal" href="_images/mdi--file.png"><img alt="PARAMETER" src="_images/mdi--file.png" style="width: 1em;" /></a><a class="headerlink" href="#parameter-parameter" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.14)"><code class="xref any docutils literal notranslate"><span class="pre">Parameter</span></code></a> is the building block of configurations in Superscore, holding
+an EPICS PV.  Parameters can become either a <code class="xref any docutils literal notranslate"><span class="pre">Setpoint</span></code> or <code class="xref any docutils literal notranslate"><span class="pre">Readback</span></code> when
+filled with data from the controls system.</p>
+</section>
+<section id="setpoint-setpoint">
+<h2>Setpoint <a class="reference internal" href="_images/mdi--target.png"><img alt="SETPOINT" src="_images/mdi--target.png" style="width: 1em;" /></a><a class="headerlink" href="#setpoint-setpoint" title="Link to this heading"></a></h2>
+<p>A <code class="xref any docutils literal notranslate"><span class="pre">Setpoint</span></code> is a recorded value that <strong>can</strong> be written back to the system.
+Setpoints can have an associated Readback.</p>
+</section>
+<section id="readback-readback">
+<h2>Readback <a class="reference internal" href="_images/mdi--book-open-variant.png"><img alt="READBACK" src="_images/mdi--book-open-variant.png" style="width: 1em;" /></a><a class="headerlink" href="#readback-readback" title="Link to this heading"></a></h2>
+<p>A <code class="xref any docutils literal notranslate"><span class="pre">Readback</span></code> is a recorded value that <strong>cannot</strong> be written back to the system.
+<code class="xref any docutils literal notranslate"><span class="pre">Readback</span></code> ‘s are meant to only store information from the system and to be used
+for comparison.  In cases where setting the value of a PV might affect the value
+of a different PV, which might not necessarily match the setpoint value.
+For example, if moving the position of a motor is expected to directly affect the value
+of a related diode reading, one might set the motor’s position in a <code class="xref any docutils literal notranslate"><span class="pre">Setpoint</span></code>
+and the diode’s voltage in a <code class="xref any docutils literal notranslate"><span class="pre">Readback</span></code></p>
+</section>
+<section id="collection-collection">
+<h2>Collection <a class="reference internal" href="_images/mdi--file-document-multiple.png"><img alt="COLLECTION" src="_images/mdi--file-document-multiple.png" style="width: 1em;" /></a><a class="headerlink" href="#collection-collection" title="Link to this heading"></a></h2>
+<p>A <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code> is a grouping of <a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.14)"><code class="xref any docutils literal notranslate"><span class="pre">Parameter</span></code></a> and <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code> entries.  By also
+allowing <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code> ‘s to hold other <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code> ‘s, we enable building
+configurations in an organized and hierarchical manner.  When filled with data
+from the controls system, a <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code> will become a <code class="xref any docutils literal notranslate"><span class="pre">Snapshot</span></code> with matching
+internal structure.</p>
+</section>
+<section id="snapshot-snapshot">
+<h2>Snapshot <a class="reference internal" href="_images/mdi--camera.png"><img alt="SNAPSHOT" src="_images/mdi--camera.png" style="width: 1em;" /></a><a class="headerlink" href="#snapshot-snapshot" title="Link to this heading"></a></h2>
+<p>A <code class="xref any docutils literal notranslate"><span class="pre">Snapshot</span></code> is a filled <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code>, comprised of <code class="xref any docutils literal notranslate"><span class="pre">Setpoint</span></code>, <code class="xref any docutils literal notranslate"><span class="pre">Readback</span></code>, and
+other <code class="xref any docutils literal notranslate"><span class="pre">Snapshot</span></code> Entries.  A Snapshot will mimic the structure of the <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code>
+it was created from, as well as retain a link to that originating <code class="xref any docutils literal notranslate"><span class="pre">Collection</span></code>.
+This ensures that users can recreate <a href="#id1"><span class="problematic" id="id2">`</span></a>Snapshot`s and understand the context of
+its origin.</p>
+</section>
+<section id="full-dataclass-uml-diagram">
+<h2>Full Dataclass UML diagram<a class="headerlink" href="#full-dataclass-uml-diagram" title="Link to this heading"></a></h2>
+<figure class="align-default" id="id3">
+digraph &quot;classes&quot; {
+
+rankdir=BT
+
+charset=&quot;utf-8&quot;
+
+bgcolor=transparent
+
+&quot;superscore.model.Collection&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Collection&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Collection&quot; tooltip=&quot;Collection&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Collection&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.all_tags &quot; target=&quot;_top&quot; tooltip=&quot;Collection.all_tags : ClassVar[Set]&quot;&gt;all_tags : ClassVar[Set]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.children &quot; target=&quot;_top&quot; tooltip=&quot;Collection.children : List[Union[UUID, Parameter, Collection]]&quot;&gt;children : List[Union[UUID, Parameter, Collection]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.meta_pvs &quot; target=&quot;_top&quot; tooltip=&quot;Collection.meta_pvs : ClassVar[List[Parameter]]&quot;&gt;meta_pvs : ClassVar[List[Parameter]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.tags &quot; target=&quot;_top&quot; tooltip=&quot;Collection.tags : Set&quot;&gt;tags : Set&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.title &quot; target=&quot;_top&quot; tooltip=&quot;Collection.title : str&quot;&gt;title : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Collection.swap_to_uuids&quot; target=&quot;_top&quot; tooltip=&quot;Collection.swap_to_uuids&quot;&gt;swap_to_uuids(): List[Entry]&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Collection&quot;];
+
+&quot;superscore.model.Entry&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Entry&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Entry&quot; tooltip=&quot;Entry&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Entry&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Entry.creation_time &quot; target=&quot;_top&quot; tooltip=&quot;Entry.creation_time : datetime&quot;&gt;creation_time : datetime&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Entry.description &quot; target=&quot;_top&quot; tooltip=&quot;Entry.description : str&quot;&gt;description : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Entry.uuid &quot; target=&quot;_top&quot; tooltip=&quot;Entry.uuid : UUID&quot;&gt;uuid : UUID&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Entry.swap_to_uuids&quot; target=&quot;_top&quot; tooltip=&quot;Entry.swap_to_uuids&quot;&gt;swap_to_uuids(): List[Union[Entry, UUID]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Entry.validate&quot; target=&quot;_top&quot; tooltip=&quot;Entry.validate&quot;&gt;validate(toplevel: bool): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Entry&quot;];
+
+&quot;superscore.model.Nestable&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Nestable&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Nestable&quot; tooltip=&quot;Nestable&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Nestable&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Nestable.children &quot; target=&quot;_top&quot; tooltip=&quot;Nestable.children : List[Union[UUID, Entry]]&quot;&gt;children : List[Union[UUID, Entry]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Nestable.uuid &quot; target=&quot;_top&quot; tooltip=&quot;Nestable.uuid : UUID&quot;&gt;uuid : UUID&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Nestable.has_cycle&quot; target=&quot;_top&quot; tooltip=&quot;Nestable.has_cycle&quot;&gt;has_cycle(parents): bool&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Nestable.validate&quot; target=&quot;_top&quot; tooltip=&quot;Nestable.validate&quot;&gt;validate(toplevel: bool): ValidationResult&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Nestable.walk_children&quot; target=&quot;_top&quot; tooltip=&quot;Nestable.walk_children&quot;&gt;walk_children(): Generator[Any, None, None]&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Nestable&quot;];
+
+&quot;superscore.model.Parameter&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Parameter&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Parameter&quot; tooltip=&quot;Parameter&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Parameter&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.abs_tolerance &quot; target=&quot;_top&quot; tooltip=&quot;Parameter.abs_tolerance : Optional[float]&quot;&gt;abs_tolerance : Optional[float]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.pv_name &quot; target=&quot;_top&quot; tooltip=&quot;Parameter.pv_name : str&quot;&gt;pv_name : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.read_only &quot; target=&quot;_top&quot; tooltip=&quot;Parameter.read_only : bool&quot;&gt;read_only : bool&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.readback &quot; target=&quot;_top&quot; tooltip=&quot;Parameter.readback : Optional[Parameter]&quot;&gt;readback : Optional[Parameter]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.rel_tolerance &quot; target=&quot;_top&quot; tooltip=&quot;Parameter.rel_tolerance : Optional[float]&quot;&gt;rel_tolerance : Optional[float]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Parameter.validate&quot; target=&quot;_top&quot; tooltip=&quot;Parameter.validate&quot;&gt;validate(toplevel: bool): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Parameter&quot;];
+
+&quot;superscore.model.Readback&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Readback&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Readback&quot; tooltip=&quot;Readback&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Readback&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.abs_tolerance &quot; target=&quot;_top&quot; tooltip=&quot;Readback.abs_tolerance : Optional[float]&quot;&gt;abs_tolerance : Optional[float]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.data &quot; target=&quot;_top&quot; tooltip=&quot;Readback.data : Optional[AnyEpicsType]&quot;&gt;data : Optional[AnyEpicsType]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.pv_name &quot; target=&quot;_top&quot; tooltip=&quot;Readback.pv_name : str&quot;&gt;pv_name : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.rel_tolerance &quot; target=&quot;_top&quot; tooltip=&quot;Readback.rel_tolerance : Optional[float]&quot;&gt;rel_tolerance : Optional[float]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.severity&quot; target=&quot;_top&quot; tooltip=&quot;Readback.severity&quot;&gt;severity&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.status&quot; target=&quot;_top&quot; tooltip=&quot;Readback.status&quot;&gt;status&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.timeout &quot; target=&quot;_top&quot; tooltip=&quot;Readback.timeout : Optional[float]&quot;&gt;timeout : Optional[float]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Readback.from_parameter&quot; target=&quot;_top&quot; tooltip=&quot;Readback.from_parameter&quot;&gt;from_parameter(origin: Parameter, data: AnyEpicsType, status: Status, severity: Severity, timeout: Optional[float]): Readback&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Readback&quot;];
+
+&quot;superscore.model.Root&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Root&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Root&quot; tooltip=&quot;Root&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Root&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Root.entries &quot; target=&quot;_top&quot; tooltip=&quot;Root.entries : List[Entry]&quot;&gt;entries : List[Entry]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Root.uuid &quot; target=&quot;_top&quot; tooltip=&quot;Root.uuid : UUID&quot;&gt;uuid : UUID&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Root&quot;];
+
+&quot;superscore.model.Setpoint&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Setpoint&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint&quot; tooltip=&quot;Setpoint&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Setpoint&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.data &quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.data : Optional[AnyEpicsType]&quot;&gt;data : Optional[AnyEpicsType]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.pv_name &quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.pv_name : str&quot;&gt;pv_name : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.readback &quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.readback : Optional[Readback]&quot;&gt;readback : Optional[Readback]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.severity&quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.severity&quot;&gt;severity&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.status&quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.status&quot;&gt;status&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.from_parameter&quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.from_parameter&quot;&gt;from_parameter(origin: Parameter, data: AnyEpicsType, status: Status, severity: Severity): Setpoint&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Setpoint.validate&quot; target=&quot;_top&quot; tooltip=&quot;Setpoint.validate&quot;&gt;validate(toplevel: bool): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Setpoint&quot;];
+
+&quot;superscore.model.Severity&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Severity&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Severity&quot; tooltip=&quot;Severity&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Severity&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Severity.name&quot; target=&quot;_top&quot; tooltip=&quot;Severity.name&quot;&gt;name&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Severity&quot;];
+
+&quot;superscore.model.Snapshot&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Snapshot&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot&quot; tooltip=&quot;Snapshot&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Snapshot&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.children &quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.children : List[Union[UUID, Readback, Setpoint, Snapshot]]&quot;&gt;children : List[Union[UUID, Readback, Setpoint, Snapshot]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.meta_pvs &quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.meta_pvs : List[Readback]&quot;&gt;meta_pvs : List[Readback]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.origin_collection &quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.origin_collection : Optional[Union[UUID, Collection]]&quot;&gt;origin_collection : Optional[Union[UUID, Collection]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.tags &quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.tags : Set&quot;&gt;tags : Set&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.title &quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.title : str&quot;&gt;title : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.swap_to_uuids&quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.swap_to_uuids&quot;&gt;swap_to_uuids(): List[Union[Entry, UUID]]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Snapshot.validate&quot; target=&quot;_top&quot; tooltip=&quot;Snapshot.validate&quot;&gt;validate(toplevel: bool): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Snapshot&quot;];
+
+&quot;superscore.model.Status&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Status&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Status&quot; tooltip=&quot;Status&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Status&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Status.name&quot; target=&quot;_top&quot; tooltip=&quot;Status.name&quot;&gt;name&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Status&quot;];
+
+&quot;superscore.model.Template&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Template&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.model.html#superscore.model.Template&quot; tooltip=&quot;Template&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Template&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Template.placeholders &quot; target=&quot;_top&quot; tooltip=&quot;Template.placeholders : dict[str, str]&quot;&gt;placeholders : dict[str, str]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Template.template_collection &quot; target=&quot;_top&quot; tooltip=&quot;Template.template_collection : Union[Collection, UUID]&quot;&gt;template_collection : Union[Collection, UUID]&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Template.title &quot; target=&quot;_top&quot; tooltip=&quot;Template.title : str&quot;&gt;title : str&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.model.html#superscore.model.Template.swap_to_uuids&quot; target=&quot;_top&quot; tooltip=&quot;Template.swap_to_uuids&quot;&gt;swap_to_uuids(): List[Union[Entry, UUID]]&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.model.html#superscore.model.Template&quot;];
+
+&quot;superscore.model.Collection&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Collection&quot; -&gt; &quot;superscore.model.Nestable&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Parameter&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Readback&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Setpoint&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Snapshot&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Snapshot&quot; -&gt; &quot;superscore.model.Nestable&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Template&quot; -&gt; &quot;superscore.model.Entry&quot; [arrowhead=&quot;empty&quot;, arrowtail=&quot;none&quot;];
+
+&quot;superscore.model.Readback&quot; -&gt; &quot;superscore.model.Severity&quot; [arrowhead=&quot;vee&quot;, arrowtail=&quot;none&quot;, fontcolor=&quot;green&quot;, label=&quot;severity&quot;, style=&quot;solid&quot;];
+
+&quot;superscore.model.Setpoint&quot; -&gt; &quot;superscore.model.Severity&quot; [arrowhead=&quot;vee&quot;, arrowtail=&quot;none&quot;, fontcolor=&quot;green&quot;, label=&quot;severity&quot;, style=&quot;solid&quot;];
+
+&quot;superscore.model.Readback&quot; -&gt; &quot;superscore.model.Status&quot; [arrowhead=&quot;vee&quot;, arrowtail=&quot;none&quot;, fontcolor=&quot;green&quot;, label=&quot;status&quot;, style=&quot;solid&quot;];
+
+&quot;superscore.model.Setpoint&quot; -&gt; &quot;superscore.model.Status&quot; [arrowhead=&quot;vee&quot;, arrowtail=&quot;none&quot;, fontcolor=&quot;green&quot;, label=&quot;status&quot;, style=&quot;solid&quot;];
+
+&quot;superscore.model.Collection&quot; -&gt; &quot;superscore.model.Snapshot&quot; [arrowhead=&quot;odiamond&quot;, arrowtail=&quot;none&quot;, fontcolor=&quot;green&quot;, label=&quot;origin_collection&quot;, style=&quot;solid&quot;];
+
+}
+<figcaption>
+<p><span class="caption-text">Classes of <code class="docutils literal notranslate"><span class="pre">superscore.model</span></code></span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p><a class="reference external" href="_images/graphviz-e16c5bf6434dc3ba57786666245345637b2303d7.svg">Open in a new tab</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="_autosummary/superscore.qt_helpers.html" class="btn btn-neutral float-left" title="superscore.qt_helpers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="developer_docs.html" class="btn btn-neutral float-right" title="Developer Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

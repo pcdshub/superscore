@@ -1,0 +1,304 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v0.1.0 (2026-04-22) &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Upcoming Changes" href="upcoming_changes.html" />
+    <link rel="prev" title="Developer Documentation" href="developer_docs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">v0.1.0 (2026-04-22)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-breaks">API Breaks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bugfixes">Bugfixes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maintenance">Maintenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">v0.1.0 (2026-04-22)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/releases.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="v0-1-0-2026-04-22">
+<h1>v0.1.0 (2026-04-22)<a class="headerlink" href="#v0-1-0-2026-04-22" title="Link to this heading"></a></h1>
+<p>This is the initial beta release of superscore.  The items here are a simple
+record of the contributions made.</p>
+<section id="api-breaks">
+<h2>API Breaks<a class="headerlink" href="#api-breaks" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Client._build_snapshot optionally accepts an empty Snapshot to fill instead of creating a new one</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">superscore.backends.filestore.FilestoreBackend.__init__()</span></code> does not accept <code class="docutils literal notranslate"><span class="pre">initialize</span></code> arg</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">FilestoreBackend.store()</span></code> does not accept any args</p></li>
+<li><p>the filestore_backend fixture requires parametrization using ‘db/filestore.json’ to match prior behaviour</p></li>
+<li><p>the linac_data fixture returns a Root rather than a tuple of Entries</p></li>
+<li><p>the comparison_linac_snapshot fixture has been renamed, and returns a Root containing the entries from linac_data in addition to its comparison snapshot</p></li>
+<li><p>Client.search takes SearchTerms as <code class="docutils literal notranslate"><span class="pre">*args</span></code> rather than key-value pairs as <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code></p></li>
+</ul>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Adds ability to import/export from serialized json</p></li>
+<li><p>Enable/disable Entry page save button based on Validation status, providing helpful tooltips</p></li>
+<li><p>ability to save Snapshots for a Collection</p></li>
+<li><p>Extends <code class="docutils literal notranslate"><span class="pre">EpicsData</span></code> fields to include controls metadata</p></li>
+<li><p>Support editing for LivePVTableModel and NestableModel</p></li>
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">ValueDelegate</span></code>, which provides an edit delegate based on the datatype of the cell</p></li>
+<li><p>add button to take new snapshots on NestablePage</p></li>
+<li><p>implement fixture for running IOCs that can be queried for integration tests</p></li>
+<li><p>implement module that can run IOCs for demos</p></li>
+<li><p>Add skeleton for Client and Backend base class</p></li>
+<li><p>Adds DirectoryBackend, which stores serialized Entry’s in a nested directory structure (Radix Tree)</p></li>
+<li><p>Adds main window widget and cli entrypoint skeleton</p></li>
+<li><p>Add “ancestor” search option, returning entries reachable from the ancestor</p></li>
+<li><p>Add custom exceptions: BackendError, FileExistsError, FileNotFoundError</p></li>
+<li><p>Add TestBackend: an in-memory backend for testing purposes</p></li>
+<li><p>Add LINAC Collection test fixture</p></li>
+<li><p>Add batch restore functionality to RestoreDialog</p></li>
+<li><p>Adds CollectionBuilderPage, which can add/remove PVs/Collections</p></li>
+<li><p>Adds FilterComboBox, for filtering through options</p></li>
+<li><p>Adds BaseParameterPage, which dynamically shows/hides edit widgets based on which fields are present.  This page widget is designed for Single PV entries.</p></li>
+<li><p>Adds BusyCursorThread, for showing a busy cursor during potentially blocking work.</p></li>
+<li><p>Adds first pass at Nestible (Collection, Snapshot) view pages.</p></li>
+<li><p>Adds DiffPage for comparing two Entry’s with diff highlighting</p></li>
+<li><p>Adds FilestoreBackend</p></li>
+<li><p>Adds Root for holding top-level Entry objects</p></li>
+<li><p>Adds UUID to potentially lazy fields</p></li>
+<li><p>Adds DataWidget, RootModel, and related qt helpers</p></li>
+<li><p>adds templating support, with GUI support</p></li>
+<li><p>adds <code class="docutils literal notranslate"><span class="pre">Window.open_page(entry)</span></code> for opening an <code class="docutils literal notranslate"><span class="pre">Entry</span></code> in a new tab</p></li>
+<li><p>Adds icons to represent various <code class="docutils literal notranslate"><span class="pre">Entry</span></code> subclasses</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">demo</span></code> subcommand that launches the UI with a backend and IOC populated with PV
+data from selectable fixtures</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ui.py::main</span></code> accepts an existing <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> as an arg</p></li>
+<li><p>Add dataclasses and simple serialization tests</p></li>
+<li><p>Adds ability for Client to search for configuration files, and load settings from them.</p></li>
+<li><p>Adds top-level tree to main window</p></li>
+<li><p>Adds icons to the TreeModel</p></li>
+<li><p>Adds fill_uuid method to TreeModel, which grabs data from client if possible</p></li>
+<li><p>Adds context menu on tree view for accessing custom actions.</p></li>
+<li><p>add restore page: shows all non-Nestable Entries within a Snapshot, can compare to live data</p></li>
+<li><p>restore page can be opened through the tree view context menu</p></li>
+<li><p>middle clicking on a BaseDataTableView cell copies the contents to the clipboard</p></li>
+<li><p>double clicking a TreeView item opens the detailed Entry page</p></li>
+<li><p>Implements <code class="xref py py-meth docutils literal notranslate"><span class="pre">Client.apply()</span></code> method for writing values from <code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code> data to the control system.</p></li>
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">BaseTableEntryModel</span></code>, from which <code class="docutils literal notranslate"><span class="pre">LivePVTableModel</span></code> and <code class="docutils literal notranslate"><span class="pre">NestableTableModel</span></code> inherit.
+These table models are intended to display <code class="docutils literal notranslate"><span class="pre">Entry</span></code> data and be reused across the application.</p></li>
+<li><p>Implements <code class="docutils literal notranslate"><span class="pre">LivePVTableModel</span></code>, including polling behavior for live PV display.</p></li>
+<li><p>Add validation methods to Entry and all subclasses</p></li>
+<li><p>Vendors the exception handler from PyDM and install it in the main GUI</p></li>
+<li><p>Added an <code class="xref py py-meth docutils literal notranslate"><span class="pre">_Backend.is_writable()</span></code> method for determining if a given entry can be written to.
+- For <code class="xref py py-class docutils literal notranslate"><span class="pre">FilestoreBackend</span></code> this is always <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.14)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> (if you can write to the file)
+- For <code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBackend</span></code> this depends on the particular file (normally <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.14)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a>)
+- For <code class="xref py py-class docutils literal notranslate"><span class="pre">TestBackend</span></code> this is always <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.14)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a></p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Client</span></code> now refers to the writability of an entry before trying to save/update it</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Client</span></code> can now be set to disallow writing to entries that already existed in the database before the session started.</p></li>
+<li><p>set up a recently-modified-entry cache held in Client memory to keep track of entries added in the current session, so users can continue to edit them</p></li>
+<li><p>Adds <code class="xref py py-meth docutils literal notranslate"><span class="pre">Nestable.walk_children()</span></code> to assist in finding all recently edited Entries and their children</p></li>
+<li><p>Adds shim layer for aioca (async Channel Access)</p></li>
+<li><p>Adds ControlLayer class for communicating with shims</p></li>
+<li><p>make the filestore_backend fixture accept pytest parametrized args</p></li>
+<li><p>args can be a file path, functions that return a Root or Iterable[Entry], or function names resolvable in conftest.py</p></li>
+<li><p>add RestorePage table tooltips with PV name, status, and severity</p></li>
+<li><p>add working restore button and dialog to RestorePage</p></li>
+<li><p>Standardize data handling to create and expect EpicsData instead of backend-specific data types.</p></li>
+<li><p>regex search on Entry text fields</p></li>
+<li><p>filter Entrys by tag</p></li>
+<li><p>filter Entrys by attribute value</p></li>
+<li><p>Adds SearchPage for filtering and viewing Entry objects</p></li>
+<li><p>Adds EntryDiff, which tracks two Entrys, along with a list of DiffItem objects</p></li>
+<li><p>Implements Client.fill for filling Nestable Entry UUID fields</p></li>
+<li><p>Implements Client.compare</p></li>
+</ul>
+</section>
+<section id="bugfixes">
+<h2>Bugfixes<a class="headerlink" href="#bugfixes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Main window closes tab widget tabs when closed, so they can do their clean up</p></li>
+<li><p>Assign readback dataclasses based on parent class.  Previously <code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterPage</span></code> was
+assigning a <code class="xref py py-class docutils literal notranslate"><span class="pre">Readback</span></code> to <code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameter.readback()</span></code> instead of a <code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code> as defined in the data model</p></li>
+<li><p>Fixes bug where TestBackend could not delete an entry that was a direct child of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Root</span></code></p></li>
+<li><p>Fixes behavior of FilestoreBackend to throw <code class="xref py py-class docutils literal notranslate"><span class="pre">EntryError</span></code> exceptions rather than just returning None</p></li>
+<li><p>_Backend.get -&gt; _Backend.get_entry in Client._build_snapshot</p></li>
+<li><p>add mandatory 3rd arg in setattr in FilestoreBackend.fill_uuids</p></li>
+<li><p>store EpicsData.data as primitive type, so it displays properly when returned by a Qt model</p></li>
+<li><p>don’t change control_layer/core.py:SHIMS when creating dummy CLs</p></li>
+<li><p>Properly fill items in the the shared tree view (<code class="xref py py-class docutils literal notranslate"><span class="pre">RootTree</span></code>)</p></li>
+<li><p>Fix bug where clicking the “add PV” button would also add a collection if it had been added before</p></li>
+<li><p>Properly check for sub-collections that have already been added during collection building</p></li>
+<li><p>Add newline to end of file when writing filestore json</p></li>
+<li><p>Fills the top-level entry whenever RootTree model is created, to ensure at least first level of children display</p></li>
+<li><p>Flatten and cache entries in FilestoreBackend.save_entry</p></li>
+<li><p>Refreshes window whenever a new collection is added from the <code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionBuilderPage</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_root</span></code> was <code class="docutils literal notranslate"><span class="pre">None</span></code> during <code class="xref py py-class docutils literal notranslate"><span class="pre">FilestoreBackend</span></code> file initialization, causing <code class="docutils literal notranslate"><span class="pre">TypeError</span></code></p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">IOCFactory.prepare_attrs()</span></code> now strips attr names of all non-alphanumeric characters</p></li>
+<li><p>Adjusts <code class="xref py py-meth docutils literal notranslate"><span class="pre">RootTree.canFetchMore()</span></code> to check both the dataclass and the <code class="docutils literal notranslate"><span class="pre">EntryItem</span></code> to avoid uuid-filling desyncs</p></li>
+<li><p>Fixes incorrect argument specification in open_page_slot</p></li>
+<li><p>stop LivePVTableModel polling before clearing data, to avoid accessing deleted data</p></li>
+<li><p>Fill UUID children when found in LivePVTableView and NestableTableView</p></li>
+<li><p>Keep track of dirty status in qt models, and send signals when this changes</p></li>
+<li><p>Grab fresh Entry from uuid whenever opening a page</p></li>
+</ul>
+</section>
+<section id="maintenance">
+<h2>Maintenance<a class="headerlink" href="#maintenance" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Refactors validation methods to pass a ValidationResult (holding validation state and reasoning) instead of simple boolean</p></li>
+<li><p>Allow <code class="xref py py-meth docutils literal notranslate"><span class="pre">Window.open_page()</span></code> to open uuids that exist in the database</p></li>
+<li><p>generalized Client._gather_data to work on any type of Entry</p></li>
+<li><p>made Client._gather_data iterative rather than recursive to simplify the conditional logic</p></li>
+<li><p>autoupdate pre-commit config</p></li>
+<li><p>Refactors common models to come with their own views, to improve user friendliness</p></li>
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">test_data</span></code>, <code class="docutils literal notranslate"><span class="pre">test_backend</span></code>, and <code class="docutils literal notranslate"><span class="pre">test_client</span></code> fixtures that can be parametrized, replacing other specialized fixtures that maybe setup.</p></li>
+<li><p>Adds <code class="xref py py-func docutils literal notranslate"><span class="pre">setup_test_stack()</span></code> to concisely parametrize and request the aforementioned <code class="docutils literal notranslate"><span class="pre">test_*</span></code> fixtures.</p></li>
+<li><p>Organizes data-helper functions into a separate <code class="docutils literal notranslate"><span class="pre">conftest_data</span></code> file.</p></li>
+<li><p>Adjusts existing tests to use <code class="docutils literal notranslate"><span class="pre">setup_test_stack</span></code> and <code class="docutils literal notranslate"><span class="pre">test_*</span></code> fixtures instead of other specialized fixtures.</p></li>
+<li><p>adds WindowLinker.get_window() so WindowLinkers can do more with the Window outside of dedicated methods</p></li>
+<li><p>define linac testing structure outside of fixture</p></li>
+<li><p>Adds the restore button to SnapshotPage</p></li>
+<li><p>Makes DataWidget use Generics to appease type hinting complaints</p></li>
+<li><p>Adjusts Client.snap so that if a <code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code> in a <code class="xref py py-class docutils literal notranslate"><span class="pre">Collection</span></code> is marked as
+read_only=True, it should be captured as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Readback</span></code> in the corresponding <code class="xref py py-class docutils literal notranslate"><span class="pre">Snapshot</span></code>.</p></li>
+<li><p>Adjust <code class="xref py py-meth docutils literal notranslate"><span class="pre">Client.fill()</span></code> to allow us to specify fill depth</p></li>
+<li><p>Move <code class="xref py py-meth docutils literal notranslate"><span class="pre">FilestoreBackend.compare()</span></code> upstream into <code class="xref py py-class docutils literal notranslate"><span class="pre">_Backend</span></code></p></li>
+<li><p>Implement <code class="docutils literal notranslate"><span class="pre">.search</span></code> and <code class="docutils literal notranslate"><span class="pre">.root</span></code> in <code class="xref py py-class docutils literal notranslate"><span class="pre">TestBackend</span></code> for completeness</p></li>
+<li><p>Updates dependencies, adds pre-release notes framework</p></li>
+<li><p>Adds common RootTreeView which holds the RootTree model.  Upstreams standard settings and context menu support</p></li>
+<li><p>ControlLayer._get_single: return CommunicationError rather than propagating</p></li>
+<li><p>Move heavier imports in subcommands to separate file, allowing CLI to load them on demand rather than every time.</p></li>
+<li><p>Document that _Backend.delete_entry raises error when entry is out-of-sync with backend</p></li>
+<li><p>Document that _Backend.get_entry raises error when entry can’t be found</p></li>
+<li><p>Modifies the signature of open_page_slot to pass the client through</p></li>
+<li><p>Refactors context menu generation, applying it to all common views</p></li>
+<li><p>Adds a QtSingleton class for singleton QObject subclasses that want to hold singleton signals</p></li>
+<li><p>Set up backend fixtures, sample database, and sample database</p></li>
+<li><p>Make Setpoint and Readback into direct Entry subclasses for ease of serialization</p></li>
+<li><p>adjust tree views to set data in-place, rather than re-creating the model</p></li>
+<li><p>Improve UUID / str interchangeability</p></li>
+<li><p>Replaces <code class="xref py py-func docutils literal notranslate"><span class="pre">populate_backend()</span></code> to help enable “superscore demo” cli</p></li>
+<li><p>Adds basic test coverage for command line interface</p></li>
+<li><p>Makes Window a QtSingleton, and adds an access function for use throughout superscore ui widgets
+Uses this singleton to access methods that were passed around manually in the past as optional arguments or set attributes (open_page_slot, client)</p></li>
+<li><p>increase main windows’s default size</p></li>
+<li><p>adds some debug statements and properly initialize logging</p></li>
+<li><p>Adjusts <code class="xref py py-class docutils literal notranslate"><span class="pre">TaskStatus</span></code> use to properly capture exceptions.</p></li>
+<li><p>Add Snapshot test fixture mirroring the LINAC Collection</p></li>
+<li><p>Introduce Nestable class interface</p></li>
+<li><p>use signals and slots to coordinate RestorePage table live data display status</p></li>
+<li><p>add second linac snapshot, and include in demo config</p></li>
+<li><p>Adjust Status, Severity enums to start at 0, matching EPICS</p></li>
+<li><p>Refactor tests to be much more thorough about dirty status checking</p></li>
+<li><p>Allow relative paths for backend filestore location</p></li>
+<li><p>Adjust FilestoreBackend search method to permit some special arguments and special search types.</p></li>
+</ul>
+</section>
+<section id="contributors">
+<h2>Contributors<a class="headerlink" href="#contributors" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>shilorigins</p></li>
+<li><p>tangkong</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="developer_docs.html" class="btn btn-neutral float-left" title="Developer Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="upcoming_changes.html" class="btn btn-neutral float-right" title="Upcoming Changes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

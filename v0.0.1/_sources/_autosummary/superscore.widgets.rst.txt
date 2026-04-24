@@ -1,0 +1,6 @@
+﻿superscore.widgets
+==================
+
+.. currentmodule:: superscore.widgets
+
+.. automodule:: superscore.widgets
