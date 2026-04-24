@@ -224,4 +224,4 @@ always_document_param_types = True
 autodoc_typehints = "signature"
 autodoc_docstring_signature = False
 
-graphviz_dot = "dot"
+graphviz_dot = "svg"
