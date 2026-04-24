@@ -48,7 +48,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
-    "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
@@ -58,7 +57,6 @@ extensions = [
     # jquery removed in sphinx 6.0 and used in docs_versions_menu.
     # See: https://www.sphinx-doc.org/en/master/changes.html
     "sphinxcontrib.jquery",
-    "sphinx_uml",
     "numpydoc",
     "recommonmark",
     "docs_versions_menu",
@@ -223,5 +221,3 @@ set_typehints_defaults = "braces"
 always_document_param_types = True
 autodoc_typehints = "signature"
 autodoc_docstring_signature = False
-
-graphviz_dot = "svg"
