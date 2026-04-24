@@ -1,4 +1,5 @@
-"""Client for superscore.  Used for programmatic interactions with superscore"""
+"""Client for superscore.  Used for programmatic interactions with superscore backends"""
+
 import configparser
 import getpass
 import logging
@@ -271,7 +272,7 @@ class Client:
 
     def is_editable(self, entry: Entry) -> bool:
         """
-        Can the provided `entry` be modified, given the current authenticated
+        Can the provided ``entry`` be modified, given the current authenticated
         user and backend.  Only returns the editability of the top level entry,
         not its children.
 

@@ -258,6 +258,12 @@ class DataTracker[EntryType: Entry](WindowLinker):
 
 
 class DataWidget[EntryType: Entry](QtWidgets.QWidget, DataTracker):
+    """
+    A qt widget that implements DataTracker.
+
+    Sets up change tracking for the uuid tracked by the widget, by subscribing
+    to the Window.entry_updated signal.
+    """
     data: EntryType
 
     def __init__(self, *args, **kwargs):

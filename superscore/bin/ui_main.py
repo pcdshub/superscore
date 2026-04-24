@@ -3,6 +3,7 @@
 
 Function components are separated from the arg parser to defer heavy imports
 """
+import logging
 import sys
 from typing import Optional
 
@@ -34,3 +35,10 @@ def main(cfg_path: Optional[str] = None):
 
     exception.install()
     app.exec()
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger("superscore")
+    logging.basicConfig()
+    logger.setLevel("DEBUG")
+    main(cfg_path="/cds/home/r/roberttk/devrepos/superscore/fig.cfg")

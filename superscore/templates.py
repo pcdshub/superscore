@@ -1,3 +1,5 @@
+"""Entry Templating routines and helpers.  A more robust find and replace"""
+
 import re
 from copy import deepcopy
 from dataclasses import fields, is_dataclass
@@ -14,7 +16,7 @@ PLACEHOLDER_PATTERN = re.compile(PLACEHOLDER_STRING)
 
 
 class TemplateMode(Flag):
-    """Simple right/left side enum, where inversion `~` gives the other side"""
+    """Simple right/left side enum, where inversion ``~`` gives the other side"""
     CREATE_PLACEHOLDERS = auto()
     FILL_PLACEHOLDERS = auto()
 
@@ -26,7 +28,7 @@ def safe_replace(
     safe_pattern: str = PLACEHOLDER_STRING
 ) -> str:
     """
-    Replace `target` in `text` with `replacement`, ignoring anything in the
+    Replace ``target`` in ``text`` with ``replacement``, ignoring anything in the
     PLACEHOLDER_PATTERN.
     """
     # Pattern explanation:

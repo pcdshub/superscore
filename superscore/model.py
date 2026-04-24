@@ -103,12 +103,21 @@ class Entry:
 
 @dataclass
 class Parameter(Entry):
-    """An Entry that stores a PV name"""
+    """An Entry that stores a PV name and relevant metadata"""
     pv_name: str = ""
     abs_tolerance: Optional[float] = None
+    """
+    The absolute tolerance used to determine if the live value is 'identical'
+    to the stored value: absolute(a - b) <= (atol + rtol * absolute(b))
+    """
     rel_tolerance: Optional[float] = None
+    """
+    The relative tolerance used to determine if the live value is 'identical'
+    to the stored value: absolute(a - b) <= (atol + rtol * absolute(b))
+    """
     readback: Optional[Parameter] = None
-    read_only: bool = False
+    """a link to a Parameter that represents the readback value of this Parameter"""
+    read_only: bool = False  #: If True, storing data will result in a Readback
 
     def validate(self, toplevel: bool = True) -> ValidationResult:
         # check if readback is valid
@@ -329,9 +338,9 @@ class Template(Entry):
     A template for creating a Collections and Parameters with placeholders.
     A placeholder is demarked by double braces ({{}})
 
-    Actual template is created by modifying `.template_collection`
-    - replacing substrings (keys of `Template.placeholders`)
-    - with placeholders ("{{value of `Template.placeholders`}}")
+    Actual template is created by modifying ``.template_collection``
+    - replacing substrings (keys of ``Template.placeholders``)
+    - with placeholders ("{{value of ``Template.placeholders``}}")
     """
     title: str = ""
     template_collection: Union[Collection, UUID] = field(default_factory=Collection)
