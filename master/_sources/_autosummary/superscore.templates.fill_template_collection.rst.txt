@@ -1,0 +1,6 @@
+superscore.templates.fill\_template\_collection
+===============================================
+
+.. currentmodule:: superscore.templates
+
+.. autofunction:: fill_template_collection

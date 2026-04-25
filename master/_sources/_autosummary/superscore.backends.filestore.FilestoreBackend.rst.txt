@@ -1,0 +1,45 @@
+superscore.backends.filestore.FilestoreBackend
+==============================================
+
+.. currentmodule:: superscore.backends.filestore
+
+.. autoclass:: FilestoreBackend
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~FilestoreBackend.__init__
+      ~FilestoreBackend.compare
+      ~FilestoreBackend.delete_entry
+      ~FilestoreBackend.entry_writable
+      ~FilestoreBackend.fill_uuids
+      ~FilestoreBackend.flatten_and_cache
+      ~FilestoreBackend.get_entry
+      ~FilestoreBackend.initialize
+      ~FilestoreBackend.load
+      ~FilestoreBackend.maybe_add_to_cache
+      ~FilestoreBackend.reconstruct_root
+      ~FilestoreBackend.reset
+      ~FilestoreBackend.save_entry
+      ~FilestoreBackend.search
+      ~FilestoreBackend.store
+      ~FilestoreBackend.update_entry
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~FilestoreBackend.root
+   
+   

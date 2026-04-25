@@ -1,0 +1,259 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.backends.core &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../backends.html">superscore.backends</a></li>
+      <li class="breadcrumb-item active">superscore.backends.core</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for superscore.backends.core</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base superscore data storage backend interface</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Generator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">superscore.tests.conftest_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">Root</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.type_hints</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyEpicsType</span>
+
+<span class="n">SearchTermValue</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">AnyEpicsType</span><span class="p">,</span> <span class="n">Container</span><span class="p">[</span><span class="n">AnyEpicsType</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">AnyEpicsType</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">UUID</span><span class="p">]</span>
+<span class="n">SearchTermType</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">SearchTermValue</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="SearchTerm">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.core.SearchTerm.html#superscore.backends.core.SearchTerm">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SearchTerm</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">attr</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">SearchTermValue</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Backend</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for data storage backend.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Entry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get entry with ``meta_id``</span>
+<span class="sd">        Throws EntryNotFoundError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">top_level</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save ``entry`` into the database.</span>
+<span class="sd">        Adds ``entry`` to root&#39;s children if ``top_level`` is True</span>
+<span class="sd">        Throws EntryExistsError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete ``entry`` from the system (all instances)</span>
+<span class="sd">        Throws BackendError if backend contains an entry with the same uuid as ``entry``</span>
+<span class="sd">        but different data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update ``entry`` in the backend.</span>
+<span class="sd">        Throws EntryNotFoundError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">search_terms</span><span class="p">:</span> <span class="n">SearchTermType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Yield Entry objects matching all ``search_terms``. Each SearchTerm has the format</span>
+<span class="sd">        (&lt;attr&gt;, &lt;operator&gt;, &lt;value&gt;).  Some operators take tuples as values.</span>
+
+<span class="sd">        The supported operators are:</span>
+<span class="sd">        - eq (equals)</span>
+<span class="sd">        - lt (less than or equal to)</span>
+<span class="sd">        - gt (greater than or equal to)</span>
+<span class="sd">        - in</span>
+<span class="sd">        - like (fuzzy match, depends on type of value)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">AnyEpicsType</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">SearchTermValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return whether data and target satisfy the op comparator, typically during application</span>
+<span class="sd">        of a search filter. Possible values of op are detailed in _Backend.search</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        op: str</span>
+<span class="sd">            one of the comparators that all backends must support, detailed in _Backend.search</span>
+<span class="sd">        data: AnyEpicsType | Tuple[AnyEpicsType]</span>
+<span class="sd">            data from an Entry that is being used to decide whether the Entry passes a filter</span>
+<span class="sd">        target: AnyEpicsType | Tuple[AnyEpicsType]</span>
+<span class="sd">            the filter value</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            whether data and target satisfy the op condition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;eq&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span> <span class="o">==</span> <span class="n">target</span>
+        <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;lt&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span> <span class="o">&lt;=</span> <span class="n">target</span>
+        <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;gt&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span> <span class="o">&gt;=</span> <span class="n">target</span>
+        <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;in&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">target</span>
+        <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;like&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SearchTerm does not support operator </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Root</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the Root Entry in this backend&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">entry_writable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if ``entry`` is editable in the backend&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+
+<div class="viewcode-block" id="populate_backend">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.core.populate_backend.html#superscore.backends.core.populate_backend">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">populate_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">:</span> <span class="n">_Backend</span><span class="p">,</span> <span class="n">sources</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Root</span><span class="p">,</span> <span class="n">Entry</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility for quickly filling test backends with data. Supports a mix of many</span>
+<span class="sd">    types of sources:</span>
+<span class="sd">    * Roots</span>
+<span class="sd">    * Entries</span>
+<span class="sd">    * Callables that return Roots or Entries</span>
+<span class="sd">    * strings that search for test data callables, but critically not fixtures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">source</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">superscore</span><span class="o">.</span><span class="n">tests</span><span class="o">.</span><span class="n">conftest_data</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">func</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="p">(</span><span class="n">Root</span><span class="p">,</span> <span class="n">Entry</span><span class="p">)):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported source type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Root</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+                <span class="n">backend</span><span class="o">.</span><span class="n">save_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">backend</span><span class="o">.</span><span class="n">save_entry</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

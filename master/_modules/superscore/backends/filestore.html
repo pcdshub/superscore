@@ -1,0 +1,505 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.backends.filestore &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../backends.html">superscore.backends</a></li>
+      <li class="breadcrumb-item active">superscore.backends.filestore</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for superscore.backends.filestore</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Backend for configurations backed by a single file</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">fields</span><span class="p">,</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">apischema</span><span class="w"> </span><span class="kn">import</span> <span class="n">deserialize</span><span class="p">,</span> <span class="n">serialize</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.backends.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchTermType</span><span class="p">,</span> <span class="n">_Backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.errors</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">BackendError</span><span class="p">,</span> <span class="n">EntryExistsError</span><span class="p">,</span>
+                               <span class="n">EntryNotFoundError</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">Nestable</span><span class="p">,</span> <span class="n">Root</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_abs_path</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="FilestoreBackend">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FilestoreBackend</span><span class="p">(</span><span class="n">_Backend</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filestore configuration backend.</span>
+
+<span class="sd">    Holds an entry cache, filled when a file is loaded.</span>
+<span class="sd">    All CRUD operations reconstruct the Root object and save a new version of</span>
+<span class="sd">    the database.</span>
+<span class="sd">    File storage is a json file containing serialized model dataclasses.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_entry_cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Entry</span><span class="p">]</span>
+    <span class="n">_root</span><span class="p">:</span> <span class="n">Root</span>
+
+    <span class="n">_is_writable</span><span class="p">:</span> <span class="nb">bool</span>
+
+<div class="viewcode-block" id="FilestoreBackend.__init__">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">cfg_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">if</span> <span class="n">cfg_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cfg_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cfg_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">build_abs_path</span><span class="p">(</span><span class="n">cfg_dir</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_writable</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_or_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing database or initialize a new one.</span>
+<span class="sd">        Returns the entry cache for this backend</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initializing new database&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+        <span class="c1"># flatten create entry cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flatten_and_cache</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span>
+
+<div class="viewcode-block" id="FilestoreBackend.flatten_and_cache">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.flatten_and_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flatten_and_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flatten ``entry`` recursively, adding it to ``self._entry_cache`` if not</span>
+<span class="sd">        present already.</span>
+
+<span class="sd">        If ``entry`` is already a UUID, it should have already been cached, and</span>
+<span class="sd">        can be skipped.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        entry : Union[Entry, UUID]</span>
+<span class="sd">            entry or uuid reference to flatten and cache</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">swap_to_uuids</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">maybe_add_to_cache</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flatten_and_cache</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">maybe_add_to_cache</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.maybe_add_to_cache">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.maybe_add_to_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">maybe_add_to_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds ``item`` to the entry cache if it does not already exist</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        item : Union[Entry, UUID]</span>
+<span class="sd">            _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">meta_id</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">uuid</span>
+        <span class="k">if</span> <span class="n">meta_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="p">:</span>
+            <span class="c1"># duplicate uuids found</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="p">[</span><span class="n">meta_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.initialize">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.initialize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a new JSON file database.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        PermissionError</span>
+<span class="sd">            If the JSON file specified by ``path`` already exists.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This exists because the `FilestoreBackend.store` and `FilestoreBackend.load` methods assume that the</span>
+<span class="sd">        given path already points to a readable JSON file. In order to begin</span>
+<span class="sd">        filling a new database, an empty but valid JSON file is created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Do not overwrite existing databases</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">PermissionError</span><span class="p">(</span><span class="s2">&quot;File </span><span class="si">{}</span><span class="s2"> already exists. Can not initialize &quot;</span>
+                                  <span class="s2">&quot;a new database.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">=</span> <span class="n">Root</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.reconstruct_root">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.reconstruct_root">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reconstruct_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Root</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reconstruct `Root` given the entries in the entry cache</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_root</span> <span class="o">=</span> <span class="n">Root</span><span class="p">()</span>
+
+        <span class="n">new_children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">root_child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">root_child</span><span class="o">.</span><span class="n">uuid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="p">:</span>
+                <span class="n">new_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="p">[</span><span class="n">root_child</span><span class="o">.</span><span class="n">uuid</span><span class="p">]</span>
+                <span class="n">new_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_uuids</span><span class="p">(</span><span class="n">new_child</span><span class="p">))</span>
+
+        <span class="n">new_root</span><span class="o">.</span><span class="n">entries</span> <span class="o">=</span> <span class="n">new_children</span>
+        <span class="k">return</span> <span class="n">new_root</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.fill_uuids">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.fill_uuids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fill_uuids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Entry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Recursively fill ``entry``&#39;s uuid fields with the object it references.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        entry : Entry</span>
+<span class="sd">            Entry object to be filled</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Entry</span>
+<span class="sd">            a copy of ``entry`` with filled uuids</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create a copy of the entry to be modified</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="n">entry</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;uuid&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">field_data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">new_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">field_data</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+                        <span class="n">new_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">new_ref</span><span class="p">:</span>
+                            <span class="n">new_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_uuids</span><span class="p">(</span><span class="n">new_ref</span><span class="p">)</span>
+                            <span class="n">new_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_ref</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">new_list</span><span class="p">:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">new_list</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_data</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+                <span class="n">new_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field_data</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_ref</span><span class="p">:</span>
+                    <span class="n">new_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_uuids</span><span class="p">(</span><span class="n">new_ref</span><span class="p">)</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">new_ref</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">entry</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.store">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.store">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stash the database in the JSON file.</span>
+<span class="sd">        This is a two-step process:</span>
+<span class="sd">        1. Write the database out to a temporary file</span>
+<span class="sd">        2. Move the temporary file over the previous database.</span>
+<span class="sd">        Step 2 is an atomic operation, ensuring that the database</span>
+<span class="sd">        does not get corrupted by an interrupted json.dump.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: Decide if we want to store everything as flat, let tree get</span>
+        <span class="c1"># reconstructed on the UI on demand</span>
+        <span class="n">temp_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temp_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruct_root</span><span class="p">()</span>
+        <span class="n">serialized</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">(</span><span class="n">Root</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">temp_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">serialized</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copymode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">temp_path</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">temp_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;JSON db move failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">ex</span><span class="p">)</span>
+            <span class="c1"># remove temporary file</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">temp_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">temp_path</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_temp_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a temporary path to write the json file to during &quot;store&quot;.</span>
+<span class="sd">        Includes a hash for uniqueness</span>
+<span class="sd">        (in the cases where multiple temp files are written at once).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FilestoreBackend.load">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.load">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Root</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load database from stored path as a nested structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">serialized</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">Root</span><span class="p">,</span> <span class="n">serialized</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Root</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Refresh the cache and return the root object&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span>
+
+<div class="viewcode-block" id="FilestoreBackend.entry_writable">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.entry_writable">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entry_writable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># Presuming permissions don&#39;t change before write attempts</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_writable</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.get_entry">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.get_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uuid</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Entry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the entry with ``uuid``&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uuid</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">uuid</span> <span class="o">=</span> <span class="n">UUID</span><span class="p">(</span><span class="n">uuid</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">uuid</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">EntryNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Entry </span><span class="si">{</span><span class="n">uuid</span><span class="si">}</span><span class="s2"> could not be found&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.save_entry">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.save_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">top_level</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save ``entry`` into database. Entry is expected to not already exist</span>
+<span class="sd">        Assumes connections are made properly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">uuid</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">EntryExistsError</span><span class="p">(</span><span class="s2">&quot;Entry already exists, try updating the &quot;</span>
+                                       <span class="s2">&quot;entry instead of saving it&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flatten_and_cache</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">top_level</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.update_entry">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.update_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates ``entry``.  Looks for references&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">uuid</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">BackendError</span><span class="p">(</span><span class="s2">&quot;Entry does not exist, cannot update&quot;</span><span class="p">)</span>
+
+            <span class="n">db</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">uuid</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.delete_entry">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.delete_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete meta_id from the system (all instances)&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">uuid</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FilestoreBackend.search">
+<a class="viewcode-back" href="../../../_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">search_terms</span><span class="p">:</span> <span class="n">SearchTermType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return entries that match all ``search_terms``.</span>
+<span class="sd">        Keys are attributes on `Entry` subclasses, or special keywords.</span>
+<span class="sd">        Values can be a single value or a tuple of values depending on operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reachable</span> <span class="o">=</span> <span class="n">cache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gather_reachable</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">search_terms</span><span class="p">:</span>
+                    <span class="c1"># TODO: search for child pvs?</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;entry_type&quot;</span><span class="p">:</span>
+                        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;ancestor&quot;</span><span class="p">:</span>
+                        <span class="c1"># `target` must be UUID since `reachable` is cached</span>
+                        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">uuid</span> <span class="ow">in</span> <span class="n">reachable</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="c1"># check entry attribute by name</span>
+                            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+                            <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+                        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                            <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">conditions</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="n">entry</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_reachable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ancestor</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Container</span><span class="p">[</span><span class="n">UUID</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds all entries accessible from ancestor, including ancestor, and returns</span>
+<span class="sd">        their UUIDs. This makes it easy to check if one entry is hierarchically under another.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reachable</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="p">[</span><span class="n">ancestor</span><span class="p">]</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cur</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+                <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span>
+            <span class="n">reachable</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cur</span><span class="p">,</span> <span class="n">Nestable</span><span class="p">):</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">children</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reachable</span>
+
+    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_and_store_context</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Context manager used to load, and optionally store the JSON database.</span>
+<span class="sd">        Yields the flattened entry cache</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_or_initialize</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_and_store_context</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_entry_cache</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

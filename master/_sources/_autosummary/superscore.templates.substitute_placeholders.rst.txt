@@ -1,0 +1,6 @@
+superscore.templates.substitute\_placeholders
+=============================================
+
+.. currentmodule:: superscore.templates
+
+.. autofunction:: substitute_placeholders

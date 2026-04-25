@@ -1,0 +1,6 @@
+superscore.backends.core.populate\_backend
+==========================================
+
+.. currentmodule:: superscore.backends.core
+
+.. autofunction:: populate_backend

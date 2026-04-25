@@ -1,6 +1,33 @@
 ﻿superscore.control\_layers
 ==========================
 
-.. currentmodule:: superscore
+.. automodule:: superscore.control_layers
 
-.. automodule:: control_layers
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   core
+   status
+

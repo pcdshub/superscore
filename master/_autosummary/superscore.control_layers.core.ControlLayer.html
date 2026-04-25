@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.control_layers.core.ControlLayer &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="superscore.control_layers.status" href="superscore.control_layers.status.html" />
+    <link rel="prev" title="superscore.control_layers.core" href="superscore.control_layers.core.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Superscore API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#dataclasses">Dataclasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#client">Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#backend">Backend</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#control-layers">Control Layers</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="superscore.control_layers.html">superscore.control_layers</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="superscore.control_layers.core.html">superscore.control_layers.core</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.control_layers.status.html">superscore.control_layers.status</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-manipulation-routines">Data Manipulation Routines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Superscore API</a></li>
+          <li class="breadcrumb-item"><a href="superscore.control_layers.html">superscore.control_layers</a></li>
+          <li class="breadcrumb-item"><a href="superscore.control_layers.core.html">superscore.control_layers.core</a></li>
+      <li class="breadcrumb-item active">superscore.control_layers.core.ControlLayer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/superscore.control_layers.core.ControlLayer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="superscore-control-layers-core-controllayer">
+<h1>superscore.control_layers.core.ControlLayer<a class="headerlink" href="#superscore-control-layers-core-controllayer" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">superscore.control_layers.core.</span></span><span class="sig-name descname"><span class="pre">ControlLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Control Layer used to communicate with the control system, dispatching to
+whichever shim is relevant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shims</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>)</p>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.get" title="superscore.control_layers.core.ControlLayer.get"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code></a>()</p></td>
+<td><p>Get the value(s) in <code class="docutils literal notranslate"><span class="pre">address</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.put" title="superscore.control_layers.core.ControlLayer.put"><code class="xref py py-obj docutils literal notranslate"><span class="pre">put</span></code></a>()</p></td>
+<td><p>Put <code class="docutils literal notranslate"><span class="pre">value</span></code> to <code class="docutils literal notranslate"><span class="pre">address</span></code> If <code class="docutils literal notranslate"><span class="pre">address</span></code> is a list, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">cb</span></code> must be lists of equal length</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.shim_from_pv" title="superscore.control_layers.core.ControlLayer.shim_from_pv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shim_from_pv</span></code></a>(address)</p></td>
+<td><p>Determine the correct shim to use for the provided <code class="docutils literal notranslate"><span class="pre">address</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.subscribe" title="superscore.control_layers.core.ControlLayer.subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subscribe</span></code></a>(address, cb)</p></td>
+<td><p>Subscribes a callback (<code class="docutils literal notranslate"><span class="pre">cb</span></code>) to the provide address (<code class="docutils literal notranslate"><span class="pre">address</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shims</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.__init__" title="superscore.control_layers.core.ControlLayer.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(*args[, shims])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.get" title="superscore.control_layers.core.ControlLayer.get"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code></a>()</p></td>
+<td><p>Get the value(s) in <code class="docutils literal notranslate"><span class="pre">address</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.put" title="superscore.control_layers.core.ControlLayer.put"><code class="xref py py-obj docutils literal notranslate"><span class="pre">put</span></code></a>()</p></td>
+<td><p>Put <code class="docutils literal notranslate"><span class="pre">value</span></code> to <code class="docutils literal notranslate"><span class="pre">address</span></code> If <code class="docutils literal notranslate"><span class="pre">address</span></code> is a list, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">cb</span></code> must be lists of equal length</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.shim_from_pv" title="superscore.control_layers.core.ControlLayer.shim_from_pv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shim_from_pv</span></code></a>(address)</p></td>
+<td><p>Determine the correct shim to use for the provided <code class="docutils literal notranslate"><span class="pre">address</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.control_layers.core.ControlLayer.subscribe" title="superscore.control_layers.core.ControlLayer.subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subscribe</span></code></a>(address, cb)</p></td>
+<td><p>Subscribes a callback (<code class="docutils literal notranslate"><span class="pre">cb</span></code>) to the provide address (<code class="docutils literal notranslate"><span class="pre">address</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">shims</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer.get" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em><span class="sig-paren">)</span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the value(s) in <code class="docutils literal notranslate"><span class="pre">address</span></code>.
+If a single pv is provided, will return a single value.
+If a list of pvs is provided, will get the values for each asynchronously.</p>
+<dl class="field-list">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">EpicsData</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">CommunicationError</span></code>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">EpicsData</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">CommunicationError</span></code>]]]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>address</strong><span class="classifier">Union[str, Iterable[str]]</span></dt><dd><p>The PV(s) to get values for.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Union[EpicsData, Iterable[EpicsData]]</dt><dd><p>The requested data</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">type address<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>
+..</p>
+</dd>
+<dt class="field-even">param address<span class="colon">:</span></dt>
+<dd class="field-even"></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer.put"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer.put" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Put <code class="docutils literal notranslate"><span class="pre">value</span></code> to <code class="docutils literal notranslate"><span class="pre">address</span></code>
+If <code class="docutils literal notranslate"><span class="pre">address</span></code> is a list, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">cb</span></code> must be lists of equal length</p>
+<dl class="field-list">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="superscore.control_layers.status.TaskStatus.html#superscore.control_layers.status.TaskStatus" title="superscore.control_layers.status.TaskStatus"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskStatus</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="superscore.control_layers.status.TaskStatus.html#superscore.control_layers.status.TaskStatus" title="superscore.control_layers.status.TaskStatus"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskStatus</span></code></a>]]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>address</strong><span class="classifier">Union[str, list[str]]</span></dt><dd><p>The PV(s) to put <code class="docutils literal notranslate"><span class="pre">values</span></code> to</p>
+</dd>
+<dt><strong>value</strong><span class="classifier">Union[Any, list[Any]]</span></dt><dd><p>The value(s) to put to the <code class="docutils literal notranslate"><span class="pre">address</span></code></p>
+</dd>
+<dt><strong>cb</strong><span class="classifier">Optional[Callable], by default None</span></dt><dd><p>Callbacks to run on completion of the put task.
+Callbacks will be called with the associated TaskStatus as its
+sole argument</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Union[TaskStatus, list[TaskStatus]]</dt><dd><p>The TaskStatus object(s) for the put operation</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">type address<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>
+..</p>
+</dd>
+<dt class="field-even">param address<span class="colon">:</span></dt>
+<dd class="field-even"></dd>
+<dt class="field-odd">type value<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>
+..</p>
+</dd>
+<dt class="field-even">param value<span class="colon">:</span></dt>
+<dd class="field-even"></dd>
+<dt class="field-odd">type cb<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>
+..</p>
+</dd>
+<dt class="field-even">param cb<span class="colon">:</span></dt>
+<dd class="field-even"></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer.shim_from_pv">
+<span class="sig-name descname"><span class="pre">shim_from_pv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer.shim_from_pv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer.shim_from_pv" title="Link to this definition"></a></dt>
+<dd><p>Determine the correct shim to use for the provided <code class="docutils literal notranslate"><span class="pre">address</span></code>.
+<code class="docutils literal notranslate"><span class="pre">address</span></code> can optionally hold a protocol defining prefix such as “ca://” or
+“pva://”.  If no prefix is provided, will select the first available shim.</p>
+<dl class="field-list">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">_BaseShim</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>address</strong><span class="classifier">str</span></dt><dd><p>a PV address such as “MY:PREFIX:mtr1” or “pva://MY:PREFIX:dt”</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>_BaseShim</dt><dd><p>The shim held by this ControlLayer for <code class="docutils literal notranslate"><span class="pre">address</span></code>’s protocol</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ValueError</dt><dd><p>If address cannot be recognized or a matching shim cannot be found</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">type address<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>
+..</p>
+</dd>
+<dt class="field-even">param address<span class="colon">:</span></dt>
+<dd class="field-even"></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.control_layers.core.ControlLayer.subscribe">
+<span class="sig-name descname"><span class="pre">subscribe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/control_layers/core.html#ControlLayer.subscribe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.control_layers.core.ControlLayer.subscribe" title="Link to this definition"></a></dt>
+<dd><p>Subscribes a callback (<code class="docutils literal notranslate"><span class="pre">cb</span></code>) to the provide address (<code class="docutils literal notranslate"><span class="pre">address</span></code>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>address</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>cb</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="superscore.control_layers.core.html" class="btn btn-neutral float-left" title="superscore.control_layers.core" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="superscore.control_layers.status.html" class="btn btn-neutral float-right" title="superscore.control_layers.status" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

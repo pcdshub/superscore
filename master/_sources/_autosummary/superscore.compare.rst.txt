@@ -1,6 +1,40 @@
 ﻿superscore.compare
 ==================
 
-.. currentmodule:: superscore
+.. automodule:: superscore.compare
 
-.. automodule:: compare
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      walk_find_diff
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+   
+      DiffItem
+      DiffType
+      EntryDiff
+   
+   
+
+   
+   
+   
+
+
+

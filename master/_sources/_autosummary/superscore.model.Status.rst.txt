@@ -1,0 +1,62 @@
+superscore.model.Status
+=======================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Status
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Status.conjugate
+      ~Status.bit_length
+      ~Status.bit_count
+      ~Status.to_bytes
+      ~Status.from_bytes
+      ~Status.as_integer_ratio
+      ~Status.is_integer
+      ~Status.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Status.real
+      ~Status.imag
+      ~Status.numerator
+      ~Status.denominator
+      ~Status.NO_ALARM
+      ~Status.READ
+      ~Status.WRITE
+      ~Status.HIHI
+      ~Status.HIGH
+      ~Status.LOLO
+      ~Status.LOW
+      ~Status.STATE
+      ~Status.COS
+      ~Status.COMM
+      ~Status.TIMEOUT
+      ~Status.HWLIMIT
+      ~Status.CALC
+      ~Status.SCAN
+      ~Status.LINK
+      ~Status.SOFT
+      ~Status.BAD_SUB
+      ~Status.UDF
+      ~Status.DISABLE
+      ~Status.SIMM
+      ~Status.READ_ACCESS
+      ~Status.WRITE_ACCESS
+   
+   

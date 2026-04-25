@@ -1,0 +1,26 @@
+superscore.compare.DiffType
+===========================
+
+.. currentmodule:: superscore.compare
+
+.. autoclass:: DiffType
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~DiffType.DELETED
+      ~DiffType.MODIFIED
+      ~DiffType.ADDED
+   
+   

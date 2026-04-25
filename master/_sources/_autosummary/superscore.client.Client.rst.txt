@@ -1,6 +1,33 @@
 ﻿superscore.client.Client
 ========================
 
-.. currentmodule:: superscore.client
+.. automodule:: superscore.client.Client
 
-.. autoclass:: Client
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+      :toctree:
+   
+      backend
+      cl
+      enable_editing_past
+      recent_entry_cache
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

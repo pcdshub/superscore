@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.control_layers.core &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">superscore.control_layers.core</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for superscore.control_layers.core</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Main control layer objects.  Exposes basic communication operations,</span>
+<span class="sd">and dispatches to various shims depending on the context.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">singledispatchmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.control_layers._base_shim</span><span class="w"> </span><span class="kn">import</span> <span class="n">EpicsData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.control_layers.status</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskStatus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunicationError</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._aioca</span><span class="w"> </span><span class="kn">import</span> <span class="n">AiocaShim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._base_shim</span><span class="w"> </span><span class="kn">import</span> <span class="n">_BaseShim</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># available communication shim layers</span>
+<span class="n">SHIMS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_BaseShim</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;ca&#39;</span><span class="p">:</span> <span class="n">AiocaShim</span><span class="p">()</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="ControlLayer">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ControlLayer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Control Layer used to communicate with the control system, dispatching to</span>
+<span class="sd">    whichever shim is relevant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shims</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_BaseShim</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ControlLayer.__init__">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">shims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># load all available shims</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shims</span> <span class="o">=</span> <span class="n">SHIMS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;No shims specified, loading all available communication &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;shims: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shims</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shims</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">shim</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">shim</span> <span class="ow">in</span> <span class="n">SHIMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">shims</span><span class="p">}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Loaded valid shims from the requested list: &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shims</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ControlLayer.shim_from_pv">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer.shim_from_pv">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shim_from_pv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_BaseShim</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the correct shim to use for the provided ``address``.</span>
+<span class="sd">        ``address`` can optionally hold a protocol defining prefix such as &quot;ca://&quot; or</span>
+<span class="sd">        &quot;pva://&quot;.  If no prefix is provided, will select the first available shim.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        address : str</span>
+<span class="sd">            a PV address such as &quot;MY:PREFIX:mtr1&quot; or &quot;pva://MY:PREFIX:dt&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _BaseShim</span>
+<span class="sd">            The shim held by this ControlLayer for ``address``&#39;s protocol</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If address cannot be recognized or a matching shim cannot be found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">split</span> <span class="o">=</span> <span class="n">address</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;://&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># We got something like pva://mydevice, so use specified comms mode</span>
+            <span class="n">shim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># No comms mode specified, use the default</span>
+            <span class="n">shim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shims</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">shim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PV is of an unsupported protocol: </span><span class="si">{</span><span class="n">address</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">shim</span></div>
+
+
+<div class="viewcode-block" id="ControlLayer.get">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer.get">[docs]</a>
+    <span class="nd">@singledispatchmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EpicsData</span><span class="p">,</span> <span class="n">CommunicationError</span><span class="p">],</span>
+               <span class="n">Iterable</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EpicsData</span><span class="p">,</span> <span class="n">CommunicationError</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the value(s) in ``address``.</span>
+<span class="sd">        If a single pv is provided, will return a single value.</span>
+<span class="sd">        If a list of pvs is provided, will get the values for each asynchronously.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        address : Union[str, Iterable[str]]</span>
+<span class="sd">            The PV(s) to get values for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Union[EpicsData, Iterable[EpicsData]]</span>
+<span class="sd">            The requested data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Dispatches to _get_single and _get_list depending on type</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PV is of an unsupported type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s2">. Provide either &quot;</span>
+              <span class="s2">&quot;a string or list of strings&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@get</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">EpicsData</span><span class="p">,</span> <span class="n">CommunicationError</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronously get a single ``address``&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_one</span><span class="p">(</span><span class="n">address</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">CommunicationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">e</span>
+
+    <span class="nd">@get</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Iterable</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EpicsData</span><span class="p">,</span> <span class="n">CommunicationError</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronously get a list of ``address``&quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gathered_coros</span><span class="p">():</span>
+            <span class="n">coros</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">address</span><span class="p">:</span>
+                <span class="n">coros</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_one</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">coros</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gathered_coros</span><span class="p">())</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_get_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EpicsData</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base async get function.  Use this to construct higher-level get methods</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shim_from_pv</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="n">shim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ControlLayer.put">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer.put">[docs]</a>
+    <span class="nd">@singledispatchmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">cb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TaskStatus</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">TaskStatus</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Put ``value`` to ``address``</span>
+<span class="sd">        If ``address`` is a list, ``value`` and ``cb`` must be lists of equal length</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        address : Union[str, list[str]]</span>
+<span class="sd">            The PV(s) to put ``values`` to</span>
+<span class="sd">        value : Union[Any, list[Any]]</span>
+<span class="sd">            The value(s) to put to the ``address``</span>
+<span class="sd">        cb : Optional[Callable], by default None</span>
+<span class="sd">            Callbacks to run on completion of the put task.</span>
+<span class="sd">            Callbacks will be called with the associated TaskStatus as its</span>
+<span class="sd">            sole argument</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Union[TaskStatus, list[TaskStatus]]</span>
+<span class="sd">            The TaskStatus object(s) for the put operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Dispatches to _put_single and _put_list depending on type</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PV is of an unsupported type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s2">. Provide either &quot;</span>
+              <span class="s2">&quot;a string or list of strings&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@put</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_put_single</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">cb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TaskStatus</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronously put ``value`` to ``address``, running ``cb`` on completion&quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">status_coro</span><span class="p">():</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_one</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">status</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="n">cb</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">status</span>
+
+        <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">status_coro</span><span class="p">())</span>
+
+    <span class="nd">@put</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_put_list</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">cb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">TaskStatus</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Synchronously put ``value`` to ``address``, running ``cb`` on completion.</span>
+<span class="sd">        All arguments must be of equal length.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cb_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cb_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cb</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">address</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="n">cb_length</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Arguments are of different length: &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;addresses(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s1">), values(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s1">), cbs(</span><span class="si">{</span><span class="n">cb_length</span><span class="si">}</span><span class="s1">)&#39;</span>
+            <span class="p">)</span>
+
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">status_coros</span><span class="p">():</span>
+            <span class="n">statuses</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">cb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">callbacks</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">address</span><span class="p">))]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">callbacks</span> <span class="o">=</span> <span class="n">cb</span>
+
+            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">):</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_one</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">status</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+                <span class="n">statuses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">statuses</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">statuses</span>
+
+        <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">status_coros</span><span class="p">())</span>
+
+    <span class="nd">@TaskStatus</span><span class="o">.</span><span class="n">wrap</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_put_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base async put function.  Use this to construct higher-level put methods</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shim_from_pv</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">shim</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ControlLayer.subscribe">
+<a class="viewcode-back" href="../../../_autosummary/superscore.control_layers.core.ControlLayer.html#superscore.control_layers.core.ControlLayer.subscribe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cb</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subscribes a callback (``cb``) to the provide address (``address``)&quot;&quot;&quot;</span>
+        <span class="n">shim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shim_from_pv</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="n">shim</span><span class="o">.</span><span class="n">monitor</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">cb</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

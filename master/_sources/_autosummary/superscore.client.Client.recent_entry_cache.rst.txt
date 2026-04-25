@@ -1,0 +1,6 @@
+superscore.client.Client.recent\_entry\_cache
+=============================================
+
+.. currentmodule:: superscore.client
+
+.. autoattribute:: Client.recent_entry_cache

@@ -1,0 +1,35 @@
+superscore.validation.ValidationCode
+====================================
+
+.. currentmodule:: superscore.validation
+
+.. autoclass:: ValidationCode
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ValidationCode.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ValidationCode.VALID
+      ~ValidationCode.CYCLE_FOUND
+      ~ValidationCode.ORIGIN_INVALID
+      ~ValidationCode.TYPE_ERROR
+      ~ValidationCode.READBACK_INVALID
+      ~ValidationCode.UNFILLED_PLACEHOLDERS
+   
+   

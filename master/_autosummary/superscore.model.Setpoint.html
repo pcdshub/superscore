@@ -1,0 +1,272 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.model.Setpoint &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="superscore.model.Severity" href="superscore.model.Severity.html" />
+    <link rel="prev" title="superscore.model.Root" href="superscore.model.Root.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Superscore API</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#dataclasses">Dataclasses</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="superscore.model.html">superscore.model</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.get_entry_from_path.html">superscore.model.get_entry_from_path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.save_entry_to_path.html">superscore.model.save_entry_to_path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Collection.html">superscore.model.Collection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Entry.html">superscore.model.Entry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Nestable.html">superscore.model.Nestable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Parameter.html">superscore.model.Parameter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Readback.html">superscore.model.Readback</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Root.html">superscore.model.Root</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">superscore.model.Setpoint</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Severity.html">superscore.model.Severity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Snapshot.html">superscore.model.Snapshot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Status.html">superscore.model.Status</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Template.html">superscore.model.Template</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#client">Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#backend">Backend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#control-layers">Control Layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-manipulation-routines">Data Manipulation Routines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Superscore API</a></li>
+          <li class="breadcrumb-item"><a href="superscore.model.html">superscore.model</a></li>
+      <li class="breadcrumb-item active">superscore.model.Setpoint</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/superscore.model.Setpoint.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="superscore-model-setpoint">
+<h1>superscore.model.Setpoint<a class="headerlink" href="#superscore-model-setpoint" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="superscore.model.Setpoint">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">superscore.model.</span></span><span class="sig-name descname"><span class="pre">Setpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">creation_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Status.UDF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Severity.INVALID</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/model.html#Setpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.model.Setpoint" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></p>
+<p>A Value that can be written to the EPICS environment</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uuid</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span>)</p></li>
+<li><p><strong>description</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>creation_time</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></a></span>)</p></li>
+<li><p><strong>pv_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>)</p></li>
+<li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Status.html#superscore.model.Status" title="superscore.model.Status"><code class="xref py py-class docutils literal notranslate"><span class="pre">Status</span></code></a></span>)</p></li>
+<li><p><strong>severity</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Severity.html#superscore.model.Severity" title="superscore.model.Severity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code></a></span>)</p></li>
+<li><p><strong>readback</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="superscore.model.Readback.html#superscore.model.Readback" title="superscore.model.Readback"><code class="xref py py-class docutils literal notranslate"><span class="pre">Readback</span></code></a>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>data</strong></dt><dd></dd>
+<dt><strong>readback</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">swap_to_uuids</span></code>()</p></td>
+<td><p>Swap to UUID references where relevant.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.model.Setpoint.validate" title="superscore.model.Setpoint.validate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate</span></code></a>([toplevel])</p></td>
+<td><p>Ensures Entry is properly formed.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>from_parameter</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.model.Setpoint.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">creation_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Status.UDF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Severity.INVALID</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#superscore.model.Setpoint.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uuid</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span>)</p></li>
+<li><p><strong>description</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>creation_time</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></a></span>)</p></li>
+<li><p><strong>pv_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>)</p></li>
+<li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Status.html#superscore.model.Status" title="superscore.model.Status"><code class="xref py py-class docutils literal notranslate"><span class="pre">Status</span></code></a></span>)</p></li>
+<li><p><strong>severity</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Severity.html#superscore.model.Severity" title="superscore.model.Severity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code></a></span>)</p></li>
+<li><p><strong>readback</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="superscore.model.Readback.html#superscore.model.Readback" title="superscore.model.Readback"><code class="xref py py-class docutils literal notranslate"><span class="pre">Readback</span></code></a>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.model.Setpoint.__init__" title="superscore.model.Setpoint.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([uuid, description, creation_time, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_parameter</span></code>(origin, data[, status, severity])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">swap_to_uuids</span></code>()</p></td>
+<td><p>Swap to UUID references where relevant.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.model.Setpoint.validate" title="superscore.model.Setpoint.validate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate</span></code></a>([toplevel])</p></td>
+<td><p>Ensures Entry is properly formed.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pv_name</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">readback</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">severity</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">uuid</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">creation_time</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.model.Setpoint.validate">
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">toplevel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/model.html#Setpoint.validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.model.Setpoint.validate" title="Link to this definition"></a></dt>
+<dd><p>Ensures Entry is properly formed.</p>
+<p>Raises apischema.ValidationError if type checking fails during
+deserialization</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>toplevel</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.validation.ValidationResult.html#superscore.validation.ValidationResult" title="superscore.validation.ValidationResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationResult</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="superscore.model.Root.html" class="btn btn-neutral float-left" title="superscore.model.Root" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="superscore.model.Severity.html" class="btn btn-neutral float-right" title="superscore.model.Severity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

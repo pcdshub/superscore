@@ -1,0 +1,37 @@
+superscore.model.Template
+=========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Template
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Template.__init__
+      ~Template.swap_to_uuids
+      ~Template.validate
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Template.description
+      ~Template.title
+      ~Template.template_collection
+      ~Template.placeholders
+      ~Template.uuid
+      ~Template.creation_time
+   
+   

@@ -1,0 +1,366 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.backends.directory.DirectoryBackend &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="superscore.backends.filestore" href="superscore.backends.filestore.html" />
+    <link rel="prev" title="superscore.backends.directory" href="superscore.backends.directory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Superscore API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#dataclasses">Dataclasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#client">Client</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#backend">Backend</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="superscore.backends.html">superscore.backends</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="superscore.backends.get_backend.html">superscore.backends.get_backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.backends.core.html">superscore.backends.core</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="superscore.backends.directory.html">superscore.backends.directory</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.backends.filestore.html">superscore.backends.filestore</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.backends.test.html">superscore.backends.test</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#control-layers">Control Layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-manipulation-routines">Data Manipulation Routines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Superscore API</a></li>
+          <li class="breadcrumb-item"><a href="superscore.backends.html">superscore.backends</a></li>
+          <li class="breadcrumb-item"><a href="superscore.backends.directory.html">superscore.backends.directory</a></li>
+      <li class="breadcrumb-item active">superscore.backends.directory.DirectoryBackend</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/superscore.backends.directory.DirectoryBackend.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="superscore-backends-directory-directorybackend">
+<h1>superscore.backends.directory.DirectoryBackend<a class="headerlink" href="#superscore-backends-directory-directorybackend" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">superscore.backends.directory.</span></span><span class="sig-name descname"><span class="pre">DirectoryBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_Backend</span></code></p>
+<p>Backend that stores each Entry as an individual file. Files are distributed into directories
+according to the UUID of their Entry, to keep the number of files in each directory
+reasonably small.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>cfg_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.root" title="superscore.backends.directory.DirectoryBackend.root"><code class="xref py py-obj docutils literal notranslate"><span class="pre">root</span></code></a></dt><dd><p>Return the Root Entry in this backend</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compare</span></code>(op, data, target)</p></td>
+<td><p>Return whether data and target satisfy the op comparator, typically during application of a search filter.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.delete_entry" title="superscore.backends.directory.DirectoryBackend.delete_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_entry</span></code></a>(entry)</p></td>
+<td><p>Delete <code class="docutils literal notranslate"><span class="pre">entry</span></code> from the system (all instances) Throws BackendError if backend contains an entry with the same uuid as <code class="docutils literal notranslate"><span class="pre">entry</span></code> but different data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.entry_writable" title="superscore.backends.directory.DirectoryBackend.entry_writable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">entry_writable</span></code></a>(entry)</p></td>
+<td><p>Return True if <code class="docutils literal notranslate"><span class="pre">entry</span></code> is editable in the backend</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.get_entry" title="superscore.backends.directory.DirectoryBackend.get_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entry</span></code></a>(uuid)</p></td>
+<td><p>Get entry with <code class="docutils literal notranslate"><span class="pre">meta_id</span></code> Throws EntryNotFoundError</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.save_entry" title="superscore.backends.directory.DirectoryBackend.save_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_entry</span></code></a>(entry[, top_level])</p></td>
+<td><p>Save <code class="docutils literal notranslate"><span class="pre">entry</span></code> into the database.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.search" title="superscore.backends.directory.DirectoryBackend.search"><code class="xref py py-obj docutils literal notranslate"><span class="pre">search</span></code></a>(*search_terms)</p></td>
+<td><p>Yield Entry objects matching all <code class="docutils literal notranslate"><span class="pre">search_terms</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.update_entry" title="superscore.backends.directory.DirectoryBackend.update_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_entry</span></code></a>(entry)</p></td>
+<td><p>Update <code class="docutils literal notranslate"><span class="pre">entry</span></code> in the backend.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>add_to_root</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>initialize</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>reset</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>)</p></li>
+<li><p><strong>cfg_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.__init__" title="superscore.backends.directory.DirectoryBackend.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(path[, cfg_path])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_to_root</span></code>(entry)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compare</span></code>(op, data, target)</p></td>
+<td><p>Return whether data and target satisfy the op comparator, typically during application of a search filter.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.delete_entry" title="superscore.backends.directory.DirectoryBackend.delete_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_entry</span></code></a>(entry)</p></td>
+<td><p>Delete <code class="docutils literal notranslate"><span class="pre">entry</span></code> from the system (all instances) Throws BackendError if backend contains an entry with the same uuid as <code class="docutils literal notranslate"><span class="pre">entry</span></code> but different data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.entry_writable" title="superscore.backends.directory.DirectoryBackend.entry_writable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">entry_writable</span></code></a>(entry)</p></td>
+<td><p>Return True if <code class="docutils literal notranslate"><span class="pre">entry</span></code> is editable in the backend</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.get_entry" title="superscore.backends.directory.DirectoryBackend.get_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entry</span></code></a>(uuid)</p></td>
+<td><p>Get entry with <code class="docutils literal notranslate"><span class="pre">meta_id</span></code> Throws EntryNotFoundError</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.save_entry" title="superscore.backends.directory.DirectoryBackend.save_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_entry</span></code></a>(entry[, top_level])</p></td>
+<td><p>Save <code class="docutils literal notranslate"><span class="pre">entry</span></code> into the database.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.search" title="superscore.backends.directory.DirectoryBackend.search"><code class="xref py py-obj docutils literal notranslate"><span class="pre">search</span></code></a>(*search_terms)</p></td>
+<td><p>Yield Entry objects matching all <code class="docutils literal notranslate"><span class="pre">search_terms</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.update_entry" title="superscore.backends.directory.DirectoryBackend.update_entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_entry</span></code></a>(entry)</p></td>
+<td><p>Update <code class="docutils literal notranslate"><span class="pre">entry</span></code> in the backend.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#superscore.backends.directory.DirectoryBackend.root" title="superscore.backends.directory.DirectoryBackend.root"><code class="xref py py-obj docutils literal notranslate"><span class="pre">root</span></code></a></p></td>
+<td><p>Return the Root Entry in this backend</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.delete_entry">
+<span class="sig-name descname"><span class="pre">delete_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.delete_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.delete_entry" title="Link to this definition"></a></dt>
+<dd><p>Delete <code class="docutils literal notranslate"><span class="pre">entry</span></code> from the system (all instances)
+Throws BackendError if backend contains an entry with the same uuid as <code class="docutils literal notranslate"><span class="pre">entry</span></code>
+but different data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.entry_writable">
+<span class="sig-name descname"><span class="pre">entry_writable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.entry_writable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.entry_writable" title="Link to this definition"></a></dt>
+<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">entry</span></code> is editable in the backend</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.get_entry">
+<span class="sig-name descname"><span class="pre">get_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.get_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.get_entry" title="Link to this definition"></a></dt>
+<dd><p>Get entry with <code class="docutils literal notranslate"><span class="pre">meta_id</span></code>
+Throws EntryNotFoundError</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>uuid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.root">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">root</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="superscore.model.Root.html#superscore.model.Root" title="superscore.model.Root"><span class="pre">Root</span></a></span><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.root" title="Link to this definition"></a></dt>
+<dd><p>Return the Root Entry in this backend</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.save_entry">
+<span class="sig-name descname"><span class="pre">save_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.save_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.save_entry" title="Link to this definition"></a></dt>
+<dd><p>Save <code class="docutils literal notranslate"><span class="pre">entry</span></code> into the database.
+Adds <code class="docutils literal notranslate"><span class="pre">entry</span></code> to root’s children if <code class="docutils literal notranslate"><span class="pre">top_level</span></code> is True
+Throws EntryExistsError</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>entry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></span>)</p></li>
+<li><p><strong>top_level</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.search">
+<span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">search_terms</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.search" title="Link to this definition"></a></dt>
+<dd><p>Yield Entry objects matching all <code class="docutils literal notranslate"><span class="pre">search_terms</span></code>. Each SearchTerm has the format
+(&lt;attr&gt;, &lt;operator&gt;, &lt;value&gt;).  Some operators take tuples as values.</p>
+<p>The supported operators are:
+- eq (equals)
+- lt (less than or equal to)
+- gt (greater than or equal to)
+- in
+- like (fuzzy match, depends on type of value)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>search_terms</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Container" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Container</span></code></a>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/constants.html#Ellipsis" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a>]]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generator</span></code></a>[<a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="superscore.backends.directory.DirectoryBackend.update_entry">
+<span class="sig-name descname"><span class="pre">update_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/superscore/backends/directory.html#DirectoryBackend.update_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#superscore.backends.directory.DirectoryBackend.update_entry" title="Link to this definition"></a></dt>
+<dd><p>Update <code class="docutils literal notranslate"><span class="pre">entry</span></code> in the backend.
+Throws EntryNotFoundError</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="superscore.backends.directory.html" class="btn btn-neutral float-left" title="superscore.backends.directory" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="superscore.backends.filestore.html" class="btn btn-neutral float-right" title="superscore.backends.filestore" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

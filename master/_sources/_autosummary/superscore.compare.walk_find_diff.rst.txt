@@ -1,0 +1,6 @@
+superscore.compare.walk\_find\_diff
+===================================
+
+.. currentmodule:: superscore.compare
+
+.. autofunction:: walk_find_diff

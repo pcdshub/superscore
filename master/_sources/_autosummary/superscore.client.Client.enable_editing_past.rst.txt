@@ -1,0 +1,6 @@
+superscore.client.Client.enable\_editing\_past
+==============================================
+
+.. currentmodule:: superscore.client
+
+.. autoattribute:: Client.enable_editing_past

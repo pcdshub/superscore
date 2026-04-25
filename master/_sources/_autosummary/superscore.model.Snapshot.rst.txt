@@ -1,0 +1,41 @@
+superscore.model.Snapshot
+=========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Snapshot
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Snapshot.__init__
+      ~Snapshot.has_cycle
+      ~Snapshot.swap_to_uuids
+      ~Snapshot.validate
+      ~Snapshot.walk_children
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Snapshot.description
+      ~Snapshot.origin_collection
+      ~Snapshot.title
+      ~Snapshot.children
+      ~Snapshot.tags
+      ~Snapshot.meta_pvs
+      ~Snapshot.uuid
+      ~Snapshot.creation_time
+   
+   

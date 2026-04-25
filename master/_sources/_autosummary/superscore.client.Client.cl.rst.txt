@@ -1,0 +1,6 @@
+superscore.client.Client.cl
+===========================
+
+.. currentmodule:: superscore.client
+
+.. autoattribute:: Client.cl

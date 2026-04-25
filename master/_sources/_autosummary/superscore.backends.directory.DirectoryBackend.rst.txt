@@ -1,0 +1,40 @@
+superscore.backends.directory.DirectoryBackend
+==============================================
+
+.. currentmodule:: superscore.backends.directory
+
+.. autoclass:: DirectoryBackend
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DirectoryBackend.__init__
+      ~DirectoryBackend.add_to_root
+      ~DirectoryBackend.compare
+      ~DirectoryBackend.delete_entry
+      ~DirectoryBackend.entry_writable
+      ~DirectoryBackend.get_entry
+      ~DirectoryBackend.initialize
+      ~DirectoryBackend.reset
+      ~DirectoryBackend.save_entry
+      ~DirectoryBackend.search
+      ~DirectoryBackend.update_entry
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~DirectoryBackend.root
+   
+   
