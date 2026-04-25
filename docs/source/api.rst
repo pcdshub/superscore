@@ -55,14 +55,3 @@ Data Manipulation Routines
     superscore.compare
     superscore.templates
     superscore.validation
-
-Graphical User Interface
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-    :toctree: _autosummary
-    :template: custome-module-template.rst
-    :recursive:
-
-    superscore.widgets
-    superscore.qt_helpers

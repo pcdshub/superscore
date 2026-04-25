@@ -54,13 +54,6 @@ This ensures that users can recreate `Snapshot`s and understand the context of
 its origin.
 
 
-Full Dataclass UML diagram
---------------------------
-.. uml:: superscore.model
-    :classes:
-    :caption: Classes of ``superscore.model``
-
-
 .. |PARAMETER| image:: _static/icons/mdi--file.png
    :width: 1em
 

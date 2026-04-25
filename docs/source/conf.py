@@ -57,7 +57,6 @@ extensions = [
     # jquery removed in sphinx 6.0 and used in docs_versions_menu.
     # See: https://www.sphinx-doc.org/en/master/changes.html
     "sphinxcontrib.jquery",
-    "sphinx_uml",
     "numpydoc",
     "recommonmark",
     "docs_versions_menu",
