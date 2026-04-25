@@ -1,0 +1,571 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superscore.model &mdash; superscore  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/docs-versions-menu.js?v=3d6a1aea"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            superscore
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Superscore API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Data Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer_docs.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">v0.1.0 (2026-04-22)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../upcoming_changes.html">Upcoming Changes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/superscore">Github Repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">superscore</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">superscore.model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for superscore.model</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Classes for representing data&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntEnum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">apischema</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.serialization</span><span class="w"> </span><span class="kn">import</span> <span class="n">as_tagged_union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.type_hints</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyEpicsType</span><span class="p">,</span> <span class="n">AnyPath</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">superscore.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationCode</span><span class="p">,</span> <span class="n">ValidationResult</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">_root_uuid</span> <span class="o">=</span> <span class="n">_root_uuid</span> <span class="o">=</span> <span class="n">UUID</span><span class="p">(</span><span class="s2">&quot;a28cd77d-cc92-46cc-90cb-758f0f36f041&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Severity">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Severity.html#superscore.model.Severity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Severity</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">NO_ALARM</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">MINOR</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">MAJOR</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">INVALID</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Status">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Status.html#superscore.model.Status">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Status</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">NO_ALARM</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">READ</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">WRITE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">HIHI</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">LOLO</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">STATE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">COS</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">COMM</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">TIMEOUT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">HWLIMIT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">CALC</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">SCAN</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">LINK</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">SOFT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">BAD_SUB</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">UDF</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">DISABLE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">SIMM</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">READ_ACCESS</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">WRITE_ACCESS</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Entry">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Entry.html#superscore.model.Entry">[docs]</a>
+<span class="nd">@as_tagged_union</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Entry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for items in the data model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">uuid</span><span class="p">:</span> <span class="n">UUID</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">creation_time</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">utcnow</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">uuid</span> <span class="o">=</span> <span class="n">UUID</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Entry.swap_to_uuids">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Entry.html#superscore.model.Entry.swap_to_uuids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">swap_to_uuids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Swap to UUID references where relevant.</span>
+
+<span class="sd">        Returns a list of objects referenced by this Entry,</span>
+<span class="sd">        either an Entry&#39;s that has been swapped to UUIDs,</span>
+<span class="sd">        or a UUID if it was already filled with a UUID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="Entry.validate">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Entry.html#superscore.model.Entry.validate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplevel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ensures Entry is properly formed.</span>
+
+<span class="sd">        Raises apischema.ValidationError if type checking fails during</span>
+<span class="sd">        deserialization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">toplevel</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">serial</span> <span class="o">=</span> <span class="n">apischema</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="n">apischema</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">serial</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">uuid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">apischema</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span>
+                    <span class="n">uuid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">,</span>
+                    <span class="n">code</span><span class="o">=</span><span class="n">ValidationCode</span><span class="o">.</span><span class="n">TYPE_ERROR</span><span class="p">,</span>
+                    <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Entry fields have data of improper type&quot;</span>
+                           <span class="s2">&quot;(failed serialization roundtrip)&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">uuid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Parameter">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Parameter.html#superscore.model.Parameter">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Parameter</span><span class="p">(</span><span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An Entry that stores a PV name and relevant metadata&quot;&quot;&quot;</span>
+    <span class="n">pv_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">abs_tolerance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The absolute tolerance used to determine if the live value is &#39;identical&#39;</span>
+<span class="sd">    to the stored value: absolute(a - b) &lt;= (atol + rtol * absolute(b))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rel_tolerance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The relative tolerance used to determine if the live value is &#39;identical&#39;</span>
+<span class="sd">    to the stored value: absolute(a - b) &lt;= (atol + rtol * absolute(b))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">readback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;a link to a Parameter that represents the readback value of this Parameter&quot;&quot;&quot;</span>
+    <span class="n">read_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1">#: If True, storing data will result in a Readback</span>
+
+<div class="viewcode-block" id="Parameter.validate">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Parameter.html#superscore.model.Parameter.validate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplevel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+        <span class="c1"># check if readback is valid</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">readback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">readback_is_valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readback</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">readback_is_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">readback_is_valid</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="o">=</span><span class="n">toplevel</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Setpoint">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Setpoint.html#superscore.model.Setpoint">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Setpoint</span><span class="p">(</span><span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Value that can be written to the EPICS environment&quot;&quot;&quot;</span>
+    <span class="n">pv_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AnyEpicsType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">UDF</span>
+    <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span> <span class="o">=</span> <span class="n">Severity</span><span class="o">.</span><span class="n">INVALID</span>
+    <span class="n">readback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Readback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_parameter</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">origin</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">AnyEpicsType</span><span class="p">,</span>
+        <span class="n">status</span><span class="p">:</span> <span class="n">Status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">UDF</span><span class="p">,</span>
+        <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span> <span class="o">=</span> <span class="n">Severity</span><span class="o">.</span><span class="n">INVALID</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Setpoint</span><span class="p">:</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">pv_name</span><span class="o">=</span><span class="n">origin</span><span class="o">.</span><span class="n">pv_name</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+            <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">,</span>
+            <span class="n">readback</span><span class="o">=</span><span class="n">origin</span><span class="o">.</span><span class="n">readback</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Setpoint.validate">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Setpoint.html#superscore.model.Setpoint.validate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplevel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">readback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">readback_is_valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readback</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">readback_is_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">readback_is_valid</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="o">=</span><span class="n">toplevel</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Readback">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Readback.html#superscore.model.Readback">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Readback</span><span class="p">(</span><span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A read-only Value representing machine state that cannot be written to. A</span>
+<span class="sd">    restore is considered complete when all Setpoint values are within</span>
+<span class="sd">    tolerance of their Readback values.</span>
+
+<span class="sd">    abs_tolerance - tolerance given in units matching the Setpoint</span>
+<span class="sd">    rel_tolerance - tolerance given as a percentage</span>
+<span class="sd">    timeout - time (seconds) after which a Setpoint restore is considered to</span>
+<span class="sd">              have failed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pv_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AnyEpicsType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">UDF</span>
+    <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span> <span class="o">=</span> <span class="n">Severity</span><span class="o">.</span><span class="n">INVALID</span>
+    <span class="n">abs_tolerance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">rel_tolerance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_parameter</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">origin</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">AnyEpicsType</span><span class="p">,</span>
+        <span class="n">status</span><span class="p">:</span> <span class="n">Status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">UDF</span><span class="p">,</span>
+        <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span> <span class="o">=</span> <span class="n">Severity</span><span class="o">.</span><span class="n">INVALID</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Readback</span><span class="p">:</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">pv_name</span><span class="o">=</span><span class="n">origin</span><span class="o">.</span><span class="n">pv_name</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+            <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">,</span>
+            <span class="n">abs_tolerance</span><span class="o">=</span><span class="n">origin</span><span class="o">.</span><span class="n">abs_tolerance</span><span class="p">,</span>
+            <span class="n">rel_tolerance</span><span class="o">=</span><span class="n">origin</span><span class="o">.</span><span class="n">rel_tolerance</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Nestable">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Nestable.html#superscore.model.Nestable">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Nestable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mix-in class that provides methods for nested container Entries&quot;&quot;&quot;</span>
+    <span class="n">uuid</span><span class="p">:</span> <span class="n">UUID</span>
+    <span class="n">children</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Entry</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="Nestable.validate">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Nestable.html#superscore.model.Nestable.validate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplevel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validates self and all children. If toplevel, also validates structure</span>
+<span class="sd">        of the Entry tree. This avoids redundant work by only performing tree-</span>
+<span class="sd">        level validation once.</span>
+
+<span class="sd">        Overrides Entry.validate().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cycle</span><span class="p">()</span> <span class="ow">and</span> <span class="n">toplevel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">ValidationCode</span><span class="o">.</span><span class="n">CYCLE_FOUND</span><span class="p">,</span>
+                <span class="n">uuid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check self validation</span>
+        <span class="n">is_self_valid</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_self_valid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">is_self_valid</span>
+
+        <span class="c1"># check child validation</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">UUID</span><span class="p">):</span>
+                <span class="c1"># cannot validate un-filled uuids</span>
+                <span class="k">continue</span>
+            <span class="n">child_valid</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">child_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">child_valid</span>
+
+        <span class="c1"># everythin seems to be ok</span>
+        <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">uuid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_cycle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">parents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parents</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uuid</span> <span class="ow">in</span> <span class="n">parents</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parents_including_self</span> <span class="o">=</span> <span class="n">parents</span> <span class="o">|</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">uuid</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="ow">and</span> <span class="n">child</span><span class="o">.</span><span class="n">has_cycle</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="n">parents_including_self</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">walk_children</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="k">yield</span> <span class="bp">self</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Nestable</span><span class="p">):</span>
+                <span class="k">yield from</span> <span class="n">child</span><span class="o">.</span><span class="n">walk_children</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">child</span></div>
+
+
+
+<div class="viewcode-block" id="Collection">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Collection.html#superscore.model.Collection">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Collection</span><span class="p">(</span><span class="n">Nestable</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Nestable group of Parameters and Collections&quot;&quot;&quot;</span>
+    <span class="n">meta_pvs</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_tags</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Set</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">children</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">Collection</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">Set</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">set</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Collection.swap_to_uuids">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Collection.html#superscore.model.Collection.swap_to_uuids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">swap_to_uuids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Entry</span><span class="p">]:</span>
+        <span class="c1"># TODO: remove ref_list? copies .children by value, breaks refs?</span>
+        <span class="n">ref_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">new_children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+                <span class="n">uuid_ref</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">uuid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">uuid_ref</span> <span class="o">=</span> <span class="n">child</span>
+
+            <span class="n">new_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uuid_ref</span><span class="p">)</span>
+            <span class="n">ref_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="n">new_children</span>
+        <span class="k">return</span> <span class="n">ref_list</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Snapshot">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Snapshot.html#superscore.model.Snapshot">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Snapshot</span><span class="p">(</span><span class="n">Nestable</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Nestable group of Values and Snapshots.  Effectively a data-filled Collection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">origin_collection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Collection</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">children</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Readback</span><span class="p">,</span> <span class="n">Setpoint</span><span class="p">,</span> <span class="n">Snapshot</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span>
+    <span class="p">)</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">Set</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">set</span><span class="p">)</span>
+    <span class="n">meta_pvs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Readback</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Snapshot.swap_to_uuids">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Snapshot.html#superscore.model.Snapshot.swap_to_uuids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">swap_to_uuids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">]]:</span>
+        <span class="n">ref_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin_collection</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+            <span class="n">ref_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin_collection</span><span class="p">)</span>
+
+            <span class="n">origin_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin_collection</span><span class="o">.</span><span class="n">uuid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">origin_collection</span> <span class="o">=</span> <span class="n">origin_ref</span>
+
+        <span class="n">new_children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+                <span class="n">uuid_ref</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">uuid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">uuid_ref</span> <span class="o">=</span> <span class="n">child</span>
+
+            <span class="n">new_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uuid_ref</span><span class="p">)</span>
+            <span class="n">ref_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="n">new_children</span>
+
+        <span class="k">return</span> <span class="n">ref_list</span></div>
+
+
+<div class="viewcode-block" id="Snapshot.validate">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Snapshot.html#superscore.model.Snapshot.validate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplevel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+        <span class="c1"># TODO: Verify structure matches origin Collection?</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">toplevel</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Template">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Template.html#superscore.model.Template">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Template</span><span class="p">(</span><span class="n">Entry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A template for creating a Collections and Parameters with placeholders.</span>
+<span class="sd">    A placeholder is demarked by double braces ({{}})</span>
+
+<span class="sd">    Actual template is created by modifying ``.template_collection``</span>
+<span class="sd">    - replacing substrings (keys of ``Template.placeholders``)</span>
+<span class="sd">    - with placeholders (&quot;{{value of ``Template.placeholders``}}&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">template_collection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Collection</span><span class="p">,</span> <span class="n">UUID</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">Collection</span><span class="p">)</span>
+    <span class="n">placeholders</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Template.swap_to_uuids">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Template.html#superscore.model.Template.swap_to_uuids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">swap_to_uuids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Entry</span><span class="p">,</span> <span class="n">UUID</span><span class="p">]]:</span>
+        <span class="n">ref_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_collection</span><span class="p">,</span> <span class="n">Entry</span><span class="p">):</span>
+            <span class="n">ref_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_collection</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">template_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_collection</span><span class="o">.</span><span class="n">uuid</span>
+        <span class="k">return</span> <span class="n">ref_list</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Root">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.Root.html#superscore.model.Root">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Root</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top level structure holding ``Entry``&#39;s.  Denotes the top of the tree&quot;&quot;&quot;</span>
+    <span class="n">uuid</span><span class="p">:</span> <span class="n">UUID</span> <span class="o">=</span> <span class="n">_root_uuid</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Entry</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+
+<span class="n">PVEntry</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">Setpoint</span><span class="p">,</span> <span class="n">Readback</span><span class="p">]</span>
+<span class="n">NestableEntry</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Collection</span><span class="p">,</span> <span class="n">Snapshot</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_entry_from_path">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.get_entry_from_path.html#superscore.model.get_entry_from_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_entry_from_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Entry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads an Entry from a serialized json file.</span>
+<span class="sd">    Note: Entry will need to nested in a Root to properly invoke tagged union machinery</span>
+
+<span class="sd">    Extract the entry from the root&#39;s children.</span>
+<span class="sd">    TODO: Consider allowing importing multiple entries at once?</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    apischema.ValidationError</span>
+<span class="sd">        if deserialization fails</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">deser</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">apischema</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">Root</span><span class="p">,</span> <span class="n">deser</span><span class="p">)</span><span class="o">.</span><span class="n">entries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="save_entry_to_path">
+<a class="viewcode-back" href="../../_autosummary/superscore.model.save_entry_to_path.html#superscore.model.save_entry_to_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_entry_to_path</span><span class="p">(</span><span class="n">entry</span><span class="p">:</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save ``entry`` to ``path``, wrapping in a ``Root`` container&quot;&quot;&quot;</span>
+    <span class="n">root_wrapped_entry</span> <span class="o">=</span> <span class="n">Root</span><span class="p">(</span><span class="n">entries</span><span class="o">=</span><span class="p">[</span><span class="n">entry</span><span class="p">])</span>
+    <span class="n">ser</span> <span class="o">=</span> <span class="n">apischema</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">root_wrapped_entry</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ser</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, SLAC National Accelerator Laboratory.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

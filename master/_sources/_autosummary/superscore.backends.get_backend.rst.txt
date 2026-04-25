@@ -1,0 +1,6 @@
+superscore.backends.get\_backend
+================================
+
+.. currentmodule:: superscore.backends
+
+.. autofunction:: get_backend

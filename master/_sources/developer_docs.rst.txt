@@ -94,7 +94,7 @@ This section is not about how to use the GUI, but rather about the organization
 of the code that comprises the GUI.
 
 Main Window Singleton, `WindowLinker`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The GUI centered around the "main window", which holds a tree-view and a tab widget.
 The tab widget holds pages that display and edit `Entry` data.  This `Window` is
 a singleton that we expose to every widget in the application via the `WindowLinker`

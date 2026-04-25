@@ -1,0 +1,25 @@
+superscore.templates.TemplateMode
+=================================
+
+.. currentmodule:: superscore.templates
+
+.. autoclass:: TemplateMode
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TemplateMode.CREATE_PLACEHOLDERS
+      ~TemplateMode.FILL_PLACEHOLDERS
+   
+   

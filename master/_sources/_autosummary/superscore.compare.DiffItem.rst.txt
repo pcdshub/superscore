@@ -1,0 +1,33 @@
+superscore.compare.DiffItem
+===========================
+
+.. currentmodule:: superscore.compare
+
+.. autoclass:: DiffItem
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiffItem.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~DiffItem.type
+      ~DiffItem.original_value
+      ~DiffItem.new_value
+      ~DiffItem.path
+   
+   

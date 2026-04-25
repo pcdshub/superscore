@@ -1,0 +1,6 @@
+superscore.templates.find\_placeholders
+=======================================
+
+.. currentmodule:: superscore.templates
+
+.. autofunction:: find_placeholders

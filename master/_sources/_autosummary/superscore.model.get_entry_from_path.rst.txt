@@ -1,0 +1,6 @@
+superscore.model.get\_entry\_from\_path
+=======================================
+
+.. currentmodule:: superscore.model
+
+.. autofunction:: get_entry_from_path

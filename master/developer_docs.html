@@ -104,8 +104,8 @@ to (hopefully) provide helpful guidance for future developers.</p>
 <p>I apologize in advance.</p>
 <section id="the-architecture">
 <h2>The Architecture<a class="headerlink" href="#the-architecture" title="Link to this heading"></a></h2>
-<p>The application is built around operations using the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.  In order to perform
-actions in the application, the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> holds references to a “Control Layer”
+<p>The application is built around operations using the <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code>.  In order to perform
+actions in the application, the <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code> holds references to a “Control Layer”
 and a “Backend”</p>
 <ul class="simple">
 <li><p>“Control Layer”: Used for communication with the controls system.</p>
@@ -124,58 +124,9 @@ without redesigning the application.</p>
 <p>The GUI communicates entirely with the client, and should not hold any business
 logic of its own.  Of course, this line may have been inadvertently blurred during development in
 some places, but future developers should strive to maintain this boundary.</p>
-<p>To help build a responsive GUI, we have added callbacks to the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.  These
+<p>To help build a responsive GUI, we have added callbacks to the <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code>.  These
 callbacks fire when specific events happen.  These callbacks should not be needed
-for programmatic or interactive use of the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a>.</p>
-<figure class="align-default" id="id1">
-digraph &quot;classes&quot; {
-
-rankdir=BT
-
-charset=&quot;utf-8&quot;
-
-bgcolor=transparent
-
-&quot;superscore.client.CallbackType&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;CallbackType&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
-	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.client.html#superscore.client.CallbackType&quot; tooltip=&quot;CallbackType&quot; target=&quot;_top&quot;&gt;&lt;b&gt;CallbackType&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.CallbackType.name&quot; target=&quot;_top&quot; tooltip=&quot;CallbackType.name&quot;&gt;name&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.client.html#superscore.client.CallbackType&quot;];
-
-&quot;superscore.client.Client&quot; [color=&quot;black&quot;, fontcolor=&quot;black&quot;, label=&lt;&lt;table border=&quot;0&quot; align=&quot;left&quot; tooltip=&quot;Client&quot; width=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
-	&lt;tr&gt;&lt;td border=&quot;1&quot; href=&quot;./superscore.client.html#superscore.client.Client&quot; tooltip=&quot;Client&quot; target=&quot;_top&quot;&gt;&lt;b&gt;Client&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Attributes:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.backend &quot; target=&quot;_top&quot; tooltip=&quot;Client.backend : _Backend&quot;&gt;backend : _Backend&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.cl &quot; target=&quot;_top&quot; tooltip=&quot;Client.cl : ControlLayer&quot;&gt;cl : ControlLayer&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.enable_editing_past &quot; target=&quot;_top&quot; tooltip=&quot;Client.enable_editing_past : bool&quot;&gt;enable_editing_past : bool&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.recent_entry_cache &quot; target=&quot;_top&quot; tooltip=&quot;Client.recent_entry_cache : set[UUID]&quot;&gt;recent_entry_cache : set[UUID]&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; tooltip=&quot;&quot;&gt;&lt;b&gt;Methods:&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.apply&quot; target=&quot;_top&quot; tooltip=&quot;Client.apply&quot;&gt;apply(entry: Union[Setpoint, Snapshot], sequential: bool): Optional[List[TaskStatus]]&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.compare&quot; target=&quot;_top&quot; tooltip=&quot;Client.compare&quot;&gt;compare(entry_l: Entry, entry_r: Entry): EntryDiff&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.convert_to_template&quot; target=&quot;_top&quot; tooltip=&quot;Client.convert_to_template&quot;&gt;convert_to_template(collection: Collection): Template&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.delete&quot; target=&quot;_top&quot; tooltip=&quot;Client.delete&quot;&gt;delete(entry: Entry): None&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.fill&quot; target=&quot;_top&quot; tooltip=&quot;Client.fill&quot;&gt;fill(entry: Union[Entry, UUID], fill_depth: Optional[int]): None&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.fill_template&quot; target=&quot;_top&quot; tooltip=&quot;Client.fill_template&quot;&gt;fill_template(template: Template, substitutions: Dict[str, str]): Collection&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.find_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.find_config&quot;&gt;find_config(): Path&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.find_origin_collection&quot; target=&quot;_top&quot; tooltip=&quot;Client.find_origin_collection&quot;&gt;find_origin_collection(entry: Union[Collection, Snapshot]): Collection&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.from_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.from_config&quot;&gt;from_config(cfg: Optional[Path])&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.from_parsed_config&quot; target=&quot;_top&quot; tooltip=&quot;Client.from_parsed_config&quot;&gt;from_parsed_config(cfg_parser: configparser.ConfigParser, cfg_path)&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.get_entry&quot; target=&quot;_top&quot; tooltip=&quot;Client.get_entry&quot;&gt;get_entry(uuid: UUID, fill: bool, force_reload: bool): Entry&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.get_user&quot; target=&quot;_top&quot; tooltip=&quot;Client.get_user&quot;&gt;get_user(): str&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.is_editable&quot; target=&quot;_top&quot; tooltip=&quot;Client.is_editable&quot;&gt;is_editable(entry: Entry): bool&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.is_user_authorized&quot; target=&quot;_top&quot; tooltip=&quot;Client.is_user_authorized&quot;&gt;is_user_authorized(user: str): bool&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.register_callback&quot; target=&quot;_top&quot; tooltip=&quot;Client.register_callback&quot;&gt;register_callback(cb_type: CallbackType, cb: Callable[[UUID], None])&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.run_callbacks&quot; target=&quot;_top&quot; tooltip=&quot;Client.run_callbacks&quot;&gt;run_callbacks(cb_type: CallbackType)&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.save&quot; target=&quot;_top&quot; tooltip=&quot;Client.save&quot;&gt;save(entry: Entry)&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.search&quot; target=&quot;_top&quot; tooltip=&quot;Client.search&quot;&gt;search(): Generator[Entry, None, None]&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.snap&quot; target=&quot;_top&quot; tooltip=&quot;Client.snap&quot;&gt;snap(entry: Collection, dest: Optional[Snapshot]): Snapshot&lt;/td&gt;&lt;/tr&gt;
-	&lt;tr&gt;&lt;td align=&quot;left&quot; href=&quot;./superscore.client.html#superscore.client.Client.validate&quot; target=&quot;_top&quot; tooltip=&quot;Client.validate&quot;&gt;validate(entry: Entry): ValidationResult&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&gt;, shape=&quot;record&quot;, style=&quot;solid&quot;, URL=&quot;./superscore.client.html#superscore.client.Client&quot;];
-
-}
-<figcaption>
-<p><span class="caption-text">UML Diagram describing the superscore Client</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<p><a class="reference external" href="_images/graphviz-6af7a6ed6be4e5594a76b464bb34bc10d16ce919.svg">Open in a new tab</a></p>
+for programmatic or interactive use of the <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code>.</p>
 <section id="backend-types">
 <h3>Backend types<a class="headerlink" href="#backend-types" title="Link to this heading"></a></h3>
 <p><strong>`FilestoreBackend`</strong>: Stores Entries in a single file as a JSON blob.  The JSON is generated
@@ -184,7 +135,7 @@ local development, as changes to the database are easily observed.  This backend
 obviously scales poorly with database size.</p>
 <p><strong>`DirectoryBackend`</strong>: Stores Entries in directories based on their uuid.
 The directory structure is a <a class="reference external" href="https://en.wikipedia.org/wiki/Radix_tree">Radix Tree</a>
-with a default depth of 3.  This schema keeps <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> data organized and spread
+with a default depth of 3.  This schema keeps <a class="reference internal" href="_autosummary/superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a> data organized and spread
 across multiple files for safety.</p>
 </section>
 <section id="control-layer-types">
@@ -217,7 +168,7 @@ database.</p>
 <span class="n">snap</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Setpoint</span><span class="p">(</span><span class="n">pv_name</span><span class="o">=</span><span class="s2">&quot;MY:ENUM&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>Once the <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> has been created, <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> methods can be used to verify and
+<p>Once the <a class="reference internal" href="_autosummary/superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a> has been created, <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code> methods can be used to verify and
 save the data to the database.</p>
 </section>
 <section id="a-primer-on-the-gui">
@@ -227,9 +178,9 @@ of the code that comprises the GUI.</p>
 <section id="main-window-singleton-windowlinker">
 <h3>Main Window Singleton, <code class="xref any docutils literal notranslate"><span class="pre">WindowLinker</span></code><a class="headerlink" href="#main-window-singleton-windowlinker" title="Link to this heading"></a></h3>
 <p>The GUI centered around the “main window”, which holds a tree-view and a tab widget.
-The tab widget holds pages that display and edit <code class="xref any docutils literal notranslate"><span class="pre">Entry</span></code> data.  This <code class="xref any docutils literal notranslate"><span class="pre">Window</span></code> is
+The tab widget holds pages that display and edit <a class="reference internal" href="_autosummary/superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Entry</span></code></a> data.  This <code class="xref any docutils literal notranslate"><span class="pre">Window</span></code> is
 a singleton that we expose to every widget in the application via the <code class="xref any docutils literal notranslate"><span class="pre">WindowLinker</span></code>
-mixin.  This mixin provides methods for accessing the central <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> and a method
+mixin.  This mixin provides methods for accessing the central <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code> and a method
 for opening a page (<code class="xref any docutils literal notranslate"><span class="pre">Window.open_page_slot</span></code>).  This mixin should be added to any
 page widget opened by the application.</p>
 </section>
@@ -252,7 +203,7 @@ application inherit from.  Widgets inheriting from <code class="xref any docutil
 with the dataclass the widget is responsible for.  The <code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code> will
 be constructed automatically, based on the <code class="docutils literal notranslate"><span class="pre">is_independent</span></code> flag.  By default,
 each <code class="docutils literal notranslate"><span class="pre">DataWidget</span></code> will create a unique bridge for the dataclass it receives.
-This is because the application relies on the <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> as the single source of
+This is because the application relies on the <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code> as the single source of
 truth, and widgets should only update their view if data from the backend has changed.
 If <code class="docutils literal notranslate"><span class="pre">is_independent</span></code> is False, the <code class="xref any docutils literal notranslate"><span class="pre">QDataclassBridge</span></code> will be created for the
 exact instance of the dataclass provided.  This option would be chosen if multiple

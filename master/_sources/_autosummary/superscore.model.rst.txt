@@ -1,6 +1,49 @@
 ﻿superscore.model
 ================
 
-.. currentmodule:: superscore
+.. automodule:: superscore.model
 
-.. automodule:: model
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      get_entry_from_path
+      save_entry_to_path
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+   
+      Collection
+      Entry
+      Nestable
+      Parameter
+      Readback
+      Root
+      Setpoint
+      Severity
+      Snapshot
+      Status
+      Template
+   
+   
+
+   
+   
+   
+
+
+

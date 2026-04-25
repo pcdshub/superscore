@@ -1,0 +1,38 @@
+superscore.backends.core
+========================
+
+.. automodule:: superscore.backends.core
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      populate_backend
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+   
+      SearchTerm
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,6 @@
+superscore.templates.safe\_replace
+==================================
+
+.. currentmodule:: superscore.templates
+
+.. autofunction:: safe_replace

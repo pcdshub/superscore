@@ -1,6 +1,32 @@
 ﻿superscore.validation
 =====================
 
-.. currentmodule:: superscore
+.. automodule:: superscore.validation
 
-.. automodule:: validation
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+   
+      ValidationCode
+      ValidationResult
+   
+   
+
+   
+   
+   
+
+
+

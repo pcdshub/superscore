@@ -1,0 +1,44 @@
+superscore.model.Severity
+=========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Severity
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Severity.conjugate
+      ~Severity.bit_length
+      ~Severity.bit_count
+      ~Severity.to_bytes
+      ~Severity.from_bytes
+      ~Severity.as_integer_ratio
+      ~Severity.is_integer
+      ~Severity.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Severity.real
+      ~Severity.imag
+      ~Severity.numerator
+      ~Severity.denominator
+      ~Severity.NO_ALARM
+      ~Severity.MINOR
+      ~Severity.MAJOR
+      ~Severity.INVALID
+   
+   

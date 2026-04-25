@@ -1,0 +1,35 @@
+superscore.control\_layers.status.TaskStatus
+============================================
+
+.. currentmodule:: superscore.control_layers.status
+
+.. autoclass:: TaskStatus
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TaskStatus.__init__
+      ~TaskStatus.add_callback
+      ~TaskStatus.exception
+      ~TaskStatus.wait
+      ~TaskStatus.wrap
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TaskStatus.done
+      ~TaskStatus.success
+   
+   

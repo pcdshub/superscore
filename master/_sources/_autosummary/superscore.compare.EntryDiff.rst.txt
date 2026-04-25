@@ -1,0 +1,32 @@
+superscore.compare.EntryDiff
+============================
+
+.. currentmodule:: superscore.compare
+
+.. autoclass:: EntryDiff
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~EntryDiff.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~EntryDiff.original_entry
+      ~EntryDiff.new_entry
+      ~EntryDiff.diffs
+   
+   

@@ -1,0 +1,42 @@
+superscore.model.Readback
+=========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Readback
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Readback.__init__
+      ~Readback.from_parameter
+      ~Readback.swap_to_uuids
+      ~Readback.validate
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Readback.abs_tolerance
+      ~Readback.data
+      ~Readback.description
+      ~Readback.pv_name
+      ~Readback.rel_tolerance
+      ~Readback.severity
+      ~Readback.status
+      ~Readback.timeout
+      ~Readback.uuid
+      ~Readback.creation_time
+   
+   

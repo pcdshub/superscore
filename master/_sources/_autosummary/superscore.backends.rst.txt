@@ -1,6 +1,42 @@
 ﻿superscore.backends
 ===================
 
-.. currentmodule:: superscore.backends
-
 .. automodule:: superscore.backends
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      get_backend
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   core
+   directory
+   filestore
+   test
+

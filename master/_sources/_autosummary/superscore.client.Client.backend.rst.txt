@@ -1,0 +1,6 @@
+superscore.client.Client.backend
+================================
+
+.. currentmodule:: superscore.client
+
+.. autoattribute:: Client.backend

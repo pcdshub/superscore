@@ -1,0 +1,6 @@
+superscore.model.save\_entry\_to\_path
+======================================
+
+.. currentmodule:: superscore.model
+
+.. autofunction:: save_entry_to_path

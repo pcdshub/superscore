@@ -96,7 +96,7 @@ record of the contributions made.</p>
 <h2>API Breaks<a class="headerlink" href="#api-breaks" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Client._build_snapshot optionally accepts an empty Snapshot to fill instead of creating a new one</p></li>
-<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">superscore.backends.filestore.FilestoreBackend.__init__()</span></code> does not accept <code class="docutils literal notranslate"><span class="pre">initialize</span></code> arg</p></li>
+<li><p><a class="reference internal" href="_autosummary/superscore.backends.filestore.FilestoreBackend.html#superscore.backends.filestore.FilestoreBackend.__init__" title="superscore.backends.filestore.FilestoreBackend.__init__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">superscore.backends.filestore.FilestoreBackend.__init__()</span></code></a> does not accept <code class="docutils literal notranslate"><span class="pre">initialize</span></code> arg</p></li>
 <li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">FilestoreBackend.store()</span></code> does not accept any args</p></li>
 <li><p>the filestore_backend fixture requires parametrization using ‘db/filestore.json’ to match prior behaviour</p></li>
 <li><p>the linac_data fixture returns a Root rather than a tuple of Entries</p></li>
@@ -139,7 +139,7 @@ record of the contributions made.</p>
 <li><p>Adds icons to represent various <code class="docutils literal notranslate"><span class="pre">Entry</span></code> subclasses</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">demo</span></code> subcommand that launches the UI with a backend and IOC populated with PV
 data from selectable fixtures</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ui.py::main</span></code> accepts an existing <a class="reference internal" href="_autosummary/superscore.client.Client.html#superscore.client.Client" title="superscore.client.Client"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Client</span></code></a> as an arg</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ui.py::main</span></code> accepts an existing <code class="xref any docutils literal notranslate"><span class="pre">Client</span></code> as an arg</p></li>
 <li><p>Add dataclasses and simple serialization tests</p></li>
 <li><p>Adds ability for Client to search for configuration files, and load settings from them.</p></li>
 <li><p>Adds top-level tree to main window</p></li>

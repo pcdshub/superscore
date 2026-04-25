@@ -1,0 +1,37 @@
+superscore.backends.test.TestBackend
+====================================
+
+.. currentmodule:: superscore.backends.test
+
+.. autoclass:: TestBackend
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TestBackend.__init__
+      ~TestBackend.compare
+      ~TestBackend.delete_entry
+      ~TestBackend.entry_writable
+      ~TestBackend.get_entry
+      ~TestBackend.save_entry
+      ~TestBackend.search
+      ~TestBackend.update_entry
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TestBackend.root
+   
+   

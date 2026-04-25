@@ -1,0 +1,39 @@
+superscore.model.Parameter
+==========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Parameter
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Parameter.__init__
+      ~Parameter.swap_to_uuids
+      ~Parameter.validate
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Parameter.abs_tolerance
+      ~Parameter.description
+      ~Parameter.pv_name
+      ~Parameter.read_only
+      ~Parameter.readback
+      ~Parameter.rel_tolerance
+      ~Parameter.uuid
+      ~Parameter.creation_time
+   
+   

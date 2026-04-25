@@ -1,0 +1,40 @@
+superscore.model.Setpoint
+=========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Setpoint
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Setpoint.__init__
+      ~Setpoint.from_parameter
+      ~Setpoint.swap_to_uuids
+      ~Setpoint.validate
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Setpoint.data
+      ~Setpoint.description
+      ~Setpoint.pv_name
+      ~Setpoint.readback
+      ~Setpoint.severity
+      ~Setpoint.status
+      ~Setpoint.uuid
+      ~Setpoint.creation_time
+   
+   

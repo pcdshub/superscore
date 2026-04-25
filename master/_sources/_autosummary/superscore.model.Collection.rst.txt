@@ -1,0 +1,41 @@
+superscore.model.Collection
+===========================
+
+.. currentmodule:: superscore.model
+
+.. autoclass:: Collection
+   :members:
+   :show-inheritance:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Collection.__init__
+      ~Collection.has_cycle
+      ~Collection.swap_to_uuids
+      ~Collection.validate
+      ~Collection.walk_children
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Collection.all_tags
+      ~Collection.description
+      ~Collection.meta_pvs
+      ~Collection.title
+      ~Collection.children
+      ~Collection.tags
+      ~Collection.uuid
+      ~Collection.creation_time
+   
+   

@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="superscore.client.Client" href="superscore.client.Client.html" />
+    <link rel="next" title="superscore.model.get_entry_from_path" href="superscore.model.get_entry_from_path.html" />
     <link rel="prev" title="Superscore API" href="../api.html" /> 
 </head>
 
@@ -48,14 +48,28 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">Superscore API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#dataclasses">Dataclasses</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">superscore.model</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">superscore.model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.get_entry_from_path.html">superscore.model.get_entry_from_path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.save_entry_to_path.html">superscore.model.save_entry_to_path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Collection.html">superscore.model.Collection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Entry.html">superscore.model.Entry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Nestable.html">superscore.model.Nestable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Parameter.html">superscore.model.Parameter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Readback.html">superscore.model.Readback</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Root.html">superscore.model.Root</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Setpoint.html">superscore.model.Setpoint</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Severity.html">superscore.model.Severity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Snapshot.html">superscore.model.Snapshot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Status.html">superscore.model.Status</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superscore.model.Template.html">superscore.model.Template</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#client">Client</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#backend">Backend</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#control-layers">Control Layers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data-manipulation-routines">Data Manipulation Routines</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#graphical-user-interface">Graphical User Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../model.html">Data Model</a></li>
@@ -93,8 +107,58 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="superscore-model">
-<h1>superscore.model<a class="headerlink" href="#superscore-model" title="Link to this heading"></a></h1>
+  <section id="module-superscore.model">
+<span id="superscore-model"></span><h1>superscore.model<a class="headerlink" href="#module-superscore.model" title="Link to this heading"></a></h1>
+<p>Classes for representing data</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.get_entry_from_path.html#superscore.model.get_entry_from_path" title="superscore.model.get_entry_from_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entry_from_path</span></code></a>(path)</p></td>
+<td><p>Loads an Entry from a serialized json file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.save_entry_to_path.html#superscore.model.save_entry_to_path" title="superscore.model.save_entry_to_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_entry_to_path</span></code></a>(entry, path)</p></td>
+<td><p>Save <code class="docutils literal notranslate"><span class="pre">entry</span></code> to <code class="docutils literal notranslate"><span class="pre">path</span></code>, wrapping in a <code class="docutils literal notranslate"><span class="pre">Root</span></code> container</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Collection.html#superscore.model.Collection" title="superscore.model.Collection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>([uuid, description, ...])</p></td>
+<td><p>Nestable group of Parameters and Collections</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.Entry.html#superscore.model.Entry" title="superscore.model.Entry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Entry</span></code></a>([uuid, description, creation_time])</p></td>
+<td><p>Base class for items in the data model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Nestable.html#superscore.model.Nestable" title="superscore.model.Nestable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Nestable</span></code></a>()</p></td>
+<td><p>Mix-in class that provides methods for nested container Entries</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.Parameter.html#superscore.model.Parameter" title="superscore.model.Parameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Parameter</span></code></a>([uuid, description, ...])</p></td>
+<td><p>An Entry that stores a PV name and relevant metadata</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Readback.html#superscore.model.Readback" title="superscore.model.Readback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Readback</span></code></a>([uuid, description, creation_time, ...])</p></td>
+<td><p>A read-only Value representing machine state that cannot be written to.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.Root.html#superscore.model.Root" title="superscore.model.Root"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Root</span></code></a>([uuid, entries])</p></td>
+<td><p>Top level structure holding <code class="docutils literal notranslate"><span class="pre">Entry</span></code>'s.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Setpoint.html#superscore.model.Setpoint" title="superscore.model.Setpoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Setpoint</span></code></a>([uuid, description, creation_time, ...])</p></td>
+<td><p>A Value that can be written to the EPICS environment</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.Severity.html#superscore.model.Severity" title="superscore.model.Severity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Severity</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Snapshot.html#superscore.model.Snapshot" title="superscore.model.Snapshot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Snapshot</span></code></a>([uuid, description, creation_time, ...])</p></td>
+<td><p>Nestable group of Values and Snapshots.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="superscore.model.Status.html#superscore.model.Status" title="superscore.model.Status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Status</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="superscore.model.Template.html#superscore.model.Template" title="superscore.model.Template"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Template</span></code></a>([uuid, description, creation_time, ...])</p></td>
+<td><p>A template for creating a Collections and Parameters with placeholders.</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 
 
@@ -102,7 +166,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../api.html" class="btn btn-neutral float-left" title="Superscore API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="superscore.client.Client.html" class="btn btn-neutral float-right" title="superscore.client.Client" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="superscore.model.get_entry_from_path.html" class="btn btn-neutral float-right" title="superscore.model.get_entry_from_path" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

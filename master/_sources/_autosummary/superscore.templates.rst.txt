@@ -1,6 +1,41 @@
 ﻿superscore.templates
 ====================
 
-.. currentmodule:: superscore
+.. automodule:: superscore.templates
 
-.. automodule:: templates
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      fill_template_collection
+      find_placeholders
+      safe_replace
+      substitute_placeholders
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+   
+      TemplateMode
+   
+   
+
+   
+   
+   
+
+
+
